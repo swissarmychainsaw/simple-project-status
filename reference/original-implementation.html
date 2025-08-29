@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GNS Status → HTML Generator (Designer v1)</title>
+<style>
+  :root{
+    --font: Inter, Arial, Helvetica, sans-serif;
+    --text:#111; --muted:#555; --bg:#ffffff; --card:#ffffff; --border:#dcdcdc; --soft:#f7f7f7;
+    --accent:#086dd7; --green:#27c08a; --yellow:#f4c542; --red:#e5534b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.45}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px}
+  h1{margin:0 0 8px;font-size:22px}
+  h2{margin:16px 0 8px;font-size:18px;border-bottom:1px solid var(--border);padding-bottom:6px}
+  .grid{display:grid;grid-template-columns:420px 1fr;gap:18px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  label{display:block;font-weight:600;margin:10px 0 6px}
+  input, select, textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff}
+  textarea{min-height:96px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{appearance:none;border:1px solid var(--border);background:#111;color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
+  .btn.secondary{background:#fff;color:#111}
+  .btn.ghost{background:transparent}
+  .btn.ghost{background:#f0f0f0; color:#111; border:1px solid var(--border)}
+  .toolbar{display:flex;gap:6px;flex-wrap:wrap}
+  .muted{color:var(--muted);font-size:12px}
+  .preview{border:1px dashed var(--border);background:#fff;border-radius:12px;padding:10px}
+  .stack{display:flex;gap:8px;flex-wrap:wrap}
+  .panel{background:var(--soft);border:1px solid var(--border);padding:10px;border-radius:10px;margin-top:8px}
+  /* Generated HTML styles baseline (kept minimal; extended by generatedStyles) */
+  .summary-table{width:100%;border-collapse:collapse;margin:8px 0 16px}
+  .summary-table th,.summary-table td{border:1px solid var(--border);padding:12px 14px;vertical-align:top}
+  .summary-table th{background:var(--soft);font-weight:700;text-align:center;white-space:nowrap}
+  .center{text-align:center}
+  .name-cell{font-weight:700;text-align:center}
+  .pill{display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;color:#fff}
+  .pill.green{background:var(--green)}
+  .pill.yellow{background:var(--yellow);color:#111}
+  .pill.red{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GNS Weekly Status → HTML Generator (Designer v1)</h1>
+  <p class="muted">Build polished executive-ready HTML. Left: edit content and design. Right: preview & export. Bold/italic/underline supported via toolbar or HTML tags.</p>
+
+  <div class="grid">
+    <!-- Left: Form -->
+    <div class="card">
+      <h2>Content</h2>
+
+      <label>Program Summary</label>
+      <textarea id="programSummary" placeholder="Describe what GNS is responsible for…"></textarea>
+
+      <div class="row">
+        <div>
+          <label>Last Status</label>
+          <select id="lastStatus"><option>Green</option><option>Yellow</option><option>Red</option></select>
+        </div>
+        <div>
+          <label>Current Status</label>
+          <select id="currentStatus"><option>Green</option><option>Yellow</option><option>Red</option></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Trending</label>
+          <select id="trending"><option>Green</option><option>Yellow</option><option>Red</option></select>
+        </div>
+        <div>
+          <label>As of (date)</label>
+          <input type="date" id="asOf" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>TPM</label>
+          <input type="text" id="tpm" placeholder="Nick Adams" />
+        </div>
+        <div>
+          <label>Engineering DRI</label>
+          <input type="text" id="engDri" placeholder="Antony Alexander" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Business Sponsor</label>
+          <input type="text" id="bizSponsor" placeholder="Niha Mathur" />
+        </div>
+        <div>
+          <label>Engineering Sponsor</label>
+          <input type="text" id="engSponsor" placeholder="Suchreet Dhaliwal" />
+        </div>
+      </div>
+
+      <label>Executive Summary</label>
+      <div class="toolbar">
+        <button class="btn secondary" data-md="b" data-target="execSummary" title="Bold"><b>B</b></button>
+        <button class="btn secondary" data-md="i" data-target="execSummary" title="Italic"><i>I</i></button>
+        <button class="btn secondary" data-md="u" data-target="execSummary" title="Underline"><u>U</u></button>
+      </div>
+      <textarea id="execSummary" placeholder="Key outcomes and results…"></textarea>
+
+      <label>Lowlights (one per line)</label>
+      <textarea id="lowlights" placeholder="Example: OBN paused for 3 weeks"></textarea>
+
+      <label>Updates</label>
+<div class="row">
+  <div>
+    <label>Track Name</label>
+    <input type="text" id="updatesTrack" placeholder="Example: Network Security" />
+  </div>
+  <div>
+    <label>Team Members</label>
+    <input type="text" id="updatesTeam" placeholder="Example: Ramakant, Cyrus" />
+  </div>
+</div>
+<div class="toolbar">
+  <button class="btn secondary" id="btnPastePlain" title="Paste as plain text">Paste Plain</button>
+  <button class="btn ghost" id="btnClearUpdates" title="Clear updates">Clear</button>
+  <span class="muted">(You can paste rich content here, including tables.)</span>
+</div>
+<div id="updatesHtml" contenteditable="true" class="panel" style="min-height:120px; background:#fff"></div>
+
+
+      <h2>Design</h2>
+      <div class="panel">
+        <div class="row">
+          <div>
+            <label>Font</label>
+            <select id="optFont">
+              <option value="Inter, Arial, Helvetica, sans-serif">Inter / System</option>
+              <option value="Arial, Helvetica, sans-serif">Arial</option>
+              <option value="Segoe UI, Arial, Helvetica, sans-serif">Segoe UI</option>
+              <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+              <option value="Georgia, serif">Georgia</option>
+            </select>
+          </div>
+          <div>
+            <label>Accent Color</label>
+            <input type="color" id="optAccent" value="#086dd7" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Density</label>
+            <select id="optDensity">
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+          <div>
+            <label>Table Borders</label>
+            <select id="optBorders">
+              <option value="lines">Lines</option>
+              <option value="shaded">Shaded rows</option>
+            </select>
+          </div>
+        </div>
+        <label>Custom CSS (optional, injected into exported HTML)</label>
+        <textarea id="optCustomCss" placeholder=":root{ --green:#19b77d; } /* your tweaks */"></textarea>
+      </div>
+
+      <div class="stack" style="margin-top:12px">
+        <button class="btn" id="genBtn">Generate</button>
+        <button class="btn secondary" id="copyBtn">Copy HTML</button>
+        <button class="btn secondary" id="downloadBtn">Download .html</button>
+        <button class="btn ghost" id="resetBtn" title="Clear saved fields">Reset saved</button>
+      </div>
+      <p class="muted">Fields remembered: Program Summary, TPM, Engineering DRI, Business Sponsor, Engineering Sponsor. Design choices are also remembered.</p>
+    </div>
+
+    <!-- Right: Output -->
+    <div class="card">
+      <h2>Preview</h2>
+      <div id="preview" class="preview"></div>
+      <h2>Generated HTML</h2>
+      <textarea id="output" style="min-height:220px"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ---- Persistence
+const PERSIST_PREFIX = 'gnsDesigner.';
+//const SAVE_FIELDS = ['programSummary','tpm','engDri','bizSponsor','engSponsor','optFont','optAccent','optDensity','optBorders','optCustomCss','updatesHtml'];
+const SAVE_FIELDS = ['programSummary','tpm','engDri','bizSponsor','engSponsor','optFont','optAccent','optDensity','optBorders','optCustomCss','updatesHtml','updatesTrack','updatesTeam'];
+
+function loadPersist(){
+  SAVE_FIELDS.forEach(id => {
+    const el = $(id); if(!el) return;
+    const v = localStorage.getItem(PERSIST_PREFIX+id);
+    if(v!==null){ if(id==='updatesHtml') el.innerHTML = v; else el.value = v; }
+  });
+}
+function hookPersist(){
+  SAVE_FIELDS.forEach(id => {
+    const el = $(id); if(!el) return;
+    const handler = ()=>{
+      const val = (id==='updatesHtml') ? el.innerHTML : el.value;
+      localStorage.setItem(PERSIST_PREFIX+id, val);
+    };
+    el.addEventListener('input', handler);
+    if(id==='updatesHtml') el.addEventListener('blur', handler);
+  });
+}
+function resetPersist(){ SAVE_FIELDS.forEach(id => localStorage.removeItem(PERSIST_PREFIX+id)); alert('Saved values cleared.'); }
+
+// ---- Helpers
+function escapeHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function safeInline(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/&lt;(\/)?(b|i|u)&gt;/g,'<$1$2>');}
+function sanitizeHtml(html){
+  const ALLOWED = new Set(['b','i','u','p','br','ul','ol','li','a','table','thead','tbody','tr','th','td','strong','em','div','span']);
+  const WRAP = document.createElement('div'); WRAP.innerHTML = String(html||'');
+  const walker = document.createTreeWalker(WRAP, NodeFilter.SHOW_ELEMENT, null);
+  const toRemove = [];
+  while(walker.nextNode()){
+    const el = walker.currentNode; const tag = el.tagName.toLowerCase();
+    if(!ALLOWED.has(tag)) { toRemove.push(el); continue; }
+    for(const attr of Array.from(el.attributes)){
+      if(!(tag==='a' && attr.name==='href')) el.removeAttribute(attr.name);
+      if(tag==='a' && attr.name==='href' && /^(javascript:)/i.test(attr.value)) el.removeAttribute('href');
+    }
+  }
+  toRemove.forEach(n=>n.replaceWith(...Array.from(n.childNodes)));
+  return WRAP.innerHTML;
+}
+function nlToParas(text){const parts=String(text??'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);return parts.map(p=>`<p>${safeInline(p).replace(/\n/g,'<br>')}</p>`).join('\n');}
+function linesToList(text){const items=String(text??'').split(/\n/).map(s=>s.trim()).filter(Boolean);return items.length?`<ul>\n${items.map(i=>`  <li>${safeInline(i)}</li>`).join('\n')}\n</ul>`:'';}
+function pill(val){const v=(val||'').toLowerCase();if(v==='red')return'<span class="pill red">Red</span>';if(v==='yellow')return'<span class="pill yellow">Yellow</span>';return'<span class="pill green">Green</span>';}
+
+// ---- Designer → Generated CSS
+// function generatedStyles(opts){
+//  const density = opts.optDensity==='compact' ? '8px 10px' : '12px 14px';
+//  const shaded = opts.optBorders==='shaded';
+//  return `<style>
+//:root{ --font:${'${opts.optFont}'}; --accent:${'${opts.optAccent}'}; --green:#27c08a; --yellow:#f4c542; --red:#e5534b; --border:#dcdcdc; --soft:#f7f7f7; --text:#111;}
+//body{font-family:var(--font);color:var(--text);line-height:1.45}
+//.summary-table{width:100%;border-collapse:collapse;margin:8px 0 16px}
+//.summary-table th,.summary-table td{border:${'${shaded?\'0\':\'1px solid var(--border)\'}'};padding:${'${density}'};vertical-align:top}
+//.summary-table th{background:var(--soft);font-weight:700;text-align:center;white-space:nowrap}
+//${'${shaded?\'.summary-table tr:nth-child(even){background:#fbfbfb}\':\'\'}'}
+//.center{text-align:center}.name-cell{font-weight:700;text-align:center}
+//.pill{display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;color:#fff}
+//.pill.green{background:var(--green)}.pill.yellow{background:var(--yellow);color:#111}.pill.red{background:var(--red)}
+//${'${opts.optCustomCss||\'\'}'}
+//</style>`;
+//}
+function generatedStyles(opts){
+  const density = opts.optDensity === 'compact' ? '8px 10px' : '12px 14px';
+  const shaded  = opts.optBorders === 'shaded';
+  return `<style>
+:root{ --font:${opts.optFont}; --accent:${opts.optAccent}; --green:#27c08a; --yellow:#f4c542; --red:#e5534b; --border:#dcdcdc; --soft:#f7f7f7; --text:#111;}
+body{font-family:var(--font);color:var(--text);line-height:1.45}
+.summary-table{width:100%;border-collapse:collapse;margin:8px 0 16px}
+.summary-table th,.summary-table td{border:${shaded ? '0' : '1px solid var(--border)'};padding:${density};vertical-align:top}
+.summary-table th{background:var(--soft);font-weight:700;text-align:center;white-space:nowrap}
+${shaded ? '.summary-table tr:nth-child(even){background:#fbfbfb}' : ''}
+.center{text-align:center}.name-cell{font-weight:700;text-align:center}
+.pill{display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;color:#fff}
+.pill.green{background:var(--green)}.pill.yellow{background:var(--yellow);color:#111}.pill.red{background:var(--red)}
+${opts.optCustomCss || ''}
+</style>`;
+}
+
+
+function buildHtml(data, opts){
+  const asOf = data.asOf
+    ? new Date(data.asOf).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' })
+    : '';
+  const updatesBlock =
+    (data.updatesHtml && data.updatesHtml.trim())
+      ? `<h2>Updates</h2>${sanitizeHtml(data.updatesHtml)}`
+      : '';
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/>${generatedStyles(opts)}<title>Status</title></head><body>
+<table class="summary-table"><tr><th>Program Summary</th><td>${nlToParas(data.programSummary)}</td></tr></table>
+<table class="summary-table"><tr><th>Last Status</th><th>Current Status</th><th>Trending</th><th>Date</th></tr>
+<tr><td class="center">${pill(data.lastStatus)}</td><td class="center">${pill(data.currentStatus)}</td><td class="center">${pill(data.trending)}</td><td class="center">${escapeHtml(asOf)}</td></tr></table>
+<table class="summary-table"><tr><th>TPM</th><th>Engineering DRI</th><th>Business Sponsor</th><th>Engineering Sponsor</th></tr>
+<tr><td class="name-cell">${escapeHtml(data.tpm)}</td><td class="name-cell">${escapeHtml(data.engDri)}</td><td class="name-cell">${escapeHtml(data.bizSponsor)}</td><td class="name-cell">${escapeHtml(data.engSponsor)}</td></tr></table>
+${data.execSummary ? `<h2>Executive Summary</h2>${nlToParas(data.execSummary)}` : ''}
+${data.lowlights   ? `<h2>Lowlights</h2>${linesToList(data.lowlights)}`     : ''}
+${updatesBlock}
+</body></html>`;
+}
+
+
+
+// ---- UI wiring
+function generate(){
+  const data={
+    programSummary:$("programSummary").value,
+    lastStatus:$("lastStatus").value,
+    currentStatus:$("currentStatus").value,
+    trending:$("trending").value,
+    asOf:$("asOf").value,
+    tpm:$("tpm").value,
+    engDri:$("engDri").value,
+    bizSponsor:$("bizSponsor").value,
+    engSponsor:$("engSponsor").value,
+    execSummary:$("execSummary").value,
+    lowlights:$("lowlights").value,
+    updatesHtml:$("updatesHtml").innerHTML
+  };
+  const opts={ optFont:$("optFont").value, optAccent:$("optAccent").value, optDensity:$("optDensity").value, optBorders:$("optBorders").value, optCustomCss:$("optCustomCss").value };
+  const html = buildHtml(data, opts);
+  $("output").value = html;
+  $("preview").innerHTML = html;
+}
+
+function copyHtml(){ if(!$("output").value) generate(); navigator.clipboard.writeText($("output").value); }
+function downloadHtml(){ if(!$("output").value) generate(); const blob = new Blob([$("output").value],{type:'text/html'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gns-status.html'; a.click(); URL.revokeObjectURL(a.href); }
+
+function wrapSelection(targetId, tag){
+  const el = $(targetId); const {selectionStart:s, selectionEnd:e, value:v} = el; if(s==null || e==null || s===e){ el.setRangeText(`<${tag}></${tag}>`, e, e, 'end'); }
+  else { const before = v.slice(0,s), mid=v.slice(s,e), after=v.slice(e); el.value = `${before}<${tag}>${mid}</${tag}>${after}`; el.selectionStart = s; el.selectionEnd = e + tag.length*2 + 5; }
+  el.dispatchEvent(new Event('input')); generate();
+}
+
+// Toolbar events (textareas only)
+Array.from(document.querySelectorAll('.toolbar .btn[data-target]')).forEach(btn=>{
+  btn.addEventListener('click', (e)=>{ e.preventDefault(); const tag = btn.dataset.md; const target = btn.dataset.target; wrapSelection(target, tag); });
+});
+
+// Updates: paste-as-plain helper
+$("btnPastePlain").addEventListener('click', (e)=>{
+  e.preventDefault();
+  navigator.clipboard.readText().then(txt=>{
+    $("updatesHtml").innerHTML = `<p>${escapeHtml(txt).replace(/\n/g,'<br>')}</p>`;
+    $("updatesHtml").dispatchEvent(new Event('input'));
+    generate();
+  });
+});
+// Updates: clear content
+$("btnClearUpdates").addEventListener('click', (e)=>{
+  e.preventDefault();
+  $("updatesTrack").value = "";
+  $("updatesTeam").value = "";
+  $("updatesHtml").innerHTML = "";
+  localStorage.removeItem(PERSIST_PREFIX + "updatesTrack");
+  localStorage.removeItem(PERSIST_PREFIX + "updatesTeam");
+  localStorage.removeItem(PERSIST_PREFIX + "updatesHtml");
+  $("updatesHtml").dispatchEvent(new Event('input'));
+  generate();
+});
+
+
+
+// Buttons
+$("genBtn").addEventListener('click', generate);
+$("copyBtn").addEventListener('click', copyHtml);
+$("downloadBtn").addEventListener('click', downloadHtml);
+$("resetBtn").addEventListener('click', ()=>{ resetPersist(); location.reload();});
+
+// Live update on design changes & rich Updates edits
+["optFont","optAccent","optDensity","optBorders"].forEach(id=>$(id).addEventListener('input', generate));
+
+## Overview
+## Goals
+
+* Provide a **structured workflow** for creating standardized status reports.
+* Support **real-time preview** of reports while editing.
+* Allow for **design customization** (fonts, colors, density, borders, custom CSS).
+* Make exporting **fast and simple** (copy, download).
+
+
+## Target Users
+* Font selector (Inter, Arial, Segoe UI, Helvetica, Georgia).
+* Export panel showing raw generated HTML.
+* Buttons for Generate, Copy HTML, Download HTML, Reset Saved Fields.
+* Input sanitization to strip unsafe tags and attributes.
+**As a report owner,** I want to enter a short description of the program/project so that readers understand the scope.
+
+
+**As a report owner,** I want to assign accountability fields (owner, DRI, sponsors) so that stakeholders know who is responsible.
+
+* [ ] Four ownership fields exist: Report Owner, Engineering DRI, Business Sponsor, Technical Sponsor.
+* [ ] Rich text controls apply `<b>`, `<i>`, `<u>` formatting.
+* [ ] Output sanitization preserves only safe formatting.
+* [ ] Content renders in preview immediately after editing.
+---
+
+
+* [ ] Density selector changes table padding.
+
+* [ ] Live preview updates automatically on input change.
+### Story 9: Persistence
+---
+$("updatesHtml").addEventListener('input', generate);
+
+// Persistence
+loadPersist(); hookPersist();
+
+// Seed example for first load if empty
+if(!$("programSummary").value){
+  $("programSummary").value = "The Global Network Services (GNS) team designs, builds, and manages LinkedIn’s enterprise network, ensuring secure, reliable connectivity across on‑prem and cloud.";
+  $("tpm").value = "Nick Adams"; $("engDri").value = "Antony Alexander"; $("bizSponsor").value = "Niha Mathur"; $("engSponsor").value = "Suchreet Dhaliwal";
+}
+
+// Initial render
+generate();
+</script>
+</body>
+</html>
