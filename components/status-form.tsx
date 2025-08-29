@@ -22,10 +22,12 @@ import {
   Shield,
   Loader2,
   AlertTriangle,
+  Mail,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface FormData {
+  programTitle: string
   programSummary: string
   lastStatus: string
   currentStatus: string
@@ -61,6 +63,7 @@ const fontOptions = [
 
 const PERSIST_PREFIX = "statusReportGenerator."
 const SAVE_FIELDS = [
+  "programTitle",
   "programSummary",
   "tpm",
   "engDri",
@@ -133,6 +136,7 @@ const SECURITY_CONFIG = {
 
 export default function StatusForm() {
   const [formData, setFormData] = useState<FormData>({
+    programTitle: "",
     programSummary: "",
     lastStatus: "Green",
     currentStatus: "Green",
@@ -165,6 +169,10 @@ export default function StatusForm() {
   const [securityWarnings, setSecurityWarnings] = useState<string[]>([])
   const updatesRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const [copyEmailLoading, setCopyEmailLoading] = useState(false)
+  const [copyEmailFeedback, setCopyEmailFeedback] = useState("")
+  const [copyRenderedLoading, setIsCopyingRendered] = useState(false)
+  const [copyRenderedFeedback, setCopyRenderedFeedback] = useState("")
 
   const safeLocalStorageGet = (key: string): string | null => {
     try {
@@ -415,7 +423,7 @@ export default function StatusForm() {
   }
 
   const generatedStyles = (opts: DesignOptions) => {
-    const density = opts.optDensity === "compact" ? "8px 10px" : "12px 14px"
+    const density = opts.optDensity === "compact" ? "8px 12px" : "12px 16px"
     const shaded = opts.optBorders === "shaded"
     const sanitizedCss = sanitizeCss(opts.optCustomCss || "")
 
@@ -425,6 +433,7 @@ body{font-family:var(--font);color:var(--text);line-height:1.45}
 .summary-table{width:100%;border-collapse:collapse;margin:8px 0 16px}
 .summary-table th,.summary-table td{border:${shaded ? "0" : "1px solid var(--border)"};padding:${density};vertical-align:top}
 .summary-table th{background:var(--soft);font-weight:700;text-align:center;white-space:nowrap}
+.program-title{background:#e5e7eb;font-weight:700;text-align:center;padding:${density}}
 ${shaded ? ".summary-table tr:nth-child(even){background:#fbfbfb}" : ""}
 .center{text-align:center}.name-cell{font-weight:700;text-align:center}
 .pill{display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;color:#fff}
@@ -435,13 +444,20 @@ ${sanitizedCss}
 
   const buildHtml = (data: FormData, opts: DesignOptions) => {
     const asOf = data.asOf
-      ? new Date(data.asOf).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+      ? (() => {
+          const [year, month, day] = data.asOf.split("-").map(Number)
+          const date = new Date(year, month - 1, day) // month is 0-indexed
+          return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+        })()
       : ""
 
     const updatesBlock = data.updatesHtml && data.updatesHtml.trim() ? `<h2>Updates</h2>${data.updatesHtml}` : ""
 
     return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>${generatedStyles(opts)}<title>Status Report</title></head><body>
-<table class="summary-table"><tr><th>Program Summary</th><td>${nlToParas(data.programSummary)}</td></tr></table>
+<table class="summary-table">
+${`<tr><td class="program-title" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>`}
+<tr><td>${nlToParas(data.programSummary)}</td></tr>
+</table>
 <table class="summary-table"><tr><th>Last Status</th><th>Current Status</th><th>Trending</th><th>Date</th></tr>
 <tr><td class="center">${pill(data.lastStatus)}</td><td class="center">${pill(data.currentStatus)}</td><td class="center">${pill(data.trending)}</td><td class="center">${escapeHtml(asOf)}</td></tr></table>
 <table class="summary-table"><tr><th>TPM</th><th>Engineering DRI</th><th>Business Sponsor</th><th>Engineering Sponsor</th></tr>
@@ -452,6 +468,46 @@ ${updatesBlock}
 </body></html>`
   }
 
+  const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+    const asOf = data.asOf
+      ? (() => {
+          const [year, month, day] = data.asOf.split("-").map(Number)
+          const date = new Date(year, month - 1, day) // month is 0-indexed
+          return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+        })()
+      : ""
+
+    const updatesBlock =
+      data.updatesHtml && data.updatesHtml.trim()
+        ? `<h2 style="color: #333; font-family: ${opts.fontFamily}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${data.updatesHtml}`
+        : ""
+
+    // Email-friendly inline styles
+    const tableStyle = `border-collapse: collapse; width: 100%; margin: 10px 0; font-family: ${opts.fontFamily}, sans-serif;`
+    const cellStyle = `border: 1px solid #ddd; padding: 12px; text-align: left;`
+    const headerStyle = `${cellStyle} background-color: #f5f5f5; font-weight: bold;`
+    const centerStyle = `${cellStyle} text-align: center;`
+    const titleStyle = `${cellStyle} background-color: #e5e5e5; font-weight: bold; text-align: center;`
+
+    return `<div style="font-family: ${opts.fontFamily}, sans-serif; max-width: 800px;">
+<table style="${tableStyle}">
+<tr><td style="${titleStyle}" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>
+<tr><td style="${cellStyle}">${nlToParas(data.programSummary)}</td></tr>
+</table>
+<table style="${tableStyle}">
+<tr><th style="${headerStyle}">Last Status</th><th style="${headerStyle}">Current Status</th><th style="${headerStyle}">Trending</th><th style="${headerStyle}">Date</th></tr>
+<tr><td style="${centerStyle}">${pill(data.lastStatus)}</td><td style="${centerStyle}">${pill(data.currentStatus)}</td><td style="${centerStyle}">${pill(data.trending)}</td><td style="${centerStyle}">${escapeHtml(asOf)}</td></tr>
+</table>
+<table style="${tableStyle}">
+<tr><th style="${headerStyle}">TPM</th><th style="${headerStyle}">Engineering DRI</th><th style="${headerStyle}">Business Sponsor</th><th style="${headerStyle}">Engineering Sponsor</th></tr>
+<tr><td style="${cellStyle}">${escapeHtml(data.tpm)}</td><td style="${cellStyle}">${escapeHtml(data.engDri)}</td><td style="${cellStyle}">${escapeHtml(data.bizSponsor)}</td><td style="${cellStyle}">${escapeHtml(data.engSponsor)}</td></tr>
+</table>
+${data.execSummary ? `<h2 style="color: #333; font-family: ${opts.fontFamily}, sans-serif; margin: 20px 0 10px 0;">Executive Summary</h2>${nlToParas(data.execSummary)}` : ""}
+${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.fontFamily}, sans-serif; margin: 20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
+${updatesBlock}
+</div>`
+  }
+
   const generate = async () => {
     setIsGenerating(true)
     setSecurityWarnings([])
@@ -460,6 +516,7 @@ ${updatesBlock}
       // Format HTML for better readability in code view
       const formattedHtml = formatHtml(html)
       setGeneratedHtml(formattedHtml)
+      return formattedHtml // Return the generated HTML
     } catch (error) {
       console.error("HTML generation error:", error)
       toast({
@@ -467,6 +524,7 @@ ${updatesBlock}
         description: "There was an error generating the HTML. Please check your inputs.",
         variant: "destructive",
       })
+      return "" // Return empty string on error
     } finally {
       setIsGenerating(false)
     }
@@ -515,12 +573,83 @@ ${updatesBlock}
     }
   }
 
+  const copyForEmail = async () => {
+    if (!generatedHtml) return
+
+    setCopyEmailLoading(true)
+    try {
+      // Use the Clipboard API
+      const blob = new Blob([generatedHtml], { type: "text/html" })
+      const clipboardItem = new ClipboardItem({ "text/html": blob })
+      await navigator.clipboard.write([clipboardItem])
+
+      setCopyEmailFeedback("Copied formatted content for email!")
+      setTimeout(() => setCopyEmailFeedback(""), 2000)
+    } catch (error) {
+      console.error("Failed to copy for email:", error)
+      setCopyEmailFeedback("Failed to copy")
+      setTimeout(() => setCopyEmailFeedback(""), 2000)
+    } finally {
+      setCopyEmailLoading(false)
+    }
+  }
+  const copyRenderedContent = async () => {
+    setIsCopyingRendered(true)
+    try {
+      // Use buildEmailHtml which has inline styles that work better in email clients
+      const emailHtml = buildEmailHtml(formData, designOptions)
+
+      // Create a temporary element with the email-formatted content
+      const tempDiv = document.createElement("div")
+      tempDiv.innerHTML = emailHtml
+      tempDiv.style.position = "absolute"
+      tempDiv.style.left = "-9999px"
+      document.body.appendChild(tempDiv)
+
+      // Select and copy the content
+      const range = document.createRange()
+      range.selectNodeContents(tempDiv)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+
+      const success = document.execCommand("copy")
+
+      // Clean up
+      document.body.removeChild(tempDiv)
+      selection?.removeAllRanges()
+
+      if (success) {
+        setCopyRenderedFeedback("Copied rendered content for email!")
+        setTimeout(() => setCopyRenderedFeedback(""), 2000)
+      } else {
+        throw new Error("Copy command failed")
+      }
+    } catch (error) {
+      console.error("Failed to copy rendered content:", error)
+      setCopyRenderedFeedback("Failed to copy content")
+      setTimeout(() => setCopyRenderedFeedback(""), 2000)
+    } finally {
+      setIsCopyingRendered(false)
+    }
+  }
+
   const downloadHtml = async () => {
-    if (!generatedHtml) await generate()
+    let htmlToDownload = generatedHtml
+
+    // If no HTML is generated yet, generate it first
+    if (!htmlToDownload) {
+      htmlToDownload = await generate()
+    }
+
+    // If still no HTML (generation failed), don't proceed
+    if (!htmlToDownload) {
+      return
+    }
 
     setIsDownloading(true)
     try {
-      const blob = new Blob([generatedHtml], { type: "text/html;charset=utf-8" })
+      const blob = new Blob([htmlToDownload], { type: "text/html;charset=utf-8" })
       const a = document.createElement("a")
       const url = URL.createObjectURL(blob)
       a.href = url
@@ -668,7 +797,7 @@ ${updatesBlock}
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-4 text-xs">
-          <span>{Object.values(formData).filter((v) => v.trim()).length}/13 fields completed</span>
+          <span>{Object.values(formData).filter((v) => v.trim()).length}/14 fields completed</span>
           <span>•</span>
           <span>Last saved: {new Date().toLocaleTimeString()}</span>
         </div>
@@ -714,6 +843,25 @@ ${updatesBlock}
               </div>
 
               <div>
+                <Label htmlFor="programTitle" className="text-sm font-medium">
+                  Program Title
+                </Label>
+                <Input
+                  id="programTitle"
+                  placeholder="Your Program/Project Title here"
+                  value={formData.programTitle}
+                  onChange={(e) => updateFormData("programTitle", e.target.value)}
+                  maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                  className="mt-1.5 bg-white"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-muted-foreground">
+                    {formData.programTitle.length}/{SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                  </span>
+                </div>
+              </div>
+
+              <div>
                 <Label htmlFor="programSummary" className="text-sm font-medium">
                   Program Summary
                 </Label>
@@ -724,7 +872,7 @@ ${updatesBlock}
                   onChange={(e) => updateFormData("programSummary", e.target.value)}
                   rows={4}
                   maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="mt-1.5 resize-none"
+                  className="mt-1.5 resize-none bg-white"
                 />
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-xs text-muted-foreground">
@@ -840,7 +988,7 @@ ${updatesBlock}
                     type="date"
                     value={formData.asOf}
                     onChange={(e) => updateFormData("asOf", e.target.value)}
-                    className="mt-1.5"
+                    className="mt-1.5 bg-white"
                   />
                 </div>
               </div>
@@ -863,7 +1011,7 @@ ${updatesBlock}
                     value={formData.tpm}
                     onChange={(e) => updateFormData("tpm", e.target.value)}
                     maxLength={200}
-                    className="mt-1.5"
+                    className="mt-1.5 bg-white"
                   />
                 </div>
                 <div>
@@ -876,7 +1024,7 @@ ${updatesBlock}
                     value={formData.engDri}
                     onChange={(e) => updateFormData("engDri", e.target.value)}
                     maxLength={200}
-                    className="mt-1.5"
+                    className="mt-1.5 bg-white"
                   />
                 </div>
               </div>
@@ -892,7 +1040,7 @@ ${updatesBlock}
                     value={formData.bizSponsor}
                     onChange={(e) => updateFormData("bizSponsor", e.target.value)}
                     maxLength={200}
-                    className="mt-1.5"
+                    className="mt-1.5 bg-white"
                   />
                 </div>
                 <div>
@@ -905,7 +1053,7 @@ ${updatesBlock}
                     value={formData.engSponsor}
                     onChange={(e) => updateFormData("engSponsor", e.target.value)}
                     maxLength={200}
-                    className="mt-1.5"
+                    className="mt-1.5 bg-white"
                   />
                 </div>
               </div>
@@ -957,7 +1105,7 @@ ${updatesBlock}
                   onChange={(e) => updateFormData("execSummary", e.target.value)}
                   rows={3}
                   maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="resize-none"
+                  className="resize-none bg-white"
                 />
               </div>
 
@@ -972,7 +1120,7 @@ ${updatesBlock}
                   onChange={(e) => updateFormData("lowlights", e.target.value)}
                   rows={3}
                   maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="mt-1.5 resize-none"
+                  className="mt-1.5 resize-none bg-white"
                 />
               </div>
 
@@ -1039,7 +1187,7 @@ ${updatesBlock}
                 <div
                   ref={updatesRef}
                   contentEditable
-                  className="min-h-[120px] p-3 border border-input rounded-md bg-background text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+                  className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
                   style={{
                     lineHeight: "1.5",
                     overflowX: "auto", // Keep overflow for wide tables
@@ -1152,13 +1300,13 @@ ${updatesBlock}
                         type="color"
                         value={designOptions.optAccent}
                         onChange={(e) => updateDesignOptions("optAccent", e.target.value)}
-                        className="w-16 h-10 p-1 cursor-pointer"
+                        className="w-16 h-10 p-1 cursor-pointer bg-white"
                       />
                       <Input
                         type="text"
                         value={designOptions.optAccent}
                         onChange={(e) => updateDesignOptions("optAccent", e.target.value)}
-                        className="flex-1 font-mono text-sm"
+                        className="flex-1 font-mono text-sm bg-white"
                         placeholder="#086dd7"
                       />
                     </div>
@@ -1253,8 +1401,31 @@ ${updatesBlock}
               </Button>
               <Button
                 variant="outline"
+                onClick={copyForEmail}
+                disabled={copyEmailLoading || !generatedHtml}
+                className="flex-1 sm:flex-none bg-transparent"
+              >
+                {copyEmailLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Copying...
+                  </>
+                ) : copyEmailFeedback ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {copyEmailFeedback}
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Copy for Email
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
                 onClick={downloadHtml}
-                disabled={isDownloading || !generatedHtml}
+                disabled={isDownloading} // Removed !generatedHtml condition so button works even when HTML not generated yet
                 className="flex-1 sm:flex-none bg-transparent"
               >
                 <Download className="w-4 h-4 mr-2" />
