@@ -1,4 +1,4 @@
-import { StatusForm } from "@/components/status-form"
+import StatusForm from "@/components/status-form"
 
 export default function Home() {
   return (

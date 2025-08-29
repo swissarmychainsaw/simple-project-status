@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -76,6 +78,7 @@ const SAVE_FIELDS = [
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 10000,
+  MAX_UPDATES_LENGTH: 100000, // 100KB limit for Updates section
   MAX_CSS_LENGTH: 5000,
   ALLOWED_TAGS: new Set([
     "b",
@@ -101,13 +104,34 @@ const SECURITY_CONFIG = {
     "h2",
     "h3",
   ]),
-  ALLOWED_ATTRIBUTES: new Set(["href", "title", "alt"]),
+  ALLOWED_ATTRIBUTES: {
+    "*": ["class", "style"],
+    a: ["href", "title", "target"],
+    img: ["src", "alt", "width", "height"],
+    table: [
+      "class",
+      "style",
+      "border",
+      "cellpadding",
+      "cellspacing",
+      "data-testid",
+      "data-number-column",
+      "data-table-width",
+      "data-layout",
+    ],
+    th: ["class", "style", "colspan", "rowspan", "scope"],
+    td: ["class", "style", "colspan", "rowspan"],
+    tr: ["class", "style"],
+    thead: ["class", "style"],
+    tbody: ["class", "style"],
+    tfoot: ["class", "style"],
+  },
   DANGEROUS_PROTOCOLS: /^(javascript:|data:|vbscript:|file:|about:)/i,
   CSS_INJECTION_PATTERNS: /(expression|javascript|@import|behavior|binding)/i,
   HTML_INJECTION_PATTERNS: /<script|<iframe|<object|<embed|<link|<meta|<base/i,
 }
 
-export function StatusForm() {
+export default function StatusForm() {
   const [formData, setFormData] = useState<FormData>({
     programSummary: "",
     lastStatus: "Green",
@@ -145,7 +169,10 @@ export function StatusForm() {
   const safeLocalStorageGet = (key: string): string | null => {
     try {
       const value = localStorage.getItem(key)
-      if (value && value.length > SECURITY_CONFIG.MAX_FIELD_LENGTH) {
+      const maxLength = key.includes("updatesHtml")
+        ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
+        : SECURITY_CONFIG.MAX_FIELD_LENGTH
+      if (value && value.length > maxLength) {
         console.warn(`Stored value for ${key} exceeds maximum length, ignoring`)
         localStorage.removeItem(key)
         return null
@@ -159,7 +186,10 @@ export function StatusForm() {
 
   const safeLocalStorageSet = (key: string, value: string): boolean => {
     try {
-      if (value.length > SECURITY_CONFIG.MAX_FIELD_LENGTH) {
+      const maxLength = key.includes("updatesHtml")
+        ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
+        : SECURITY_CONFIG.MAX_FIELD_LENGTH
+      if (value.length > maxLength) {
         console.warn(`Value for ${key} exceeds maximum length, not storing`)
         return false
       }
@@ -210,10 +240,12 @@ export function StatusForm() {
     const warnings: string[] = []
     let sanitized = value
 
+    const maxLength = field === "updatesHtml" ? SECURITY_CONFIG.MAX_UPDATES_LENGTH : SECURITY_CONFIG.MAX_FIELD_LENGTH
+
     // Length validation
-    if (value.length > SECURITY_CONFIG.MAX_FIELD_LENGTH) {
-      sanitized = value.substring(0, SECURITY_CONFIG.MAX_FIELD_LENGTH)
-      warnings.push(`${field} was truncated to ${SECURITY_CONFIG.MAX_FIELD_LENGTH} characters`)
+    if (value.length > maxLength) {
+      sanitized = value.substring(0, maxLength)
+      warnings.push(`${field} was truncated to ${maxLength} characters`)
     }
 
     // HTML injection detection
@@ -344,7 +376,10 @@ export function StatusForm() {
           const attrValue = attr.value
 
           // Remove all attributes except allowed ones
-          if (!SECURITY_CONFIG.ALLOWED_ATTRIBUTES.has(attrName)) {
+          if (
+            !SECURITY_CONFIG.ALLOWED_ATTRIBUTES["*"].includes(attrName) &&
+            !(SECURITY_CONFIG.ALLOWED_ATTRIBUTES[tag] && SECURITY_CONFIG.ALLOWED_ATTRIBUTES[tag].includes(attrName))
+          ) {
             el.removeAttribute(attr.name)
             continue
           }
@@ -403,8 +438,7 @@ ${sanitizedCss}
       ? new Date(data.asOf).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
       : ""
 
-    const updatesBlock =
-      data.updatesHtml && data.updatesHtml.trim() ? `<h2>Updates</h2>${sanitizeHtml(data.updatesHtml)}` : ""
+    const updatesBlock = data.updatesHtml && data.updatesHtml.trim() ? `<h2>Updates</h2>${data.updatesHtml}` : ""
 
     return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>${generatedStyles(opts)}<title>Status Report</title></head><body>
 <table class="summary-table"><tr><th>Program Summary</th><td>${nlToParas(data.programSummary)}</td></tr></table>
@@ -572,6 +606,42 @@ ${updatesBlock}
 
   const clearSecurityWarnings = () => {
     setSecurityWarnings([])
+  }
+
+  useEffect(() => {
+    if (updatesRef.current) {
+      console.log("[v0] useEffect - Current innerHTML length:", updatesRef.current.innerHTML.length)
+      console.log("[v0] useEffect - FormData length:", formData.updatesHtml.length)
+      console.log("[v0] useEffect - Setting innerHTML to:", formData.updatesHtml.substring(0, 100) + "...")
+      updatesRef.current.innerHTML = formData.updatesHtml
+    }
+  }, [formData.updatesHtml])
+
+  const handleUpdatesInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if (!e.currentTarget) return
+    const content = e.currentTarget.innerHTML
+    console.log("[v0] Updates content changed:", content.substring(0, 200) + "...")
+    updateFormData("updatesHtml", content)
+  }
+
+  const handleUpdatesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget) return
+    const content = e.currentTarget.innerHTML
+    console.log("[v0] Updates blur event:", content.substring(0, 200) + "...")
+    updateFormData("updatesHtml", content)
+  }
+
+  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    console.log("[v0] Paste event triggered")
+    requestAnimationFrame(() => {
+      if (e.currentTarget) {
+        const content = e.currentTarget.innerHTML
+        console.log("[v0] Updates paste processed:", content.substring(0, 200) + "...")
+        console.log("[v0] Full paste content length:", content.length)
+        updateFormData("updatesHtml", content)
+        generate()
+      }
+    })
   }
 
   useEffect(() => {
@@ -936,31 +1006,109 @@ ${updatesBlock}
                     />
                   </div>
                 </div>
-                <div className="flex gap-2 mb-2">
+
+                <div className="flex gap-1 mb-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={pastePlainText}
-                    className="h-8 bg-transparent"
+                    onClick={() => wrapSelection("updatesHtml", "b")}
+                    className="h-8 px-2"
                   >
-                    Paste Plain
+                    <Bold className="w-3 h-3" />
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={clearUpdates} className="h-8">
-                    Clear
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => wrapSelection("updatesHtml", "i")}
+                    className="h-8 px-2"
+                  >
+                    <Italic className="w-3 h-3" />
                   </Button>
-                  <span className="text-xs text-muted-foreground self-center">
-                    Rich content is automatically sanitized
-                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => wrapSelection("updatesHtml", "u")}
+                    className="h-8 px-2"
+                  >
+                    <Underline className="w-3 h-3" />
+                  </Button>
                 </div>
                 <div
                   ref={updatesRef}
                   contentEditable
-                  className="min-h-[100px] p-3 border rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  style={{ minHeight: "100px" }}
-                  dangerouslySetInnerHTML={{ __html: formData.updatesHtml }}
-                  onBlur={(e) => updateFormData("updatesHtml", e.currentTarget.innerHTML)}
+                  className="min-h-[120px] p-3 border border-input rounded-md bg-background text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+                  style={{
+                    lineHeight: "1.5",
+                    overflowX: "auto", // Keep overflow for wide tables
+                    maxWidth: "100%", // Ensure container doesn't exceed bounds
+                  }}
+                  onInput={handleUpdatesInput}
+                  onBlur={handleUpdatesBlur}
+                  onPaste={handleUpdatesPaste}
+                  data-placeholder="Paste tables, add formatted text, or type updates here..."
+                  suppressContentEditableWarning={true}
                 />
+                <style jsx>{`
+                  [contenteditable]:empty:before {
+                    content: attr(data-placeholder);
+                    color: #6b7280;
+                    pointer-events: none;
+                  }
+                  
+                  /* Enhanced table styling for better display */
+                  [contenteditable] table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 8px 0;
+                    font-size: inherit;
+                    table-layout: auto;
+                    overflow-x: auto;
+                    display: table;
+                  }
+                  
+                  [contenteditable] table th,
+                  [contenteditable] table td {
+                    border: 1px solid #ddd;
+                    padding: 8px 12px;
+                    text-align: left;
+                    vertical-align: top;
+                    word-wrap: break-word;
+                    max-width: 200px;
+                  }
+
+                  [contenteditable] table th {
+                    background-color: #f5f5f5;
+                    font-weight: 600;
+                  }
+                  
+                  [contenteditable] table tr:nth-child(even) {
+                    background-color: #fafafa;
+                  }
+                  
+                  [contenteditable] h1,
+                  [contenteditable] h2,
+                  [contenteditable] h3,
+                  [contenteditable] h4,
+                  [contenteditable] h5,
+                  [contenteditable] h6 {
+                    margin: 16px 0 8px 0;
+                    font-weight: 600;
+                  }
+                  
+                  [contenteditable] p {
+                    margin: 8px 0;
+                  }
+                  
+                  [contenteditable] ul,
+                  [contenteditable] ol {
+                    margin: 8px 0;
+                    padding-left: 20px;
+                  }
+                `}</style>
               </div>
             </div>
 
