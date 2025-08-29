@@ -479,31 +479,41 @@ ${updatesBlock}
 
     const updatesBlock =
       data.updatesHtml && data.updatesHtml.trim()
-        ? `<h2 style="color: #333; font-family: ${opts.fontFamily}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${data.updatesHtml}`
+        ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${data.updatesHtml}`
         : ""
 
-    // Email-friendly inline styles
-    const tableStyle = `border-collapse: collapse; width: 100%; margin: 10px 0; font-family: ${opts.fontFamily}, sans-serif;`
-    const cellStyle = `border: 1px solid #ddd; padding: 12px; text-align: left;`
-    const headerStyle = `${cellStyle} background-color: #f5f5f5; font-weight: bold;`
+    const tableStyle = `border-collapse: collapse; width: 100%; margin: 10px 0; font-family: ${opts.optFont}, sans-serif;`
+    const cellStyle = `border: 1px solid #dcdcdc; padding: 12px; text-align: left; vertical-align: top;`
+    const headerStyle = `${cellStyle} background-color: #f7f7f7; font-weight: bold; text-align: center;`
     const centerStyle = `${cellStyle} text-align: center;`
-    const titleStyle = `${cellStyle} background-color: #e5e5e5; font-weight: bold; text-align: center;`
+    const titleStyle = `${cellStyle} background-color: #e5e7eb; font-weight: bold; text-align: center;`
+    const nameStyle = `${cellStyle} font-weight: bold; text-align: center;`
 
-    return `<div style="font-family: ${opts.fontFamily}, sans-serif; max-width: 800px;">
+    const emailPill = (status: string) => {
+      const colors = {
+        green: { bg: "#27c08a", color: "#fff" },
+        yellow: { bg: "#f4c542", color: "#111" },
+        red: { bg: "#e5534b", color: "#fff" },
+      }
+      const color = colors[status as keyof typeof colors] || colors.green
+      return `<span style="display: inline-block; padding: 6px 12px; border-radius: 10px; font-weight: bold; background-color: ${color.bg}; color: ${color.color};">${escapeHtml(status)}</span>`
+    }
+
+    return `<div style="font-family: ${opts.optFont}, sans-serif; max-width: 800px; color: #111; line-height: 1.45;">
 <table style="${tableStyle}">
 <tr><td style="${titleStyle}" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>
 <tr><td style="${cellStyle}">${nlToParas(data.programSummary)}</td></tr>
 </table>
 <table style="${tableStyle}">
 <tr><th style="${headerStyle}">Last Status</th><th style="${headerStyle}">Current Status</th><th style="${headerStyle}">Trending</th><th style="${headerStyle}">Date</th></tr>
-<tr><td style="${centerStyle}">${pill(data.lastStatus)}</td><td style="${centerStyle}">${pill(data.currentStatus)}</td><td style="${centerStyle}">${pill(data.trending)}</td><td style="${centerStyle}">${escapeHtml(asOf)}</td></tr>
+<tr><td style="${centerStyle}">${emailPill(data.lastStatus)}</td><td style="${centerStyle}">${emailPill(data.currentStatus)}</td><td style="${centerStyle}">${emailPill(data.trending)}</td><td style="${centerStyle}">${escapeHtml(asOf)}</td></tr>
 </table>
 <table style="${tableStyle}">
 <tr><th style="${headerStyle}">TPM</th><th style="${headerStyle}">Engineering DRI</th><th style="${headerStyle}">Business Sponsor</th><th style="${headerStyle}">Engineering Sponsor</th></tr>
-<tr><td style="${cellStyle}">${escapeHtml(data.tpm)}</td><td style="${cellStyle}">${escapeHtml(data.engDri)}</td><td style="${cellStyle}">${escapeHtml(data.bizSponsor)}</td><td style="${cellStyle}">${escapeHtml(data.engSponsor)}</td></tr>
+<tr><td style="${nameStyle}">${escapeHtml(data.tpm)}</td><td style="${nameStyle}">${escapeHtml(data.engDri)}</td><td style="${nameStyle}">${escapeHtml(data.bizSponsor)}</td><td style="${nameStyle}">${escapeHtml(data.engSponsor)}</td></tr>
 </table>
-${data.execSummary ? `<h2 style="color: #333; font-family: ${opts.fontFamily}, sans-serif; margin: 20px 0 10px 0;">Executive Summary</h2>${nlToParas(data.execSummary)}` : ""}
-${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.fontFamily}, sans-serif; margin: 20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
+${data.execSummary ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Executive Summary</h2>${nlToParas(data.execSummary)}` : ""}
+${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
 ${updatesBlock}
 </div>`
   }
@@ -635,41 +645,113 @@ ${updatesBlock}
   }
 
   const downloadHtml = async () => {
+    console.log("[v0] Download button clicked")
     let htmlToDownload = generatedHtml
+    console.log("[v0] Current generatedHtml length:", htmlToDownload?.length || 0)
 
     // If no HTML is generated yet, generate it first
     if (!htmlToDownload) {
+      console.log("[v0] No HTML found, generating...")
       htmlToDownload = await generate()
     }
 
     // If still no HTML (generation failed), don't proceed
     if (!htmlToDownload) {
+      console.log("[v0] No HTML available for download")
       return
     }
 
+    console.log("[v0] Starting download process")
     setIsDownloading(true)
     try {
       const blob = new Blob([htmlToDownload], { type: "text/html;charset=utf-8" })
-      const a = document.createElement("a")
-      const url = URL.createObjectURL(blob)
-      a.href = url
-      a.download = `status-report-${new Date().toISOString().split("T")[0]}.html`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      console.log("[v0] Blob created, size:", blob.size)
 
-      toast({
-        title: "HTML file downloaded!",
-        description: "Your status report has been saved to your downloads folder.",
-        duration: 2000,
-      })
+      const url = URL.createObjectURL(blob)
+      const filename = `status-report-${new Date().toISOString().split("T")[0]}.html`
+
+      // Try the modern approach first
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        // IE/Edge
+        window.navigator.msSaveOrOpenBlob(blob, filename)
+        console.log("[v0] Downloaded using IE/Edge method")
+      } else {
+        // Modern browsers
+        const a = document.createElement("a")
+        a.style.display = "none"
+        a.href = url
+        a.download = filename
+        a.target = "_blank"
+
+        document.body.appendChild(a)
+        console.log("[v0] Anchor element created and added to DOM")
+
+        // Force click with multiple methods for better compatibility
+        a.click()
+        console.log("[v0] Anchor clicked")
+
+        // If programmatic download doesn't work (like in v0 environment), open in new window
+        setTimeout(() => {
+          // Check if download worked by seeing if the blob URL is still accessible
+          fetch(url)
+            .then(() => {
+              // If we can still fetch it, the download might not have worked
+              // Open in new window as fallback
+              const newWindow = window.open()
+              if (newWindow) {
+                newWindow.document.write(htmlToDownload)
+                newWindow.document.close()
+                toast({
+                  title: "HTML opened in new window",
+                  description: "Use Ctrl+S (Cmd+S on Mac) to save the file from the new window.",
+                  duration: 4000,
+                })
+              }
+            })
+            .catch(() => {
+              // URL was revoked, download likely worked
+              toast({
+                title: "HTML file downloaded!",
+                description: "Your status report has been saved to your downloads folder.",
+                duration: 2000,
+              })
+            })
+        }, 500)
+
+        // Cleanup after a short delay to ensure download starts
+        setTimeout(() => {
+          if (document.body.contains(a)) {
+            document.body.removeChild(a)
+          }
+          URL.revokeObjectURL(url)
+          console.log("[v0] Cleanup completed")
+        }, 1000)
+      }
+
+      console.log("[v0] Download completed successfully")
     } catch (error) {
-      toast({
-        title: "Download failed",
-        description: "There was an error downloading the file. Please try again.",
-        variant: "destructive",
-      })
+      console.log("[v0] Download error:", error)
+      // Fallback: open in new window
+      try {
+        const newWindow = window.open()
+        if (newWindow) {
+          newWindow.document.write(htmlToDownload)
+          newWindow.document.close()
+          toast({
+            title: "HTML opened in new window",
+            description: "Use Ctrl+S (Cmd+S on Mac) to save the file from the new window.",
+            duration: 4000,
+          })
+        } else {
+          throw new Error("Could not open new window")
+        }
+      } catch (fallbackError) {
+        toast({
+          title: "Download failed",
+          description: "There was an error downloading the file. Please try copying the HTML instead.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsDownloading(false)
     }
