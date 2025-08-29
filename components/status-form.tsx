@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -429,7 +428,7 @@ export default function StatusForm() {
 
     return `<style>
 :root{ --font:${escapeHtml(opts.optFont)}; --accent:${escapeHtml(opts.optAccent)}; --green:#27c08a; --yellow:#f4c542; --red:#e5534b; --border:#dcdcdc; --soft:#f7f7f7; --text:#111;}
-body{font-family:var(--font);color:var(--text);line-height:1.45}
+body{font-family:var(--font);color:var(--text);line-height:1.45;max-width:800px;margin:0 auto;padding:20px}
 .summary-table{width:100%;border-collapse:collapse;margin:8px 0 16px}
 .summary-table th,.summary-table td{border:${shaded ? "0" : "1px solid var(--border)"};padding:${density};vertical-align:top}
 .summary-table th{background:var(--soft);font-weight:700;text-align:center;white-space:nowrap}
@@ -499,7 +498,7 @@ ${updatesBlock}
       return `<span style="display: inline-block; padding: 6px 12px; border-radius: 10px; font-weight: bold; background-color: ${color.bg}; color: ${color.color};">${escapeHtml(status)}</span>`
     }
 
-    return `<div style="font-family: ${opts.optFont}, sans-serif; max-width: 800px; color: #111; line-height: 1.45;">
+    return `<div style="font-family: ${opts.optFont}, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #111; line-height: 1.45;">
 <table style="${tableStyle}">
 <tr><td style="${titleStyle}" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>
 <tr><td style="${cellStyle}">${nlToParas(data.programSummary)}</td></tr>
@@ -772,664 +771,517 @@ ${updatesBlock}
   }
 
   const wrapSelection = (targetField: keyof FormData, tag: string) => {
-    const textarea = document.getElementById(targetField) as HTMLTextAreaElement
-    if (!textarea) return
+    const element = document.getElementById(targetField) as HTMLTextAreaElement | HTMLDivElement
+    if (!element) return
 
-    const { selectionStart: s, selectionEnd: e, value: v } = textarea
-    if (s == null || e == null || s === e) {
-      textarea.setRangeText(`<${tag}></${tag}>`, e, e, "end")
+    if (element.tagName === "TEXTAREA") {
+      const textarea = element as HTMLTextAreaElement
+      const { selectionStart: s, selectionEnd: e, value: v } = textarea
+      if (s == null || e == null || s === e) {
+        textarea.setRangeText(`<${tag}></${tag}>`, e, e, "end")
+      } else {
+        const before = v.slice(0, s)
+        const mid = v.slice(s, e)
+        const after = v.slice(e)
+        textarea.value = `${before}<${tag}>${mid}</${tag}>${after}`
+        textarea.selectionStart = s
+        textarea.selectionEnd = e + tag.length * 2 + 5
+      }
+      updateFormData(targetField, textarea.value)
     } else {
-      const before = v.slice(0, s)
-      const mid = v.slice(s, e)
-      const after = v.slice(e)
-      textarea.value = `${before}<${tag}>${mid}</${tag}>${after}`
-      textarea.selectionStart = s
-      textarea.selectionEnd = e + tag.length * 2 + 5
-    }
-    updateFormData(targetField, textarea.value)
-    generate()
-  }
+      // Handle contentEditable div
+      const selection = window.getSelection()
+      if (!selection || selection.rangeCount === 0) return
 
-  const pastePlainText = async () => {
-    try {
-      const text = await navigator.clipboard.readText()
-      const escaped = escapeHtml(text).replace(/\n/g, "<br>")
-      updateFormData("updatesHtml", `<p>${escaped}</p>`)
-      generate()
-    } catch (err) {
-      toast({ title: "Failed to paste text", variant: "destructive" })
-    }
-  }
+      const range = selection.getRangeAt(0)
+      if (!element.contains(range.commonAncestorContainer)) return
 
-  const clearUpdates = () => {
-    updateFormData("updatesTrack", "")
-    updateFormData("updatesTeam", "")
-    updateFormData("updatesHtml", "")
-    try {
-      localStorage.removeItem(PERSIST_PREFIX + "updatesTrack")
-      localStorage.removeItem(PERSIST_PREFIX + "updatesTeam")
-      localStorage.removeItem(PERSIST_PREFIX + "updatesHtml")
-    } catch (error) {
-      console.error("Failed to clear updates from localStorage:", error)
+      const selectedText = range.toString()
+      if (selectedText) {
+        const wrapper = document.createElement(tag)
+        try {
+          range.surroundContents(wrapper)
+          selection.removeAllRanges()
+          updateFormData(targetField, element.innerHTML)
+        } catch (e) {
+          // Fallback for complex selections
+          const content = range.extractContents()
+          wrapper.appendChild(content)
+          range.insertNode(wrapper)
+          selection.removeAllRanges()
+          updateFormData(targetField, element.innerHTML)
+        }
+      }
     }
     generate()
   }
 
-  const clearSecurityWarnings = () => {
-    setSecurityWarnings([])
+  const autoResize = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = "auto"
+    textarea.style.height = Math.min(textarea.scrollHeight, 300) + "px"
+  }
+
+  const handleUpdatesInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) {
+      updateFormData("updatesHtml", target.innerHTML)
+    }
+  }
+
+  const handleUpdatesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) {
+      updateFormData("updatesHtml", target.innerHTML)
+    }
+  }
+
+  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const paste = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
+    if (paste) {
+      document.execCommand("insertHTML", false, paste)
+      const target = e.currentTarget
+      if (target) {
+        updateFormData("updatesHtml", target.innerHTML)
+      }
+    }
   }
 
   useEffect(() => {
-    if (updatesRef.current) {
-      console.log("[v0] useEffect - Current innerHTML length:", updatesRef.current.innerHTML.length)
-      console.log("[v0] useEffect - FormData length:", formData.updatesHtml.length)
-      console.log("[v0] useEffect - Setting innerHTML to:", formData.updatesHtml.substring(0, 100) + "...")
+    if (updatesRef.current && updatesRef.current.innerHTML !== formData.updatesHtml) {
       updatesRef.current.innerHTML = formData.updatesHtml
     }
   }, [formData.updatesHtml])
 
-  const handleUpdatesInput = (e: React.FormEvent<HTMLDivElement>) => {
-    if (!e.currentTarget) return
-    const content = e.currentTarget.innerHTML
-    console.log("[v0] Updates content changed:", content.substring(0, 200) + "...")
-    updateFormData("updatesHtml", content)
-  }
-
-  const handleUpdatesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (!e.currentTarget) return
-    const content = e.currentTarget.innerHTML
-    console.log("[v0] Updates blur event:", content.substring(0, 200) + "...")
-    updateFormData("updatesHtml", content)
-  }
-
-  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    console.log("[v0] Paste event triggered")
-    requestAnimationFrame(() => {
-      if (e.currentTarget) {
-        const content = e.currentTarget.innerHTML
-        console.log("[v0] Updates paste processed:", content.substring(0, 200) + "...")
-        console.log("[v0] Full paste content length:", content.length)
-        updateFormData("updatesHtml", content)
-        generate()
-      }
-    })
-  }
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      generate()
-    }, 300) // Debounce to avoid excessive generation
-
-    return () => clearTimeout(timeoutId)
-  }, [formData, designOptions])
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            {isGenerating ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : generatedHtml ? (
-              <CheckCircle className="w-3 h-3 text-green-500" />
-            ) : (
-              <div className="w-3 h-3 border border-muted-foreground/30 rounded-full" />
-            )}
-            <span>{isGenerating ? "Generating..." : generatedHtml ? "Report ready" : "Fill form to generate"}</span>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Status Report Generator</h1>
+          <p className="text-gray-600">Create professional status reports with customizable design</p>
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm text-gray-600">Auto-save enabled</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-blue-600" />
+              <span className="text-sm text-gray-600">Content sanitized</span>
+            </div>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-4 text-xs">
-          <span>{Object.values(formData).filter((v) => v.trim()).length}/14 fields completed</span>
-          <span>•</span>
-          <span>Last saved: {new Date().toLocaleTimeString()}</span>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[440px_1fr] gap-6">
-        {/* Left: Form */}
-        <Card className="h-fit">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Content & Design</CardTitle>
-              {securityWarnings.length > 0 && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-            </div>
-            {securityWarnings.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-                <div className="flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-yellow-800 mb-1">Security Notice</h4>
-                    <ul className="text-xs text-yellow-700 space-y-1">
-                      {securityWarnings.map((warning, index) => (
-                        <li key={index}>• {warning}</li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearSecurityWarnings}
-                      className="mt-2 h-6 text-xs text-yellow-800 hover:text-yellow-900"
-                    >
-                      Dismiss
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground border-b border-border pb-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                Program Information
-              </div>
-
+        {/* Security Warnings */}
+        {securityWarnings.length > 0 && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
               <div>
-                <Label htmlFor="programTitle" className="text-sm font-medium">
-                  Program Title
-                </Label>
-                <Input
-                  id="programTitle"
-                  placeholder="Your Program/Project Title here"
-                  value={formData.programTitle}
-                  onChange={(e) => updateFormData("programTitle", e.target.value)}
-                  maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="mt-1.5 bg-white"
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formData.programTitle.length}/{SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="programSummary" className="text-sm font-medium">
-                  Program Summary
-                </Label>
-                <Textarea
-                  id="programSummary"
-                  placeholder="Describe what your program/project is responsible for…"
-                  value={formData.programSummary}
-                  onChange={(e) => updateFormData("programSummary", e.target.value)}
-                  rows={4}
-                  maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="mt-1.5 resize-none bg-white"
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formData.programSummary.length}/{SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  </span>
-                </div>
+                <h3 className="font-medium text-yellow-800">Security Notice</h3>
+                <ul className="mt-1 text-sm text-yellow-700">
+                  {securityWarnings.map((warning, i) => (
+                    <li key={i}>• {warning}</li>
+                  ))}
+                </ul>
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground border-b border-border pb-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                Status Indicators
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="lastStatus" className="text-sm font-medium">
-                    Last Status
-                  </Label>
-                  <Select value={formData.lastStatus} onValueChange={(value) => updateFormData("lastStatus", value)}>
-                    <SelectTrigger className="mt-1.5">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                status === "Green"
-                                  ? "bg-green-500"
-                                  : status === "Yellow"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                            />
-                            {status}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="currentStatus" className="text-sm font-medium">
-                    Current Status
-                  </Label>
-                  <Select
-                    value={formData.currentStatus}
-                    onValueChange={(value) => updateFormData("currentStatus", value)}
-                  >
-                    <SelectTrigger className="mt-1.5">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                status === "Green"
-                                  ? "bg-green-500"
-                                  : status === "Yellow"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                            />
-                            {status}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="trending" className="text-sm font-medium">
-                    Trending
-                  </Label>
-                  <Select value={formData.trending} onValueChange={(value) => updateFormData("trending", value)}>
-                    <SelectTrigger className="mt-1.5">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                status === "Green"
-                                  ? "bg-green-500"
-                                  : status === "Yellow"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                            />
-                            {status}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="asOf" className="text-sm font-medium">
-                    As of (date)
-                  </Label>
-                  <Input
-                    id="asOf"
-                    type="date"
-                    value={formData.asOf}
-                    onChange={(e) => updateFormData("asOf", e.target.value)}
-                    className="mt-1.5 bg-white"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground border-b border-border pb-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                Team & Ownership
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="tpm" className="text-sm font-medium">
-                    TPM
-                  </Label>
-                  <Input
-                    id="tpm"
-                    placeholder="Nick Adams"
-                    value={formData.tpm}
-                    onChange={(e) => updateFormData("tpm", e.target.value)}
-                    maxLength={200}
-                    className="mt-1.5 bg-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="engDri" className="text-sm font-medium">
-                    Engineering DRI
-                  </Label>
-                  <Input
-                    id="engDri"
-                    placeholder="Antony Alexander"
-                    value={formData.engDri}
-                    onChange={(e) => updateFormData("engDri", e.target.value)}
-                    maxLength={200}
-                    className="mt-1.5 bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="bizSponsor" className="text-sm font-medium">
-                    Business Sponsor
-                  </Label>
-                  <Input
-                    id="bizSponsor"
-                    placeholder="Niha Mathur"
-                    value={formData.bizSponsor}
-                    onChange={(e) => updateFormData("bizSponsor", e.target.value)}
-                    maxLength={200}
-                    className="mt-1.5 bg-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="engSponsor" className="text-sm font-medium">
-                    Engineering Sponsor
-                  </Label>
-                  <Input
-                    id="engSponsor"
-                    placeholder="Suchreet Dhaliwal"
-                    value={formData.engSponsor}
-                    onChange={(e) => updateFormData("engSponsor", e.target.value)}
-                    maxLength={200}
-                    className="mt-1.5 bg-white"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground border-b border-border pb-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                Content Details
-              </div>
-
-              <div>
-                <Label htmlFor="execSummary" className="text-sm font-medium">
-                  Executive Summary
-                </Label>
-                <div className="flex gap-1 mt-1.5 mb-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => wrapSelection("execSummary", "b")}
-                    className="h-8 px-2"
-                  >
-                    <Bold className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => wrapSelection("execSummary", "i")}
-                    className="h-8 px-2"
-                  >
-                    <Italic className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => wrapSelection("execSummary", "u")}
-                    className="h-8 px-2"
-                  >
-                    <Underline className="w-3 h-3" />
-                  </Button>
-                </div>
-                <Textarea
-                  id="execSummary"
-                  placeholder="Key outcomes and results…"
-                  value={formData.execSummary}
-                  onChange={(e) => updateFormData("execSummary", e.target.value)}
-                  rows={3}
-                  maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="resize-none bg-white"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="lowlights" className="text-sm font-medium">
-                  Lowlights (one per line)
-                </Label>
-                <Textarea
-                  id="lowlights"
-                  placeholder="Example: OBN paused for 3 weeks"
-                  value={formData.lowlights}
-                  onChange={(e) => updateFormData("lowlights", e.target.value)}
-                  rows={3}
-                  maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                  className="mt-1.5 resize-none bg-white"
-                />
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">Updates</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1.5 mb-2">
-                  <div>
-                    <Label htmlFor="updatesTrack" className="text-xs text-muted-foreground">
-                      Track Name
-                    </Label>
-                    <Input
-                      id="updatesTrack"
-                      placeholder="Example: Network Security"
-                      value={formData.updatesTrack}
-                      onChange={(e) => updateFormData("updatesTrack", e.target.value)}
-                      maxLength={200}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="updatesTeam" className="text-xs text-muted-foreground">
-                      Team Members
-                    </Label>
-                    <Input
-                      id="updatesTeam"
-                      placeholder="Example: Ramakant, Cyrus"
-                      value={formData.updatesTeam}
-                      onChange={(e) => updateFormData("updatesTeam", e.target.value)}
-                      maxLength={500}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-1 mb-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => wrapSelection("updatesHtml", "b")}
-                    className="h-8 px-2"
-                  >
-                    <Bold className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => wrapSelection("updatesHtml", "i")}
-                    className="h-8 px-2"
-                  >
-                    <Italic className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => wrapSelection("updatesHtml", "u")}
-                    className="h-8 px-2"
-                  >
-                    <Underline className="w-3 h-3" />
-                  </Button>
-                </div>
-                <div
-                  ref={updatesRef}
-                  contentEditable
-                  className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
-                  style={{
-                    lineHeight: "1.5",
-                    overflowX: "auto", // Keep overflow for wide tables
-                    maxWidth: "100%", // Ensure container doesn't exceed bounds
-                  }}
-                  onInput={handleUpdatesInput}
-                  onBlur={handleUpdatesBlur}
-                  onPaste={handleUpdatesPaste}
-                  data-placeholder="Paste tables, add formatted text, or type updates here..."
-                  suppressContentEditableWarning={true}
-                />
-                <style jsx>{`
-                  [contenteditable]:empty:before {
-                    content: attr(data-placeholder);
-                    color: #6b7280;
-                    pointer-events: none;
-                  }
-                  
-                  /* Enhanced table styling for better display */
-                  [contenteditable] table {
-                    border-collapse: collapse;
-                    width: 100%;
-                    max-width: 100%;
-                    margin: 8px 0;
-                    font-size: inherit;
-                    table-layout: auto;
-                    overflow-x: auto;
-                    display: table;
-                  }
-                  
-                  [contenteditable] table th,
-                  [contenteditable] table td {
-                    border: 1px solid #ddd;
-                    padding: 8px 12px;
-                    text-align: left;
-                    vertical-align: top;
-                    word-wrap: break-word;
-                    max-width: 200px;
-                  }
-
-                  [contenteditable] table th {
-                    background-color: #f5f5f5;
-                    font-weight: 600;
-                  }
-                  
-                  [contenteditable] table tr:nth-child(even) {
-                    background-color: #fafafa;
-                  }
-                  
-                  [contenteditable] h1,
-                  [contenteditable] h2,
-                  [contenteditable] h3,
-                  [contenteditable] h4,
-                  [contenteditable] h5,
-                  [contenteditable] h6 {
-                    margin: 16px 0 8px 0;
-                    font-weight: 600;
-                  }
-                  
-                  [contenteditable] p {
-                    margin: 8px 0;
-                  }
-                  
-                  [contenteditable] ul,
-                  [contenteditable] ol {
-                    margin: 8px 0;
-                    padding-left: 20px;
-                  }
-                `}</style>
-              </div>
-            </div>
-
-            {/* Design Panel */}
-            <Card className="bg-muted/30 border-muted">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  Design Customization
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Form */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Program Title */}
+                <div>
+                  <Label htmlFor="programTitle" className="text-sm font-medium">
+                    Program Title
+                  </Label>
+                  <Input
+                    id="programTitle"
+                    placeholder="Your Program/Project Title here"
+                    value={formData.programTitle}
+                    onChange={(e) => updateFormData("programTitle", e.target.value)}
+                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                    className="bg-white"
+                  />
+                </div>
+
+                {/* Program Summary */}
+                <div>
+                  <Label htmlFor="programSummary" className="text-sm font-medium">
+                    Program Summary
+                  </Label>
+                  <Textarea
+                    id="programSummary"
+                    placeholder="Brief description of the program or project…"
+                    value={formData.programSummary}
+                    onChange={(e) => updateFormData("programSummary", e.target.value)}
+                    rows={3}
+                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                    className="resize-none bg-white"
+                  />
+                </div>
+
+                {/* Status Fields */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="optFont" className="text-sm font-medium">
-                      Font Family
+                    <Label htmlFor="lastStatus" className="text-sm font-medium">
+                      Last Status
                     </Label>
-                    <Select
-                      value={designOptions.optFont}
-                      onValueChange={(value) => updateDesignOptions("optFont", value)}
-                    >
-                      <SelectTrigger className="mt-1.5">
+                    <Select value={formData.lastStatus} onValueChange={(value) => updateFormData("lastStatus", value)}>
+                      <SelectTrigger className="bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {fontOptions.map((font) => (
-                          <SelectItem key={font.value} value={font.value}>
-                            {font.label}
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
-                    <Label htmlFor="optAccent" className="text-sm font-medium">
-                      Accent Color
+                    <Label htmlFor="currentStatus" className="text-sm font-medium">
+                      Current Status
                     </Label>
-                    <div className="flex gap-2 mt-1.5">
-                      <Input
-                        id="optAccent"
-                        type="color"
-                        value={designOptions.optAccent}
-                        onChange={(e) => updateDesignOptions("optAccent", e.target.value)}
-                        className="w-16 h-10 p-1 cursor-pointer bg-white"
-                      />
-                      <Input
-                        type="text"
-                        value={designOptions.optAccent}
-                        onChange={(e) => updateDesignOptions("optAccent", e.target.value)}
-                        className="flex-1 font-mono text-sm bg-white"
-                        placeholder="#086dd7"
-                      />
-                    </div>
+                    <Select
+                      value={formData.currentStatus}
+                      onValueChange={(value) => updateFormData("currentStatus", value)}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="trending" className="text-sm font-medium">
+                      Trending
+                    </Label>
+                    <Select value={formData.trending} onValueChange={(value) => updateFormData("trending", value)}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="asOf" className="text-sm font-medium">
+                      As of Date
+                    </Label>
+                    <Input
+                      id="asOf"
+                      type="date"
+                      value={formData.asOf}
+                      onChange={(e) => updateFormData("asOf", e.target.value)}
+                      className="bg-white"
+                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Team Fields */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="optDensity" className="text-sm font-medium">
-                      Table Density
+                    <Label htmlFor="tpm" className="text-sm font-medium">
+                      TPM
                     </Label>
-                    <Select
-                      value={designOptions.optDensity}
-                      onValueChange={(value) => updateDesignOptions("optDensity", value)}
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="comfortable">Comfortable</SelectItem>
-                        <SelectItem value="compact">Compact</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="tpm"
+                      placeholder="Technical Program Manager"
+                      value={formData.tpm}
+                      onChange={(e) => updateFormData("tpm", e.target.value)}
+                      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                      className="bg-white"
+                    />
                   </div>
+
                   <div>
-                    <Label htmlFor="optBorders" className="text-sm font-medium">
-                      Table Style
+                    <Label htmlFor="engDri" className="text-sm font-medium">
+                      Engineering DRI
                     </Label>
-                    <Select
-                      value={designOptions.optBorders}
-                      onValueChange={(value) => updateDesignOptions("optBorders", value)}
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lines">Bordered</SelectItem>
-                        <SelectItem value="shaded">Shaded rows</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="engDri"
+                      placeholder="Engineering Lead"
+                      value={formData.engDri}
+                      onChange={(e) => updateFormData("engDri", e.target.value)}
+                      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                      className="bg-white"
+                    />
                   </div>
+
+                  <div>
+                    <Label htmlFor="bizSponsor" className="text-sm font-medium">
+                      Business Sponsor
+                    </Label>
+                    <Input
+                      id="bizSponsor"
+                      placeholder="Business Stakeholder"
+                      value={formData.bizSponsor}
+                      onChange={(e) => updateFormData("bizSponsor", e.target.value)}
+                      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                      className="bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="engSponsor" className="text-sm font-medium">
+                      Engineering Sponsor
+                    </Label>
+                    <Input
+                      id="engSponsor"
+                      placeholder="Engineering Stakeholder"
+                      value={formData.engSponsor}
+                      onChange={(e) => updateFormData("engSponsor", e.target.value)}
+                      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Executive Summary */}
+                <div>
+                  <Label htmlFor="execSummary" className="text-sm font-medium">
+                    Executive Summary
+                  </Label>
+                  <div className="flex gap-1 mt-1.5 mb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => wrapSelection("execSummary", "b")}
+                      className="h-8 px-2"
+                    >
+                      <Bold className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => wrapSelection("execSummary", "i")}
+                      className="h-8 px-2"
+                    >
+                      <Italic className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => wrapSelection("execSummary", "u")}
+                      className="h-8 px-2"
+                    >
+                      <Underline className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <Textarea
+                    id="execSummary"
+                    placeholder="Key outcomes and results…"
+                    value={formData.execSummary}
+                    onChange={(e) => {
+                      updateFormData("execSummary", e.target.value)
+                      autoResize(e.target)
+                    }}
+                    onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
+                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                    className="resize-none bg-white min-h-[80px]"
+                    style={{ height: "auto" }}
+                  />
+                </div>
+
+                {/* Lowlights */}
+                <div>
+                  <Label htmlFor="lowlights" className="text-sm font-medium">
+                    Lowlights (one per line)
+                  </Label>
+                  <Textarea
+                    id="lowlights"
+                    placeholder="Example: OBN paused for 3 weeks"
+                    value={formData.lowlights}
+                    onChange={(e) => updateFormData("lowlights", e.target.value)}
+                    rows={3}
+                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                    className="resize-none bg-white"
+                  />
+                </div>
+
+                {/* Updates Section */}
+                <div>
+                  <Label className="text-sm font-medium">Updates</Label>
+                  <div className="flex gap-1 mb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => wrapSelection("updatesHtml", "b")}
+                      className="h-8 px-2"
+                    >
+                      <Bold className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => wrapSelection("updatesHtml", "i")}
+                      className="h-8 px-2"
+                    >
+                      <Italic className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => wrapSelection("updatesHtml", "u")}
+                      className="h-8 px-2"
+                    >
+                      <Underline className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div
+                    ref={updatesRef}
+                    id="updatesHtml"
+                    contentEditable
+                    className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+                    style={{
+                      lineHeight: "1.5",
+                      overflowX: "auto",
+                      maxWidth: "100%",
+                    }}
+                    onInput={handleUpdatesInput}
+                    onBlur={handleUpdatesBlur}
+                    onPaste={handleUpdatesPaste}
+                    data-placeholder="Paste tables, add formatted text, or type updates here..."
+                    suppressContentEditableWarning={true}
+                  />
+                  <style jsx>{`
+                    [contenteditable]:empty:before {
+                      content: attr(data-placeholder);
+                      color: #6b7280;
+                      pointer-events: none;
+                    }
+                    
+                    [contenteditable] table {
+                      border-collapse: collapse;
+                      width: 100%;
+                      margin: 8px 0;
+                      font-size: 14px;
+                    }
+                    
+                    [contenteditable] table th,
+                    [contenteditable] table td {
+                      border: 1px solid #ddd;
+                      padding: 8px 12px;
+                      text-align: left;
+                      vertical-align: top;
+                    }
+                    
+                    [contenteditable] table th {
+                      background-color: #f5f5f5;
+                      font-weight: bold;
+                    }
+                    
+                    [contenteditable] table tr:nth-child(even) {
+                      background-color: #f9f9f9;
+                    }
+                  `}</style>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Design Options */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Design Options</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="optFont" className="text-sm font-medium">
+                    Font Family
+                  </Label>
+                  <Select
+                    value={designOptions.optFont}
+                    onValueChange={(value) => updateDesignOptions("optFont", value)}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fontOptions.map((font) => (
+                        <SelectItem key={font.value} value={font.value}>
+                          {font.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="optAccent" className="text-sm font-medium">
+                    Accent Color
+                  </Label>
+                  <Input
+                    id="optAccent"
+                    type="color"
+                    value={designOptions.optAccent}
+                    onChange={(e) => updateDesignOptions("optAccent", e.target.value)}
+                    className="bg-white h-10"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="optDensity" className="text-sm font-medium">
+                    Density
+                  </Label>
+                  <Select
+                    value={designOptions.optDensity}
+                    onValueChange={(value) => updateDesignOptions("optDensity", value)}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="comfortable">Comfortable</SelectItem>
+                      <SelectItem value="compact">Compact</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="optBorders" className="text-sm font-medium">
+                    Table Style
+                  </Label>
+                  <Select
+                    value={designOptions.optBorders}
+                    onValueChange={(value) => updateDesignOptions("optBorders", value)}
+                  >
+                    <SelectTrigger className="bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lines">Lines</SelectItem>
+                      <SelectItem value="shaded">Shaded</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -1438,212 +1290,118 @@ ${updatesBlock}
                   </Label>
                   <Textarea
                     id="optCustomCss"
-                    placeholder=":root{ --green:#19b77d; } /* your custom styles */"
+                    placeholder="Add custom CSS styles…"
                     value={designOptions.optCustomCss}
                     onChange={(e) => updateDesignOptions("optCustomCss", e.target.value)}
                     rows={3}
                     maxLength={SECURITY_CONFIG.MAX_CSS_LENGTH}
-                    className="mt-1.5 font-mono text-xs resize-none"
+                    className="resize-none bg-white font-mono text-xs"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Dangerous patterns are automatically removed for security
-                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <Button onClick={generate} disabled={isGenerating} className="flex-1 sm:flex-none">
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Report"
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={copyHtml}
-                disabled={isCopying || !generatedHtml}
-                className="flex-1 sm:flex-none bg-transparent"
-              >
-                {isCopying ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
+            {/* Actions */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={generate} disabled={isGenerating} className="flex-1 min-w-[120px]">
+                    {isGenerating ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Eye className="w-4 h-4 mr-2" />
+                    )}
+                    Generate
+                  </Button>
+                  <Button
+                    onClick={copyHtml}
+                    disabled={isCopying}
+                    variant="outline"
+                    className="flex-1 min-w-[120px] bg-transparent"
+                  >
+                    {isCopying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
                     Copy HTML
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={copyForEmail}
-                disabled={copyEmailLoading || !generatedHtml}
-                className="flex-1 sm:flex-none bg-transparent"
-              >
-                {copyEmailLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Copying...
-                  </>
-                ) : copyEmailFeedback ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {copyEmailFeedback}
-                  </>
-                ) : (
-                  <>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Copy for Email
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={downloadHtml}
-                disabled={isDownloading} // Removed !generatedHtml condition so button works even when HTML not generated yet
-                className="flex-1 sm:flex-none bg-transparent"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {isDownloading ? "Downloading..." : "Download"}
-              </Button>
-              <Button variant="ghost" onClick={resetSaved} className="flex-1 sm:flex-none">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-            </div>
+                  </Button>
+                  <Button
+                    onClick={copyRenderedContent}
+                    disabled={copyRenderedLoading}
+                    variant="outline"
+                    className="flex-1 min-w-[120px] bg-transparent"
+                  >
+                    {copyRenderedLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="w-4 h-4 mr-2" />
+                    )}
+                    {copyRenderedFeedback || "Copy for Email"}
+                  </Button>
+                  <Button
+                    onClick={downloadHtml}
+                    disabled={isDownloading}
+                    variant="outline"
+                    className="flex-1 min-w-[120px] bg-transparent"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Download
+                  </Button>
+                  <Button onClick={resetSaved} variant="outline" size="sm">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-              <p className="font-medium mb-1">Auto-save enabled</p>
-              <p>
-                Your content and design preferences are automatically saved locally. All data remains private and secure
-                on your device.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Right: Output */}
-        <Card className="h-fit">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Preview & Export</CardTitle>
-              <div className="flex gap-1 bg-muted rounded-lg p-1">
-                <Button
-                  variant={previewMode === "preview" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setPreviewMode("preview")}
-                  className="h-7 px-3 text-xs"
-                >
-                  <Eye className="w-3 h-3 mr-1" />
-                  Preview
-                </Button>
-                <Button
-                  variant={previewMode === "code" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setPreviewMode("code")}
-                  className="h-7 px-3 text-xs"
-                >
-                  <Code className="w-3 h-3 mr-1" />
-                  Code
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {previewMode === "preview" ? (
-              <div className="border border-dashed rounded-lg bg-white min-h-[500px] max-h-[700px] overflow-auto shadow-inner">
-                {isGenerating ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                    <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                    <div>Generating preview...</div>
+          {/* Right Column - Preview */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Preview</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={previewMode === "preview" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPreviewMode("preview")}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Preview
+                    </Button>
+                    <Button
+                      variant={previewMode === "code" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPreviewMode("code")}
+                    >
+                      <Code className="w-4 h-4 mr-1" />
+                      Code
+                    </Button>
                   </div>
-                ) : generatedHtml ? (
+                </div>
+              </CardHeader>
+              <CardContent>
+                {previewMode === "preview" ? (
                   <div
-                    className="p-6"
-                    dangerouslySetInnerHTML={{ __html: generatedHtml }}
-                    style={{
-                      fontFamily: designOptions.optFont,
-                      fontSize: "14px",
-                      lineHeight: "1.45",
+                    className="border rounded-lg p-4 bg-white min-h-[400px] overflow-auto"
+                    dangerouslySetInnerHTML={{
+                      __html: generatedHtml || "<p class='text-gray-500'>Click Generate to see preview</p>",
                     }}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                    <div className="text-center">
-                      <div className="text-lg mb-2">👋</div>
-                      <div className="font-medium mb-1">Ready to create your status report?</div>
-                      <div className="text-sm">Fill out the form to see your preview here</div>
-                    </div>
-                  </div>
+                  <Textarea
+                    value={generatedHtml || "// Click Generate to see HTML code"}
+                    readOnly
+                    className="font-mono text-xs min-h-[400px] bg-gray-50"
+                  />
                 )}
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <Label htmlFor="output" className="text-sm font-medium">
-                    Generated HTML Code
-                  </Label>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{generatedHtml.length.toLocaleString()} characters</span>
-                    {generatedHtml && (
-                      <>
-                        <span>•</span>
-                        <span className="text-green-600">Valid HTML</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <Textarea
-                  id="output"
-                  value={generatedHtml}
-                  readOnly
-                  rows={18}
-                  className="font-mono text-xs resize-none bg-muted/30"
-                  placeholder="Generated HTML will appear here..."
-                />
-              </div>
-            )}
-
-            {generatedHtml && (
-              <div className="bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg p-4 border border-muted">
-                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Export Ready
-                </h4>
-                <div className="text-xs text-muted-foreground space-y-2">
-                  <div className="flex items-start gap-2">
-                    <Copy className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-medium">Copy HTML</div>
-                      <div>Copy the generated HTML to paste into emails, documents, or web pages</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Download className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-medium">Download File</div>
-                      <div>Save as a self-contained HTML file that opens in any web browser</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Shield className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-medium">Security & Privacy</div>
-                      <div>All content is sanitized and safe to share. No external dependencies.</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
