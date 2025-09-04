@@ -1,5 +1,7 @@
 "use client"
 
+// Force redeploy to pick up RESEND_API_KEY environment variable
+
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
