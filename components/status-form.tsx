@@ -41,6 +41,7 @@ interface FormData {
   updatesTrack: string
   updatesTeam: string
   updatesHtml: string
+  emailTo: string
 }
 
 interface DesignOptions {
@@ -76,6 +77,7 @@ const SAVE_FIELDS = [
   "updatesHtml",
   "updatesTrack",
   "updatesTeam",
+  "emailTo",
 ]
 
 const SECURITY_CONFIG = {
@@ -150,6 +152,7 @@ export default function StatusForm() {
     updatesTrack: "",
     updatesTeam: "",
     updatesHtml: "",
+    emailTo: "",
   })
 
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
@@ -172,6 +175,7 @@ export default function StatusForm() {
   const [copyEmailFeedback, setCopyEmailFeedback] = useState("")
   const [copyRenderedLoading, setIsCopyingRendered] = useState(false)
   const [copyRenderedFeedback, setCopyRenderedFeedback] = useState("")
+  const [isEmailing, setIsEmailing] = useState(false)
 
   const safeLocalStorageGet = (key: string): string | null => {
     try {
@@ -657,6 +661,69 @@ ${updatesBlock}
 </html>`
   }
 
+  const emailReport = async () => {
+    if (!formData.emailTo.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter an email address first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsEmailing(true)
+    try {
+      let htmlToSend = generatedHtml
+      if (!htmlToSend) {
+        htmlToSend = await generate()
+      }
+
+      console.log("[v0] Sending email to:", formData.emailTo.trim())
+      console.log("[v0] HTML length:", htmlToSend?.length || 0)
+
+      const response = await fetch("/api/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: formData.emailTo.trim(),
+          html: htmlToSend,
+          subject: formData.programTitle || "Status Report",
+        }),
+      })
+
+      console.log("[v0] API response status:", response.status)
+      console.log("[v0] API response ok:", response.ok)
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.log("[v0] API error response:", errorData)
+        throw new Error(`API returned ${response.status}: ${errorData}`)
+      }
+
+      const result = await response.json()
+      console.log("[v0] Email sent successfully:", result)
+
+      toast({
+        title: "Email Sent",
+        description: `Report sent successfully to ${formData.emailTo}`,
+      })
+    } catch (error) {
+      console.error("[v0] Email error details:", error)
+      console.error("[v0] Error message:", error.message)
+      console.error("[v0] Error stack:", error.stack)
+
+      toast({
+        title: "Email Failed",
+        description: `Failed to send email: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsEmailing(false)
+    }
+  }
+
   const generate = async () => {
     setIsGenerating(true)
     setSecurityWarnings([])
@@ -993,6 +1060,8 @@ ${updatesBlock}
     }
   }, [formData.updatesHtml])
 
+  const sendEmailReport = emailReport
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
@@ -1198,6 +1267,21 @@ ${updatesBlock}
                       className="bg-white"
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor="emailTo" className="text-sm font-medium">
+                      Email To
+                    </Label>
+                    <Input
+                      id="emailTo"
+                      type="email"
+                      placeholder="recipient@example.com"
+                      value={formData.emailTo}
+                      onChange={(e) => updateFormData("emailTo", e.target.value)}
+                      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+                      className="bg-white"
+                    />
+                  </div>
                 </div>
 
                 {/* Executive Summary */}
@@ -1319,14 +1403,14 @@ ${updatesBlock}
                       color: #6b7280;
                       pointer-events: none;
                     }
-                    
+
                     [contenteditable] table {
                       border-collapse: collapse;
                       width: 100%;
                       margin: 8px 0;
                       font-size: 14px;
                     }
-                    
+
                     [contenteditable] table th,
                     [contenteditable] table td {
                       border: 1px solid #ddd;
@@ -1334,12 +1418,12 @@ ${updatesBlock}
                       text-align: left;
                       vertical-align: top;
                     }
-                    
+
                     [contenteditable] table th {
                       background-color: #f5f5f5;
                       font-weight: bold;
                     }
-                    
+
                     [contenteditable] table tr:nth-child(even) {
                       background-color: #f9f9f9;
                     }
@@ -1487,6 +1571,15 @@ ${updatesBlock}
                       <Download className="w-4 h-4 mr-2" />
                     )}
                     Download
+                  </Button>
+                  <Button
+                    onClick={emailReport}
+                    disabled={isEmailing}
+                    variant="default"
+                    className="flex-1 min-w-[120px]"
+                  >
+                    {isEmailing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                    {isEmailing ? "Sending..." : "Email me this report"}
                   </Button>
                   <Button onClick={resetSaved} variant="outline" size="sm">
                     <RotateCcw className="w-4 h-4 mr-2" />
