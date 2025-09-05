@@ -125,6 +125,7 @@ const SECURITY_CONFIG = {
     "h1",
     "h2",
     "h3",
+    "img",
   ]),
   ALLOWED_ATTRIBUTES: {
     "*": ["class", "style"],
@@ -445,35 +446,7 @@ export default function StatusForm() {
   const stripDecl = (style: string, prop: string) =>
     style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
 
-  const widenTables = (html: string): string => {
-    if (!html) return html
-    const root = document.createElement("div")
-    root.innerHTML = html
-
-    root.querySelectorAll("table").forEach((table) => {
-      ;(table as HTMLElement).style.width = "100%"
-      ;(table as HTMLElement).style.tableLayout = "auto"
-
-      const rows = Array.from(table.querySelectorAll(":scope > tbody > tr, :scope > tr"))
-      rows.forEach((tr) => {
-        const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
-        const hasColspan = cells.some((c) => c.hasAttribute("colspan"))
-
-        if (cells.length === 2 && !hasColspan) {
-          cells.forEach((cell, idx) => {
-            const el = cell as HTMLElement
-            const old = el.getAttribute("style") || ""
-            const noWidth = stripDecl(old, "width")
-            const next = `${noWidth}${noWidth ? "; " : ""}width: ${idx === 0 ? LEFT_COL : RIGHT_COL}`
-            el.setAttribute("style", next)
-          })
-        }
-      })
-    })
-
-    return root.innerHTML
-  }
-
+  
   const stripeTables = (html: string): string => {
   if (!html) return html
   const root = document.createElement("div")
@@ -574,6 +547,15 @@ const widenTables = (html: string): string => {
 
   return root.innerHTML
 }
+// line 577 (insert)
+const processRichHtml = (html: string): string =>
+  widenTables(
+    stripeTables(
+      stripInlineBackgrounds(
+        sanitizeHtml(html)
+      )
+    )
+  );
 
   const buildHtml = (data: FormData) => {
     const asOf = data.asOf
