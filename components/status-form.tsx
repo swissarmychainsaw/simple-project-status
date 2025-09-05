@@ -46,6 +46,9 @@ interface FormData {
   sectionTitle: string
   emailTo: string
   updatesTitle: string
+  milestonesTitle: string
+  milestonesSectionTitle: string
+  milestonesHtml: string
 }
 
 interface DesignOptions {
@@ -90,7 +93,9 @@ const SAVE_FIELDS = [
   "updatesTitle",
   "emailTo",
   "asOf",
+    "milestonesTitle","milestonesSectionTitle","milestonesHtml",
 ] as const
+const isLargeFieldKey = (k: string) => /(?:updatesHtml|milestonesHtml)/.test(k)
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 20000,
@@ -167,6 +172,10 @@ const initialFormData: FormData = {
   sectionTitle: "",
   emailTo: "",
   updatesTitle: "Top Accomplishments",
+   // NEW defaults
+  milestonesTitle: "Upcoming Milestones",
+  milestonesSectionTitle: "",
+  milestonesHtml: "",
 }
 
 export default function StatusForm() {
@@ -201,9 +210,9 @@ export default function StatusForm() {
   const safeLocalStorageGet = (key: string): string | null => {
     try {
       const value = localStorage.getItem(key)
-      const maxLength = key.includes("updatesHtml")
-        ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
-        : SECURITY_CONFIG.MAX_FIELD_LENGTH
+      const maxLength = isLargeFieldKey(key)
+  ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
+  : SECURITY_CONFIG.MAX_FIELD_LENGTH
       if (value && value.length > maxLength) {
         console.warn(`Stored value for ${key} exceeds maximum length, ignoring`)
         localStorage.removeItem(key)
@@ -218,9 +227,10 @@ export default function StatusForm() {
 
   const safeLocalStorageSet = (key: string, value: string): boolean => {
     try {
-      const maxLength = key.includes("updatesHtml")
-        ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
-        : SECURITY_CONFIG.MAX_FIELD_LENGTH
+      const maxLength = isLargeFieldKey(key)
+  ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
+  : SECURITY_CONFIG.MAX_FIELD_LENGTH
+
       if (value.length > maxLength) {
         console.warn(`Value for ${key} exceeds maximum length, not storing`)
         return false
@@ -268,23 +278,24 @@ export default function StatusForm() {
     }
   }, [])
 
-  const validateInput = (field: string, value: string): { isValid: boolean; sanitized: string; warnings: string[] } => {
-    const warnings: string[] = []
-    let sanitized = value
+const validateInput = (field: string, value: string) => {
+  const warnings: string[] = []
+  let sanitized = value
 
-    const maxLength =
-      field === "updatesHtml"
-        ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
-        : field === "execSummary"
-          ? SECURITY_CONFIG.MAX_EXEC_SUMMARY_LENGTH
-          : SECURITY_CONFIG.MAX_FIELD_LENGTH
+  const maxLength =
+    field === "execSummary"
+      ? SECURITY_CONFIG.MAX_EXEC_SUMMARY_LENGTH
+      : field === "updatesHtml" || field === "milestonesHtml"
+      ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
+      : SECURITY_CONFIG.MAX_FIELD_LENGTH
 
-    if (field === "execSummary") {
-      // Do not truncate here; UI enforces plain-text limit
-    } else if (value.length > maxLength) {
-      sanitized = value.substring(0, maxLength)
-      warnings.push(`${field} was truncated to ${maxLength} characters`)
-    }
+  if (field === "execSummary") {
+    // Do not truncate here; UI enforces plain-text limit
+  } else if (value.length > maxLength) {
+    sanitized = value.substring(0, maxLength)
+    warnings.push(`${field} was truncated to ${maxLength} characters`)
+  }
+
 
     // HTML injection detection
     if (SECURITY_CONFIG.HTML_INJECTION_PATTERNS.test(value)) {
