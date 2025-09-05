@@ -45,6 +45,7 @@ interface FormData {
   updatesHtml: string
   sectionTitle: string
   emailTo: string
+  updatesTitle: string
 }
 
 interface DesignOptions {
@@ -77,22 +78,19 @@ const getPlainTextLength = (html: string): number => {
 const SAVE_FIELDS = [
   "programTitle",
   "programSummary",
+  "lastStatus",
+  "currentStatus",
+  "trending",
   "tpm",
   "engDri",
   "bizSponsor",
   "engSponsor",
-  "optFont",
-  "optAccent",
-  "optDensity",
-  "optBorders",
-  "optCustomCss",
-  "updatesHtml",
-  "updatesTrack",
-  "updatesTeam",
-  "emailTo",
+  "execSummary",
   "sectionTitle",
-  "execSummary", // Added execSummary to persist in localStorage
-]
+  "updatesTitle",
+  "emailTo",
+  "asOf",
+] as const
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 20000,
@@ -150,26 +148,29 @@ const SECURITY_CONFIG = {
   HTML_INJECTION_PATTERNS: /<script|<iframe|<object|<embed|<link|<meta|<base/i,
 }
 
+const initialFormData: FormData = {
+  programTitle: "",
+  programSummary: "",
+  asOf: "",
+  lastStatus: "Green",
+  currentStatus: "Green",
+  trending: "Green",
+  tpm: "",
+  engDri: "",
+  bizSponsor: "",
+  engSponsor: "",
+  execSummary: "",
+  lowlights: "",
+  updatesTrack: "",
+  updatesTeam: "",
+  updatesHtml: "",
+  sectionTitle: "",
+  emailTo: "",
+  updatesTitle: "Top Accomplishments",
+}
+
 export default function StatusForm() {
-  const [formData, setFormData] = useState<FormData>({
-    programTitle: "",
-    programSummary: "",
-    asOf: "",
-    lastStatus: "Green",
-    currentStatus: "Green",
-    trending: "Green",
-    tpm: "",
-    engDri: "",
-    bizSponsor: "",
-    engSponsor: "",
-    execSummary: "",
-    lowlights: "",
-    updatesTrack: "",
-    updatesTeam: "",
-    updatesHtml: "",
-    sectionTitle: "",
-    emailTo: "",
-  })
+  const [formData, setFormData] = useState<FormData>(initialFormData)
 
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
     optFont: "Inter, Arial, Helvetica, sans-serif",
@@ -475,7 +476,7 @@ ${sanitizedCss}
   const STRIPE_EVEN = "#f9f9f9"
 
   const isWhiteish = (v = "") =>
-    /^(?:white|#fff(?:fff)?|rgb$$\s*255\s*,\s*255\s*,\s*255\s*$$|rgba$$\s*255\s*,\s*255\s*,\s*255\s*,\s*1\s*$$|transparent|inherit)$/i.test(
+    /^(?:white|#fff(?:fff)?|rgb$$\s*255\s*,\s*255\s*,\s*255\s*$$|rgba$$\s*255\s*,\s*255\s*,\s*255\s*,\s*1\s*1$$|transparent|inherit)$/i.test(
       v.trim(),
     )
 
@@ -670,7 +671,7 @@ ${sanitizedCss}
               ? `
         </table>
         
-        <h2 style="font-size: 20px; font-weight: bold; color: #333; margin: 24px 0 8px 0;">Updates</h2>
+        <h2 style="font-size: 20px; font-weight: bold; color: #333; margin: 24px 0 8px 0;">${data.updatesTitle || "Top Accomplishments"}</h2>
         ${
           data.sectionTitle
             ? `<h3 style="font-size: 18px; font-weight: 600; color: #555; margin: 8px 0 16px 0;">${data.sectionTitle}</h3>`
@@ -704,7 +705,7 @@ ${sanitizedCss}
 
     const updatesBlock =
       data.updatesHtml && data.updatesHtml.trim()
-        ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${
+        ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">${data.updatesTitle || "Top Accomplishments"}</h2>${
             data.sectionTitle
               ? `<h3 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 10px 0 8px 0; font-size: 18px;">${escapeHtml(data.sectionTitle)}</h3>`
               : ""
@@ -750,7 +751,7 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
         ${
           data.updatesHtml
             ? `
-          <h2 style="color: #333; margin: 20px 0 10px 0; font-size: 20px;">Updates</h2>
+          <h2 style="color: #333; margin: 20px 0 10px 0; font-size: 20px;">${data.updatesTitle || "Top Accomplishments"}</h2>
           ${data.sectionTitle ? `<h3 style="color: #555; margin: 10px 0; font-size: 18px; font-weight: 600;">${data.sectionTitle}</h3>` : ""}
           ${processedUpdates}
         `
@@ -1532,9 +1533,17 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
 
                 {/* Updates Section */}
                 <div>
-                  <Label className="text-sm font-medium">Updates</Label>
+                  <div className="mb-3">
+                    <Input
+                      type="text"
+                      value={formData.updatesTitle}
+                      onChange={(e) => updateFormData("updatesTitle", e.target.value)}
+                      placeholder="Top Accomplishments [Title (H2)]"
+                      className="mt-1 bg-white"
+                    />
+                  </div>
                   <div className="mt-2 mb-3">
-                    <Label className="text-xs text-gray-600">Section Title (optional)</Label>
+                    <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
                     <Input
                       type="text"
                       value={formData.sectionTitle}
