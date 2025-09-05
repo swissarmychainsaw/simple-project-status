@@ -452,6 +452,9 @@ export default function StatusForm() {
   const root = document.createElement("div")
   root.innerHTML = html
 
+  const getChildRows = (seg: Element) =>
+    Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+
   root.querySelectorAll("table").forEach((table) => {
     const segments: Element[] = []
     if (table.tHead) segments.push(table.tHead)
@@ -460,7 +463,7 @@ export default function StatusForm() {
     if (segments.length === 0) segments.push(table)
 
     segments.forEach((seg) => {
-      const rows = Array.from(seg.querySelectorAll(":scope > tr"))
+      const rows = getChildRows(seg)
       rows.forEach((tr, idx) => {
         const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
         Array.from(tr.children).forEach((cell) => {
@@ -468,12 +471,10 @@ export default function StatusForm() {
           const el = cell as HTMLElement
           const old = el.getAttribute("style") || ""
 
-          // detect explicit non-white bg
           const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
           const explicitBg = m ? m[1] : ""
           const keepCellBg = explicitBg && !isWhiteish(explicitBg)
 
-          // start from style with bg removed, then force left/top by stripping & re-adding
           let next = stripBgDecls(old)
           next = stripDecl(next, "text-align")
           next = stripDecl(next, "vertical-align")
@@ -484,6 +485,9 @@ export default function StatusForm() {
       })
     })
   })
+
+  return root.innerHTML
+}
 
   return root.innerHTML
 }
@@ -516,22 +520,50 @@ const widenTables = (html: string): string => {
   const root = document.createElement("div")
   root.innerHTML = html
 
-  root.querySelectorAll("table").forEach((table) => {
-    (table as HTMLElement).style.width = "100%"
-    ;(table as HTMLElement).style.tableLayout = "auto"
+  const getChildRows = (seg: Element) =>
+    Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
 
-    // process thead, tbody, tfoot (or table if none present)
+  root.querySelectorAll("table").forEach((table) => {
+    const t = table as HTMLElement
+    t.style.width = "100%"
+    t.style.tableLayout = "fixed"  // more reliable % widths in email clients
+
+    // Where to look for rows
     const segments: Element[] = []
     if (table.tHead) segments.push(table.tHead)
     segments.push(...Array.from(table.tBodies))
     if (table.tFoot) segments.push(table.tFoot)
     if (segments.length === 0) segments.push(table)
 
+    // Detect if this is a simple 2-col table (no colspan)
+    let isTwoCol = false
+    outer: for (const seg of segments) {
+      const rows = getChildRows(seg)
+      for (const tr of rows) {
+        const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
+        const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"))
+        if (cells.length === 2 && !hasColspan) { isTwoCol = true; break outer }
+      }
+    }
+
+    // Inject <colgroup> for 30/70 if needed (and missing)
+    if (isTwoCol && !table.querySelector("colgroup")) {
+      const cg = document.createElement("colgroup")
+      const c1 = document.createElement("col")
+      const c2 = document.createElement("col")
+      ;(c1 as HTMLElement).style.width = LEFT_COL
+      ;(c2 as HTMLElement).style.width = RIGHT_COL
+      cg.appendChild(c1)
+      cg.appendChild(c2)
+      table.insertBefore(cg, table.firstChild)
+    }
+
+    // Also write widths directly to cells (keeps widths even if colgroup stripped)
     segments.forEach((seg) => {
-      const rows = Array.from(seg.querySelectorAll(":scope > tr"))
+      const rows = getChildRows(seg)
       rows.forEach((tr) => {
         const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
-        const hasColspan = cells.some((c) => c.hasAttribute("colspan"))
+        const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"))
         if (cells.length === 2 && !hasColspan) {
           cells.forEach((cell, idx) => {
             const el = cell as HTMLElement
@@ -547,6 +579,7 @@ const widenTables = (html: string): string => {
 
   return root.innerHTML
 }
+  
 // line 577 (insert)
 const processRichHtml = (html: string): string =>
   widenTables(
