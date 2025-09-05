@@ -447,7 +447,7 @@ export default function StatusForm() {
     style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
 
   
-  const stripeTables = (html: string): string => {
+ const stripeTables = (html: string): string => {
   if (!html) return html
   const root = document.createElement("div")
   root.innerHTML = html
@@ -466,11 +466,14 @@ export default function StatusForm() {
       const rows = getChildRows(seg)
       rows.forEach((tr, idx) => {
         const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
+        ;(tr as HTMLElement).setAttribute("bgcolor", rowColor) // row-level fallback
+
         Array.from(tr.children).forEach((cell) => {
           if (!/^(TD|TH)$/i.test(cell.tagName)) return
           const el = cell as HTMLElement
           const old = el.getAttribute("style") || ""
 
+          // keep an explicitly non-white bg if present
           const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
           const explicitBg = m ? m[1] : ""
           const keepCellBg = explicitBg && !isWhiteish(explicitBg)
@@ -478,9 +481,22 @@ export default function StatusForm() {
           let next = stripBgDecls(old)
           next = stripDecl(next, "text-align")
           next = stripDecl(next, "vertical-align")
-          if (!keepCellBg) next += (next ? "; " : "") + `background-color: ${rowColor}`
-          next += (next ? "; " : "") + "text-align: left; vertical-align: top"
+          if (!keepCellBg) {
+            next += (next ? "; " : "") + `background-color:${rowColor}`
+            el.setAttribute("bgcolor", rowColor) // cell-level fallback
+          }
+          next += (next ? "; " : "") + "text-align:left; vertical-align:top"
           el.setAttribute("style", next)
+          el.setAttribute("align", "left")   // email fallback
+          el.setAttribute("valign", "top")   // email fallback
+
+          // tame big gaps from pasted <p>/<div>/<h*> etc.
+          const first = el.firstElementChild as HTMLElement | null
+          const last  = el.lastElementChild  as HTMLElement | null
+          const isBlock = (n?: Element | null) =>
+            !!n && /^(P|DIV|UL|OL|H1|H2|H3|H4|H5|H6)$/i.test(n.tagName)
+          if (isBlock(first)) first!.style.marginTop = "0"
+          if (isBlock(last))  last!.style.marginBottom = "0"
         })
       })
     })
@@ -488,6 +504,7 @@ export default function StatusForm() {
 
   return root.innerHTML
 }
+
 
 // add this helper somewhere near your other HTML helpers
 const stripInlineBackgrounds = (html: string) => {
@@ -523,39 +540,15 @@ const widenTables = (html: string): string => {
   root.querySelectorAll("table").forEach((table) => {
     const t = table as HTMLElement
     t.style.width = "100%"
-    t.style.tableLayout = "fixed"  // more reliable % widths in email clients
+    t.setAttribute("width", "100%")      // attribute fallback
+    t.style.tableLayout = "fixed"        // helps % widths in email
 
-    // Where to look for rows
     const segments: Element[] = []
     if (table.tHead) segments.push(table.tHead)
     segments.push(...Array.from(table.tBodies))
     if (table.tFoot) segments.push(table.tFoot)
     if (segments.length === 0) segments.push(table)
 
-    // Detect if this is a simple 2-col table (no colspan)
-    let isTwoCol = false
-    outer: for (const seg of segments) {
-      const rows = getChildRows(seg)
-      for (const tr of rows) {
-        const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
-        const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"))
-        if (cells.length === 2 && !hasColspan) { isTwoCol = true; break outer }
-      }
-    }
-
-    // Inject <colgroup> for 30/70 if needed (and missing)
-    if (isTwoCol && !table.querySelector("colgroup")) {
-      const cg = document.createElement("colgroup")
-      const c1 = document.createElement("col")
-      const c2 = document.createElement("col")
-      ;(c1 as HTMLElement).style.width = LEFT_COL
-      ;(c2 as HTMLElement).style.width = RIGHT_COL
-      cg.appendChild(c1)
-      cg.appendChild(c2)
-      table.insertBefore(cg, table.firstChild)
-    }
-
-    // Also write widths directly to cells (keeps widths even if colgroup stripped)
     segments.forEach((seg) => {
       const rows = getChildRows(seg)
       rows.forEach((tr) => {
@@ -566,8 +559,11 @@ const widenTables = (html: string): string => {
             const el = cell as HTMLElement
             const old = el.getAttribute("style") || ""
             const noWidth = stripDecl(old, "width")
-            const next = `${noWidth}${noWidth ? "; " : ""}width: ${idx === 0 ? LEFT_COL : RIGHT_COL}`
-            el.setAttribute("style", next)
+            const w = idx === 0 ? LEFT_COL : RIGHT_COL // "30%" / "70%"
+            el.setAttribute("style", `${noWidth}${noWidth ? "; " : ""}width:${w}`)
+            el.setAttribute("width", w) // attribute fallback
+            el.setAttribute("align", "left")
+            el.setAttribute("valign", "top")
           })
         }
       })
