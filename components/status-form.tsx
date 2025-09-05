@@ -65,6 +65,15 @@ const fontOptions = [
 ]
 
 const PERSIST_PREFIX = "statusReportGenerator."
+
+const EXEC_SUMMARY_PLAIN_LIMIT = 20000
+
+const getPlainTextLength = (html: string): number => {
+  const el = document.createElement("div")
+  el.innerHTML = html || ""
+  return (el.textContent || el.innerText || "").trim().length
+}
+
 const SAVE_FIELDS = [
   "programTitle",
   "programSummary",
@@ -82,11 +91,12 @@ const SAVE_FIELDS = [
   "updatesTeam",
   "emailTo",
   "sectionTitle",
+  "execSummary", // Added execSummary to persist in localStorage
 ]
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 20000,
-  MAX_EXEC_SUMMARY_LENGTH: 20000,
+  MAX_EXEC_SUMMARY_LENGTH: 3000,
   MAX_UPDATES_LENGTH: 100000, // 100KB limit for Updates section
   MAX_CSS_LENGTH: 5000,
   ALLOWED_TAGS: new Set([
@@ -184,6 +194,9 @@ export default function StatusForm() {
   const [isEmailing, setIsEmailing] = useState(false)
   const execSummaryRef = useRef<HTMLDivElement>(null)
 
+  const [execLen, setExecLen] = useState(0)
+  const [execOver, setExecOver] = useState(false)
+
   const safeLocalStorageGet = (key: string): string | null => {
     try {
       const value = localStorage.getItem(key)
@@ -265,8 +278,9 @@ export default function StatusForm() {
           ? SECURITY_CONFIG.MAX_EXEC_SUMMARY_LENGTH
           : SECURITY_CONFIG.MAX_FIELD_LENGTH
 
-    // Length validation
-    if (value.length > maxLength) {
+    if (field === "execSummary") {
+      // Do not truncate here; UI enforces plain-text limit
+    } else if (value.length > maxLength) {
       sanitized = value.substring(0, maxLength)
       warnings.push(`${field} was truncated to ${maxLength} characters`)
     }
@@ -457,7 +471,51 @@ ${sanitizedCss}
 </style>`
   }
 
-  const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+  const STRIPE_ODD = "#ffffff"
+  const STRIPE_EVEN = "#f9f9f9"
+
+  const isWhiteish = (v = "") =>
+    /^(?:white|#fff(?:fff)?|rgb$$\s*255\s*,\s*255\s*,\s*255\s*$$|rgba$$\s*255\s*,\s*255\s*,\s*255\s*,\s*1\s*$$|transparent|inherit)$/i.test(
+      v.trim(),
+    )
+
+  const stripBgDecls = (style: string) => style.replace(/background(?:-color)?:\s*[^;]+;?/gi, "").trim()
+
+  const processUpdatesHtmlDOM = (html: string): string => {
+    if (!html) return html
+    const root = document.createElement("div")
+    root.innerHTML = html
+
+    root.querySelectorAll("table").forEach((table) => {
+      const containers: Element[] = table.tBodies.length ? Array.from(table.tBodies) : [table]
+
+      containers.forEach((container) => {
+        const rows = Array.from(container.querySelectorAll(":scope > tr"))
+        rows.forEach((tr, idx) => {
+          const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
+
+          Array.from(tr.children).forEach((cell) => {
+            if (!/^(TD|TH)$/i.test(cell.tagName)) return
+            const el = cell as HTMLElement
+            const old = el.getAttribute("style") || ""
+            const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
+            const explicitBg = m ? m[1] : ""
+            const keepCellBg = explicitBg && !isWhiteish(explicitBg)
+
+            let next = stripBgDecls(old)
+            if (!keepCellBg) next += (next ? "; " : "") + `background-color: ${rowColor}`
+            if (!/text-align:/i.test(next)) next += "; text-align: left"
+            if (!/vertical-align:/i.test(next)) next += "; vertical-align: top"
+            el.setAttribute("style", next)
+          })
+        })
+      })
+    })
+
+    return root.innerHTML
+  }
+
+  const buildHtml = (data: FormData, opts: DesignOptions) => {
     const asOf = data.asOf
       ? (() => {
           const [year, month, day] = data.asOf.split("-").map(Number)
@@ -466,44 +524,147 @@ ${sanitizedCss}
         })()
       : ""
 
-    const processUpdatesHtml = (html: string) => {
-      if (!html) return html
-
-      // Add zebra striping and alignment to table cells
-      return html
-        .replace(/<td([^>]*)>/g, (match, attributes) => {
-          // Extract existing style if any
-          const styleMatch = attributes.match(/style="([^"]*)"/)
-          const existingStyle = styleMatch ? styleMatch[1] : ""
-
-          // Add left/top alignment to all cells
-          const newStyle = `text-align: left; vertical-align: top; ${existingStyle}`
-
-          if (attributes.includes("style=")) {
-            return `<td${attributes.replace(/style="[^"]*"/, `style="${newStyle}"`)}>`
-          } else {
-            return `<td${attributes} style="${newStyle}">`
-          }
-        })
-        .replace(/<tr([^>]*)>/g, (match, attributes, offset, string) => {
-          // Count previous tr tags to determine row number for zebra striping
-          const previousTrs = string.substring(0, offset).match(/<tr/g) || []
-          const rowIndex = previousTrs.length
-
-          // Extract existing style if any
-          const styleMatch = attributes.match(/style="([^"]*)"/)
-          const existingStyle = styleMatch ? styleMatch[1] : ""
-
-          const backgroundColor = rowIndex % 2 === 1 ? "#f9f9f9" : "#ffffff"
-          const newStyle = `background-color: ${backgroundColor}; ${existingStyle}`
-
-          if (attributes.includes("style=")) {
-            return `<tr${attributes.replace(/style="[^"]*"/, `style="${newStyle}"`)}>`
-          } else {
-            return `<tr${attributes} style="${newStyle}">`
-          }
-        })
+    const pill = (val: string) => {
+      const v = escapeHtml(val || "").toLowerCase()
+      if (v === "red")
+        return `<div style="display: inline-block; background-color: #e5534b; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Red</div>`
+      if (v === "yellow")
+        return `<div style="display: inline-block; background-color: #f4c542; color: #111; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Yellow</div>`
+      return `<div style="display: inline-block; background-color: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Green</div>`
     }
+
+    const processedUpdates = processUpdatesHtmlDOM(data.updatesHtml)
+
+    const evenRowStyle = "background-color: #f9f9f9; padding: 20px; border: 1px solid #CCCCCC;"
+    const oddRowStyle = "background-color: #ffffff; padding: 20px; border: 1px solid #CCCCCC;"
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale: 1.0">
+  <title>Status Report</title>
+</head>
+<body>
+  <table style="width: 700px; margin: 0 auto; border-collapse: collapse; font-family: Arial, sans-serif;">
+    <tr>
+      <td>
+        <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; margin: 0; padding: 0;">
+          <tr>
+            <td style="background-color: #E8E8E8; padding: 20px; text-align: center; border: 1px solid #CCCCCC;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #333333;">${data.programTitle || "Your Program/Project Title here"}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="${oddRowStyle}">
+              <span style="margin: 0; font-size: 16px; line-height: 1.5; color: #333333;">${nlToParas(data.programSummary) || "Program summary description goes here."}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="${evenRowStyle} padding: 0;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Last Status</h3>
+                    ${pill(data.lastStatus)}
+                  </td>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Current Status</h3>
+                    ${pill(data.currentStatus)}
+                  </td>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Trending</h3>
+                    ${pill(data.trending)}
+                  </td>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Date</h3>
+                    <p style="margin: 0; font-size: 14px; color: #333333;">${escapeHtml(asOf)}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="${oddRowStyle} padding: 0;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">TPM</h3>
+                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.tpm) || "Name"}</p>
+                  </td>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Engineering DRI</h3>
+                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.engDri) || "Name"}</p>
+                  </td>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Business Sponsor</h3>
+                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.bizSponsor) || "Name"}</p>
+                  </td>
+                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Engineering Sponsor</h3>
+                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.engSponsor) || "Name"}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          ${
+            data.execSummary
+              ? `<tr>
+            <td style="${evenRowStyle}">
+              <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Executive Summary</h3>
+              <div style="margin: 0; font-size: 16px; color: #333333;">${data.execSummary}</div>
+            </td>
+          </tr>`
+              : ""
+          }
+          ${
+            data.lowlights
+              ? `<tr>
+            <td style="${oddRowStyle}">
+              <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Lowlights</h3>
+              <div style="margin: 0; font-size: 16px; color: #333333;">${linesToList(data.lowlights)}</div>
+            </td>
+          </tr>`
+              : ""
+          }
+          ${
+            data.updatesHtml
+              ? `
+            <tr style="${evenRowStyle}">
+              <td style="padding: 16px; font-size: 20px; font-weight: bold; color: #333;">Updates</td>
+            </tr>
+            ${
+              data.sectionTitle
+                ? `
+            <tr style="${oddRowStyle}">
+              <td style="padding: 12px; font-size: 18px; font-weight: 600; color: #555;">${data.sectionTitle}</td>
+            </tr>
+            `
+                : ""
+            }
+            <tr style="${data.sectionTitle ? evenRowStyle : oddRowStyle}">
+              <td style="padding: 16px;">${processedUpdates}</td>
+            </tr>
+          `
+              : ""
+          }
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+  }
+
+  const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+    const asOf = data.asOf
+      ? (() => {
+          const [year, month, day] = data.asOf.split("-").map(Number)
+          const date = new Date(year, month - 1, day) // month is 0-indexed
+          return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+        })()
+      : ""
 
     const updatesBlock =
       data.updatesHtml && data.updatesHtml.trim()
@@ -533,6 +694,8 @@ ${sanitizedCss}
       return `<span style="display: inline-block; padding: 6px 12px; border-radius: 10px; font-weight: bold; background-color: ${color.bg}; color: ${color.color};">${escapeHtml(status)}</span>`
     }
 
+    const processedUpdates = processUpdatesHtmlDOM(data.updatesHtml)
+
     return `<div style="font-family: ${opts.optFont}, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #111; line-height: 1.45;">
 <table style="${tableStyle}">
 <tr><td style="${titleStyle}" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>
@@ -548,181 +711,28 @@ ${sanitizedCss}
 </table>
 ${data.execSummary ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Executive Summary</h2>${nlToParas(data.execSummary)}` : ""}
 ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
-${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${processUpdatesHtml(data.updatesHtml)}` : ""}
+        ${
+          data.updatesHtml
+            ? `
+          <h2 style="color: #333; margin: 20px 0 10px 0; font-size: 20px;">Updates</h2>
+          ${data.sectionTitle ? `<h3 style="color: #555; margin: 10px 0; font-size: 18px; font-weight: 600;">${data.sectionTitle}</h3>` : ""}
+          ${processedUpdates}
+        `
+            : ""
+        }
 </div>`
   }
 
-  const buildHtml = (data: FormData, opts: DesignOptions) => {
-    const asOf = data.asOf
-      ? (() => {
-          const [year, month, day] = data.asOf.split("-").map(Number)
-          const date = new Date(year, month - 1, day) // month is 0-indexed
-          return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-        })()
-      : ""
-
-    const pill = (val: string) => {
-      const v = escapeHtml(val || "").toLowerCase()
-      if (v === "red")
-        return `<div style="display: inline-block; background-color: #e5534b; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Red</div>`
-      if (v === "yellow")
-        return `<div style="display: inline-block; background-color: #f4c542; color: #111; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Yellow</div>`
-      return `<div style="display: inline-block; background-color: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Green</div>`
-    }
-
-    const processUpdatesHtml = (html: string) => {
-      if (!html) return html
-
-      // Add zebra striping and alignment to table cells
-      return html
-        .replace(/<td([^>]*)>/g, (match, attributes) => {
-          // Extract existing style if any
-          const styleMatch = attributes.match(/style="([^"]*)"/)
-          const existingStyle = styleMatch ? styleMatch[1] : ""
-
-          // Add left/top alignment to all cells
-          const newStyle = `text-align: left; vertical-align: top; ${existingStyle}`
-
-          if (attributes.includes("style=")) {
-            return `<td${attributes.replace(/style="[^"]*"/, `style="${newStyle}"`)}>`
-          } else {
-            return `<td${attributes} style="${newStyle}">`
-          }
-        })
-        .replace(/<tr([^>]*)>/g, (match, attributes, offset, string) => {
-          // Count previous tr tags to determine row number for zebra striping
-          const previousTrs = string.substring(0, offset).match(/<tr/g) || []
-          const rowIndex = previousTrs.length
-
-          // Extract existing style if any
-          const styleMatch = attributes.match(/style="([^"]*)"/)
-          const existingStyle = styleMatch ? styleMatch[1] : ""
-
-          const backgroundColor = rowIndex % 2 === 1 ? "#f9f9f9" : "#ffffff"
-          const newStyle = `background-color: ${backgroundColor}; ${existingStyle}`
-
-          if (attributes.includes("style=")) {
-            return `<tr${attributes.replace(/style="[^"]*"/, `style="${newStyle}"`)}>`
-          } else {
-            return `<tr${attributes} style="${newStyle}">`
-          }
-        })
-    }
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Status Report</title>
-</head>
-<body>
-  <table style="width: 700px; margin: 0 auto; border-collapse: collapse; font-family: Arial, sans-serif;">
-    <tr>
-      <td>
-        <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; margin: 0; padding: 0;">
-          <tr>
-            <td style="background-color: #E8E8E8; padding: 20px; text-align: center; border: 1px solid #CCCCCC;">
-              <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #333333;">${data.programTitle || "Your Program/Project Title here"}</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-              <span style="margin: 0; font-size: 16px; line-height: 1.5; color: #333333;">${nlToParas(data.programSummary) || "Program summary description goes here."}</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Last Status</h3>
-                    ${pill(data.lastStatus)}
-                  </td>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Current Status</h3>
-                    ${pill(data.currentStatus)}
-                  </td>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Trending</h3>
-                    ${pill(data.trending)}
-                  </td>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #F5F5F5;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Date</h3>
-                    <p style="margin: 0; font-size: 14px; color: #333333;">${escapeHtml(asOf)}</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">TPM</h3>
-                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.tpm) || "Name"}</p>
-                  </td>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Engineering DRI</h3>
-                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.engDri) || "Name"}</p>
-                  </td>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Business Sponsor</h3>
-                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.bizSponsor) || "Name"}</p>
-                  </td>
-                  <td style="width: 25%; padding: 20px; text-align: center; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #333333;">Engineering Sponsor</h3>
-                    <p style="margin: 0; font-size: 16px; color: #333333;">${escapeHtml(data.engSponsor) || "Name"}</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          ${
-            data.execSummary
-              ? `<tr>
-            <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-              <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Executive Summary</h3>
-              <div style="margin: 0; font-size: 16px; color: #333333;">${data.execSummary}</div>
-            </td>
-          </tr>`
-              : ""
-          }
-          ${
-            data.lowlights
-              ? `<tr>
-            <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-              <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Lowlights</h3>
-              <div style="margin: 0; font-size: 16px; color: #333333;">${linesToList(data.lowlights)}</div>
-            </td>
-          </tr>`
-              : ""
-          }
-          ${
-            data.updatesHtml && data.updatesHtml.trim()
-              ? `<tr>
-            <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-              <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Updates</h3>
-              ${
-                data.sectionTitle
-                  ? `<h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #333333;">${escapeHtml(data.sectionTitle)}</h4>`
-                  : ""
-              }
-              <div style="margin: 0; font-size: 16px; color: #333333;">${processUpdatesHtml(data.updatesHtml)}</div>
-            </td>
-          </tr>`
-              : ""
-          }
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
-  }
-
   const emailReport = async () => {
+    if (execOver) {
+      toast({
+        title: "Executive Summary is too long",
+        description: `Limit is ${EXEC_SUMMARY_PLAIN_LIMIT} plain-text characters.`,
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!formData.emailTo.trim()) {
       toast({
         title: "Email Required",
@@ -786,6 +796,15 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
   }
 
   const generate = async () => {
+    if (execOver) {
+      toast({
+        title: "Executive Summary is too long",
+        description: `Limit is ${EXEC_SUMMARY_PLAIN_LIMIT} plain-text characters.`,
+        variant: "destructive",
+      })
+      return ""
+    }
+
     setIsGenerating(true)
     setSecurityWarnings([])
     try {
@@ -1063,8 +1082,13 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
       const range = selection.getRangeAt(0)
       if (!element.contains(range.commonAncestorContainer)) return
 
-      // Use execCommand for better compatibility
-      document.execCommand(tag === "b" ? "bold" : tag === "i" ? "italic" : "underline", false)
+      const commandMap: { [key: string]: string } = {
+        b: "bold",
+        i: "italic",
+        u: "underline",
+      }
+
+      document.execCommand(commandMap[tag], false)
 
       // Update form data after formatting
       setTimeout(() => {
@@ -1111,24 +1135,44 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
   }, [formData.updatesHtml])
 
   const handleExecSummaryInput = (e: React.FormEvent<HTMLDivElement>) => {
-    if (e.currentTarget) {
-      updateFormData("execSummary", e.currentTarget.innerHTML)
-    }
+    const html = e.currentTarget?.innerHTML ?? ""
+    updateFormData("execSummary", html)
+    const len = getPlainTextLength(html)
+    setExecLen(len)
+    setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
   }
 
   const handleExecSummaryBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (e.currentTarget) {
-      updateFormData("execSummary", e.currentTarget.innerHTML)
-    }
+    const html = e.currentTarget?.innerHTML ?? ""
+    updateFormData("execSummary", html)
+    const len = getPlainTextLength(html)
+    setExecLen(len)
+    setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
   }
 
   const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    requestAnimationFrame(() => {
-      if (e.currentTarget) {
-        updateFormData("execSummary", e.currentTarget.innerHTML)
+    e.preventDefault()
+    const paste = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
+    if (paste) {
+      document.execCommand("insertHTML", false, paste)
+      const target = e.currentTarget
+      if (target) {
+        updateFormData("execSummary", target.innerHTML)
+        const len = getPlainTextLength(target.innerHTML)
+        setExecLen(len)
+        setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
       }
-    })
+    }
   }
+
+  useEffect(() => {
+    if (execSummaryRef.current) {
+      const html = execSummaryRef.current.innerHTML || ""
+      const len = getPlainTextLength(html)
+      setExecLen(len)
+      setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
+    }
+  }, [])
 
   useEffect(() => {
     if (execSummaryRef.current && execSummaryRef.current.innerHTML !== formData.execSummary) {
@@ -1364,6 +1408,11 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
                 <div>
                   <Label htmlFor="execSummary" className="text-sm font-medium">
                     Executive Summary
+                    <span
+                      style={{ marginLeft: 8, fontWeight: 400, fontSize: 12, color: execOver ? "#b91c1c" : "#6b7280" }}
+                    >
+                      ({execLen}/{EXEC_SUMMARY_PLAIN_LIMIT})
+                    </span>
                   </Label>
                   <div className="flex gap-1 mt-1.5 mb-2">
                     <Button
@@ -1402,6 +1451,8 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
                         if (execSummaryRef.current) {
                           execSummaryRef.current.innerHTML = ""
                         }
+                        setExecLen(0)
+                        setExecOver(false)
                       }}
                       className="h-8 px-3 ml-2"
                     >
@@ -1412,11 +1463,12 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
                     ref={execSummaryRef}
                     id="execSummary"
                     contentEditable
-                    className="min-h-[80px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+                    className="min-h-[80px] p-3 border rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
                     style={{
                       lineHeight: "1.5",
                       overflowX: "auto",
                       maxWidth: "100%",
+                      borderColor: execOver ? "#ef4444" : undefined,
                     }}
                     onInput={handleExecSummaryInput}
                     onBlur={handleExecSummaryBlur}
@@ -1515,36 +1567,15 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
                     suppressContentEditableWarning={true}
                   />
                   <style jsx>{`
-                    [contenteditable]:empty:before {
-                      content: attr(data-placeholder);
-                      color: #6b7280;
-                      pointer-events: none;
-                    }
-
-                    [contenteditable] table {
-                      border-collapse: collapse;
-                      width: 100%;
-                      margin: 8px 0;
-                      font-size: 14px;
-                    }
-
-                    [contenteditable] table th,
-                    [contenteditable] table td {
-                      border: 1px solid #ddd;
-                      padding: 8px 12px;
-                      text-align: left;
-                      vertical-align: top;
-                    }
-
-                    [contenteditable] table th {
-                      background-color: #f5f5f5;
-                      font-weight: bold;
-                    }
-
-                    [contenteditable] table tr:nth-child(even) {
-                      background-color: #f9f9f9;
-                    }
-                  `}</style>
+  #updatesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
+  #updatesHtml table th, #updatesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
+  #updatesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
+  /* Preview-only striping. Email clients ignore this; we set inline styles below. */
+  #updatesHtml table > tr:nth-of-type(odd) > td,
+  #updatesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
+  #updatesHtml table > tr:nth-of-type(even) > td,
+  #updatesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
+`}</style>
                 </div>
               </CardContent>
             </Card>
@@ -1646,7 +1677,7 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={generate} disabled={isGenerating} className="flex-1 min-w-[120px]">
+                  <Button onClick={generate} disabled={isGenerating || execOver} className="flex-1 min-w-[120px]">
                     {isGenerating ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
@@ -1691,7 +1722,7 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
                   </Button>
                   <Button
                     onClick={emailReport}
-                    disabled={isEmailing}
+                    disabled={isEmailing || execOver}
                     variant="default"
                     className="flex-1 min-w-[120px]"
                   >
