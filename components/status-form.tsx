@@ -370,6 +370,23 @@ export default function StatusForm() {
       .filter(Boolean)
     return parts.map((p) => safeInline(p).replace(/\n/g, "<br>")).join("<br><br>")
   }
+const unwrapParagraphsInTables = (html: string): string => {
+  if (!html) return "";
+  const root = document.createElement("div");
+  root.innerHTML = html;
+
+  root.querySelectorAll("table td, table th").forEach((cell) => {
+    const ps = Array.from(cell.querySelectorAll("p"));
+    ps.forEach((p, i) => {
+      const span = document.createElement("span");
+      span.innerHTML = (p as HTMLElement).innerHTML;
+      p.replaceWith(span);
+      if (i !== ps.length - 1) span.insertAdjacentHTML("afterend", "<br>");
+    });
+  });
+
+  return root.innerHTML;
+};
 
   const linesToList = (text: string) => {
     const items = String(text || "")
@@ -380,22 +397,65 @@ export default function StatusForm() {
   }
 
   const sanitizeHtml = (html: string): string => {
-    if (!html || typeof html !== "string") return ""
-    try {
-      const wrapper = document.createElement("div")
-      wrapper.innerHTML = html
+  if (!html || typeof html !== "string") return "";
+  try {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = html;
 
-      const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_ELEMENT, null)
-      const toRemove: Element[] = []
+    // Safer URL/protocol guard that doesn't need window.location
+    const isSafeHref = (href: string) => {
+      try {
+        const url = new URL(href, "https://example.com"); // base only for relative hrefs
+        return ["http:", "https:", "mailto:"].includes(url.protocol);
+      } catch {
+        return false;
+      }
+    };
 
-      while (walker.nextNode()) {
-        const el = walker.currentNode as Element
-        const tag = el.tagName.toLowerCase()
+    // Walk all elements (no TreeWalker/NodeFilter)
+    Array.from(wrapper.querySelectorAll<HTMLElement>("*")).forEach((el) => {
+      const tag = el.tagName.toLowerCase();
 
-        if (!SECURITY_CONFIG.ALLOWED_TAGS.has(tag)) {
-          toRemove.push(el)
-          continue
+      if (!SECURITY_CONFIG.ALLOWED_TAGS.has(tag)) {
+        // unwrap: replace node with its children
+        const parent = el.parentNode;
+        if (parent) {
+          while (el.firstChild) parent.insertBefore(el.firstChild, el);
+          parent.removeChild(el);
         }
+        return;
+      }
+
+      // scrub attributes
+      Array.from(el.attributes).forEach((attr) => {
+        const attrName = attr.name.toLowerCase();
+        const attrValue = attr.value;
+
+        const allowed =
+          SECURITY_CONFIG.ALLOWED_ATTRIBUTES["*"].includes(attrName) ||
+          (SECURITY_CONFIG.ALLOWED_ATTRIBUTES as any)[tag]?.includes(attrName);
+
+        if (!allowed) {
+          el.removeAttribute(attr.name);
+          return;
+        }
+
+        if (attrName === "href") {
+          // block dangerous protocols
+          if (SECURITY_CONFIG.DANGEROUS_PROTOCOLS.test(attrValue) || !isSafeHref(attrValue)) {
+            el.removeAttribute("href");
+          }
+        }
+      });
+    });
+
+    return wrapper.innerHTML;
+  } catch (error) {
+    console.error("HTML sanitization failed:", error);
+    // escape as last resort
+    return escapeHtml(html);
+  }
+};
 
         for (const attr of Array.from(el.attributes)) {
           const attrName = attr.name.toLowerCase()
@@ -447,25 +507,29 @@ export default function StatusForm() {
     style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
 
   // --- NEW: whitespace trimmer lives ABOVE stripeTables and is CALLED inside stripeTables
-  const trimCellWhitespace = (el: HTMLElement) => {
-    const isEmptyText = (n: Node) => n.nodeType === Node.TEXT_NODE && !/\S/.test(n.textContent || "")
-    const isEmptyBlock = (n: Node) => {
-      if (n.nodeType !== Node.ELEMENT_NODE) return false
-      const tag = (n as Element).tagName.toUpperCase()
-      const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag)
-      const text = (n as Element).textContent || ""
-      const onlyWhitespace = text.replace(/\u00a0|\s/g, "") === ""
-      const isBr = tag === "BR"
-      return isBr || (isBlock && onlyWhitespace)
-    }
+const trimCellWhitespace = (el: HTMLElement) => {
+  const TEXT_NODE = 3;      // Node.TEXT_NODE
+  const ELEMENT_NODE = 1;   // Node.ELEMENT_NODE
 
-    while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
-      el.removeChild(el.firstChild)
-    }
-    while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
-      el.removeChild(el.lastChild)
-    }
+  const isEmptyText = (n: Node) => n.nodeType === TEXT_NODE && !/\S/.test(n.textContent || "");
+  const isEmptyBlock = (n: Node) => {
+    if (n.nodeType !== ELEMENT_NODE) return false;
+    const tag = (n as Element).tagName.toUpperCase();
+    const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag);
+    const text = (n as Element).textContent || "";
+    const onlyWhitespace = text.replace(/\u00a0|\s/g, "") === "";
+    const isBr = tag === "BR";
+    return isBr || (isBlock && onlyWhitespace);
+  };
+
+  while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
+    el.removeChild(el.firstChild);
   }
+  while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
+    el.removeChild(el.lastChild);
+  }
+};
+
 
   const stripeTables = (html: string): string => {
     if (!html) return html
@@ -681,6 +745,8 @@ const unwrapParagraphsInTables = (html: string): string => {
         </tr>
         <tr>
           <td style="${evenRowStyle} padding:0;">
+          <td style="${evenRowStyle}padding:0;">
+
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
