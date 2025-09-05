@@ -504,6 +504,28 @@ export default function StatusForm() {
     })
     return root.innerHTML
   }
+// add this helper somewhere near your other HTML helpers
+const stripInlineBackgrounds = (html: string) => {
+  if (!html) return ""
+  const root = document.createElement("div")
+  root.innerHTML = html
+  root.querySelectorAll("*").forEach((el) => {
+    const he = el as HTMLElement
+    const style = he.getAttribute("style") || ""
+    const next = style
+      .replace(/background(?:-color)?\s*:\s*[^;]+;?/gi, "")
+      .trim()
+    if (next) he.setAttribute("style", next)
+    else he.removeAttribute("style")
+  })
+  // remove <mark> highlight boxes too
+  root.querySelectorAll("mark").forEach((el) => {
+    const span = document.createElement("span")
+    span.innerHTML = (el as HTMLElement).innerHTML
+    el.replaceWith(span)
+  })
+  return root.innerHTML
+}
 
   const processRichHtml = (html: string): string => widenTables(stripeTables(html))
 
@@ -604,13 +626,19 @@ export default function StatusForm() {
             </table>
           </td>
         </tr>
-        ${data.execSummary ? `
-        <tr>
-          <td style="${evenRowStyle}">
-            <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
-            <div style="margin:0;font-size:16px;color:#333333;">${data.execSummary}</div>
-          </td>
-        </tr>` : ""}
+
+
+
+${data.execSummary ? `
+<tr>
+  <td style="${oddRowStyle}">
+    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
+    <div style="margin:0;font-size:16px;color:#333333;">
+      ${nlToParas(stripInlineBackgrounds(data.execSummary))}
+    </div>
+  </td>
+</tr>` : ""}
+
 
         ${data.lowlights ? `
         <tr>
