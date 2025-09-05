@@ -181,6 +181,7 @@ export default function StatusForm() {
   const [copyRenderedLoading, setIsCopyingRendered] = useState(false)
   const [copyRenderedFeedback, setCopyRenderedFeedback] = useState("")
   const [isEmailing, setIsEmailing] = useState(false)
+  const execSummaryRef = useRef<HTMLDivElement>(null)
 
   const safeLocalStorageGet = (key: string): string | null => {
     try {
@@ -1050,31 +1051,20 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
       }
       updateFormData(targetField, textarea.value)
     } else {
-      // Handle contentEditable div
       const selection = window.getSelection()
       if (!selection || selection.rangeCount === 0) return
 
       const range = selection.getRangeAt(0)
       if (!element.contains(range.commonAncestorContainer)) return
 
-      const selectedText = range.toString()
-      if (selectedText) {
-        const wrapper = document.createElement(tag)
-        try {
-          range.surroundContents(wrapper)
-          selection.removeAllRanges()
-          updateFormData(targetField, element.innerHTML)
-        } catch (e) {
-          // Fallback for complex selections
-          const content = range.extractContents()
-          wrapper.appendChild(content)
-          range.insertNode(wrapper)
-          selection.removeAllRanges()
-          updateFormData(targetField, element.innerHTML)
-        }
-      }
+      // Use execCommand for better compatibility
+      document.execCommand(tag === "b" ? "bold" : tag === "i" ? "italic" : "underline", false)
+
+      // Update form data after formatting
+      setTimeout(() => {
+        updateFormData(targetField, element.innerHTML)
+      }, 0)
     }
-    generate()
   }
 
   const autoResize = (textarea: HTMLTextAreaElement) => {
@@ -1113,6 +1103,32 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
       updatesRef.current.innerHTML = formData.updatesHtml
     }
   }, [formData.updatesHtml])
+
+  const handleExecSummaryInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if (e.currentTarget) {
+      updateFormData("execSummary", e.currentTarget.innerHTML)
+    }
+  }
+
+  const handleExecSummaryBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget) {
+      updateFormData("execSummary", e.currentTarget.innerHTML)
+    }
+  }
+
+  const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    requestAnimationFrame(() => {
+      if (e.currentTarget) {
+        updateFormData("execSummary", e.currentTarget.innerHTML)
+      }
+    })
+  }
+
+  useEffect(() => {
+    if (execSummaryRef.current && execSummaryRef.current.innerHTML !== formData.execSummary) {
+      execSummaryRef.current.innerHTML = formData.execSummary
+    }
+  }, [formData.execSummary])
 
   const sendEmailReport = emailReport
 
@@ -1371,19 +1387,36 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
                     >
                       <Underline className="w-3 h-3" />
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        updateFormData("execSummary", "")
+                        if (execSummaryRef.current) {
+                          execSummaryRef.current.innerHTML = ""
+                        }
+                      }}
+                      className="h-8 px-3 ml-2"
+                    >
+                      Clear Field
+                    </Button>
                   </div>
-                  <Textarea
+                  <div
+                    ref={execSummaryRef}
                     id="execSummary"
-                    placeholder="Key outcomes and results…"
-                    value={formData.execSummary}
-                    onChange={(e) => {
-                      updateFormData("execSummary", e.target.value)
-                      autoResize(e.target)
+                    contentEditable
+                    className="min-h-[80px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+                    style={{
+                      lineHeight: "1.5",
+                      overflowX: "auto",
+                      maxWidth: "100%",
                     }}
-                    onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
-                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                    className="resize-none bg-white min-h-[80px]"
-                    style={{ height: "auto" }}
+                    onInput={handleExecSummaryInput}
+                    onBlur={handleExecSummaryBlur}
+                    onPaste={handleExecSummaryPaste}
+                    data-placeholder="Key outcomes and results…"
+                    suppressContentEditableWarning={true}
                   />
                 </div>
 
