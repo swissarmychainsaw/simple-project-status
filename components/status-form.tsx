@@ -678,7 +678,7 @@ ${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans
               ? `<tr>
             <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
               <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Executive Summary</h3>
-              <div style="margin: 0; font-size: 16px; color: #333333;">${nlToParas(data.execSummary)}</div>
+              <div style="margin: 0; font-size: 16px; color: #333333;">${data.execSummary}</div>
             </td>
           </tr>`
               : ""
