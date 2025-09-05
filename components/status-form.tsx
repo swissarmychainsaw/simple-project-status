@@ -505,6 +505,7 @@ export default function StatusForm() {
   return root.innerHTML
 }
 
+// Helpers
 
 // add this helper somewhere near your other HTML helpers
 const stripInlineBackgrounds = (html: string) => {
@@ -528,6 +529,25 @@ const stripInlineBackgrounds = (html: string) => {
   })
   return root.innerHTML
 }
+const trimCellWhitespace = (el: HTMLElement) => {
+  const isEmptyText = (n: Node) => n.nodeType === 3 && !n.textContent?.trim();
+  const isEmptyBlock = (n: Node) => {
+    if (n.nodeType !== 1) return false;
+    const tag = (n as Element).tagName.toUpperCase();
+    const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag);
+    const onlyWhitespace =
+      !(n as Element).textContent || !(n as Element).textContent!.replace(/\u00a0|\s/g, "");
+    const isBr = tag === "BR";
+    return isBr || (isBlock && onlyWhitespace);
+  };
+
+  while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
+    el.removeChild(el.firstChild);
+  }
+  while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
+    el.removeChild(el.lastChild);
+  }
+};
 
 const widenTables = (html: string): string => {
   if (!html) return html
