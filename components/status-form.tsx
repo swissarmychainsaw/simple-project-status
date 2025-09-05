@@ -489,9 +489,6 @@ export default function StatusForm() {
   return root.innerHTML
 }
 
-  return root.innerHTML
-}
-
 // add this helper somewhere near your other HTML helpers
 const stripInlineBackgrounds = (html: string) => {
   if (!html) return ""
