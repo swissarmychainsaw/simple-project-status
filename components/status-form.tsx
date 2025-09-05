@@ -196,6 +196,8 @@ export default function StatusForm() {
   const [previewMode, setPreviewMode] = useState<"preview" | "code">("preview")
   const [securityWarnings, setSecurityWarnings] = useState<string[]>([])
   const updatesRef = useRef<HTMLDivElement>(null)
+  const milestonesRef = useRef<HTMLDivElement>(null)
+
   const { toast } = useToast()
   const [copyEmailLoading, setCopyEmailLoading] = useState(false)
   const [copyEmailFeedback, setCopyEmailFeedback] = useState("")
@@ -583,6 +585,7 @@ ${sanitizedCss}
     }
 
     const processedUpdates = widenUpdatesTables(processUpdatesHtmlDOM(data.updatesHtml))
+const processedMilestones = widenUpdatesTables(processUpdatesHtmlDOM(data.milestonesHtml))
 
     const evenRowStyle = "background-color: #f9f9f9; padding: 20px; border: 1px solid #CCCCCC;"
     const oddRowStyle = "background-color: #ffffff; padding: 20px; border: 1px solid #CCCCCC;"
@@ -770,6 +773,25 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
         }
 </div>`
   }
+${
+  data.milestonesHtml
+    ? `
+<h2 style="font-size: 20px; font-weight: bold; color: #333; margin: 24px 0 8px 0;">
+  ${data.milestonesTitle || "Upcoming Milestones"}
+</h2>
+${
+  data.milestonesSectionTitle
+    ? `<h3 style="font-size: 18px; font-weight: 600; color: #555; margin: 8px 0 16px 0;">${data.milestonesSectionTitle}</h3>`
+    : ""
+}
+<table style="width: 100%; border-collapse: collapse;">
+  <tr>
+    <td style="padding: 16px;">${processedMilestones}</td>
+  </tr>
+</table>
+`
+    : ""
+}
 
   const emailReport = async () => {
     if (execOver) {
@@ -1149,6 +1171,29 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
     textarea.style.height = "auto"
     textarea.style.height = Math.min(textarea.scrollHeight, 300) + "px"
   }
+const handleMilestonesInput = (e: React.FormEvent<HTMLDivElement>) => {
+  const target = e.currentTarget
+  if (target && target.innerHTML !== undefined) {
+    updateFormData("milestonesHtml", target.innerHTML)
+  }
+}
+
+const handleMilestonesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+  const target = e.currentTarget
+  if (target && target.innerHTML !== undefined) {
+    updateFormData("milestonesHtml", target.innerHTML)
+  }
+}
+
+const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault()
+  const paste = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
+  if (paste) {
+    document.execCommand("insertHTML", false, paste)
+    const target = e.currentTarget
+    if (target) updateFormData("milestonesHtml", target.innerHTML)
+  }
+}
 
   const handleUpdatesInput = (e: React.FormEvent<HTMLDivElement>) => {
     const target = e.currentTarget
@@ -1181,6 +1226,11 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
       updatesRef.current.innerHTML = formData.updatesHtml
     }
   }, [formData.updatesHtml])
+useEffect(() => {
+  if (milestonesRef.current && milestonesRef.current.innerHTML !== formData.milestonesHtml) {
+    milestonesRef.current.innerHTML = formData.milestonesHtml
+  }
+}, [formData.milestonesHtml])
 
   const handleExecSummaryInput = (e: React.FormEvent<HTMLDivElement>) => {
     const html = e.currentTarget?.innerHTML ?? ""
@@ -1227,6 +1277,17 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
       execSummaryRef.current.innerHTML = formData.execSummary
     }
   }, [formData.execSummary])
+
+
+  if (value !== null) {
+  if (field === "updatesHtml" || field === "milestonesHtml") {
+    setFormData((prev) => ({ ...prev, [field]: sanitizeHtml(value) }))
+  } else if (field.startsWith("opt")) {
+    setDesignOptions((prev) => ({ ...prev, [field]: value }))
+  } else {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+}
 
   const sendEmailReport = emailReport
 
@@ -1640,6 +1701,74 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
                 </div>
               </CardContent>
             </Card>
+{/* Milestones Section */}
+<div>
+  <div className="mb-3">
+    <Input
+      type="text"
+      value={formData.milestonesTitle}
+      onChange={(e) => updateFormData("milestonesTitle", e.target.value)}
+      placeholder="Upcoming Milestones [Title (H2)]"
+      className="mt-1 bg-white"
+    />
+  </div>
+  <div className="mt-2 mb-3">
+    <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
+    <Input
+      type="text"
+      value={formData.milestonesSectionTitle}
+      onChange={(e) => updateFormData("milestonesSectionTitle", e.target.value)}
+      placeholder="Q4 targets, Launch plan, etc."
+      className="mt-1 bg-white"
+    />
+  </div>
+  <div className="flex gap-1 mb-2">
+    <Button type="button" variant="outline" size="sm"
+      onClick={() => wrapSelection("milestonesHtml", "b")} className="h-8 px-2">
+      <Bold className="w-3 h-3" />
+    </Button>
+    <Button type="button" variant="outline" size="sm"
+      onClick={() => wrapSelection("milestonesHtml", "i")} className="h-8 px-2">
+      <Italic className="w-3 h-3" />
+    </Button>
+    <Button type="button" variant="outline" size="sm"
+      onClick={() => wrapSelection("milestonesHtml", "u")} className="h-8 px-2">
+      <Underline className="w-3 h-3" />
+    </Button>
+    <Button type="button" variant="outline" size="sm" className="h-8 px-3 ml-2"
+      onClick={() => {
+        updateFormData("milestonesHtml", "")
+        if (milestonesRef.current) milestonesRef.current.innerHTML = ""
+      }}>
+      Clear Field
+    </Button>
+  </div>
+  <div
+    ref={milestonesRef}
+    id="milestonesHtml"
+    contentEditable
+    className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+    style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
+    onInput={handleMilestonesInput}
+    onBlur={handleMilestonesBlur}
+    onPaste={handleMilestonesPaste}
+    data-placeholder="Paste tables, add formatted text, or type milestones here..."
+    suppressContentEditableWarning
+  />
+  <style jsx>{`
+    #milestonesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
+    #milestonesHtml table th, #milestonesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
+    #milestonesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
+    #milestonesHtml table tr > td:first-child,
+    #milestonesHtml table tr > th:first-child { width: 30%; }
+    #milestonesHtml table tr > td:nth-child(2),
+    #milestonesHtml table tr > th:nth-child(2) { width: 70%; }
+    #milestonesHtml table > tr:nth-of-type(odd) > td,
+    #milestonesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
+    #milestonesHtml table > tr:nth-of-type(even) > td,
+    #milestonesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
+  `}</style>
+</div>
 
             {/* Design Options */}
             <Card>
