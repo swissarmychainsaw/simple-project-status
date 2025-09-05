@@ -184,4 +184,7 @@ const initialFormData: FormData = {
   emailTo: "",
   updatesTitle: "Top Accomplishments",
   // NEW defaults
-  mileston
+  milestonesTitle: "Upcoming Milestones",
+  milestonesSectionTitle: "",
+  milestonesHtml: "",
+}
