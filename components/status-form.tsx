@@ -475,35 +475,46 @@ export default function StatusForm() {
   }
 
   const stripeTables = (html: string): string => {
-    if (!html) return html
-    const root = document.createElement("div")
-    root.innerHTML = html
+  if (!html) return html
+  const root = document.createElement("div")
+  root.innerHTML = html
 
-    root.querySelectorAll("table").forEach((table) => {
-      const containers: Element[] = table.tBodies.length ? Array.from(table.tBodies) : [table]
-      containers.forEach((container) => {
-        const rows = Array.from(container.querySelectorAll(":scope > tr"))
-        rows.forEach((tr, idx) => {
-          const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
-          Array.from(tr.children).forEach((cell) => {
-            if (!/^(TD|TH)$/i.test(cell.tagName)) return
-            const el = cell as HTMLElement
-            const old = el.getAttribute("style") || ""
-            const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
-            const explicitBg = m ? m[1] : ""
-            const keepCellBg = explicitBg && !isWhiteish(explicitBg)
+  root.querySelectorAll("table").forEach((table) => {
+    const segments: Element[] = []
+    if (table.tHead) segments.push(table.tHead)
+    segments.push(...Array.from(table.tBodies))
+    if (table.tFoot) segments.push(table.tFoot)
+    if (segments.length === 0) segments.push(table)
 
-            let next = stripBgDecls(old)
-            if (!keepCellBg) next += (next ? "; " : "") + `background-color: ${rowColor}`
-            if (!/text-align:/i.test(next)) next += "; text-align: left"
-            if (!/vertical-align:/i.test(next)) next += "; vertical-align: top"
-            el.setAttribute("style", next)
-          })
+    segments.forEach((seg) => {
+      const rows = Array.from(seg.querySelectorAll(":scope > tr"))
+      rows.forEach((tr, idx) => {
+        const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
+        Array.from(tr.children).forEach((cell) => {
+          if (!/^(TD|TH)$/i.test(cell.tagName)) return
+          const el = cell as HTMLElement
+          const old = el.getAttribute("style") || ""
+
+          // detect explicit non-white bg
+          const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
+          const explicitBg = m ? m[1] : ""
+          const keepCellBg = explicitBg && !isWhiteish(explicitBg)
+
+          // start from style with bg removed, then force left/top by stripping & re-adding
+          let next = stripBgDecls(old)
+          next = stripDecl(next, "text-align")
+          next = stripDecl(next, "vertical-align")
+          if (!keepCellBg) next += (next ? "; " : "") + `background-color: ${rowColor}`
+          next += (next ? "; " : "") + "text-align: left; vertical-align: top"
+          el.setAttribute("style", next)
         })
       })
     })
-    return root.innerHTML
-  }
+  })
+
+  return root.innerHTML
+}
+
 // add this helper somewhere near your other HTML helpers
 const stripInlineBackgrounds = (html: string) => {
   if (!html) return ""
@@ -527,7 +538,42 @@ const stripInlineBackgrounds = (html: string) => {
   return root.innerHTML
 }
 
-  const processRichHtml = (html: string): string => widenTables(stripeTables(html))
+const widenTables = (html: string): string => {
+  if (!html) return html
+  const root = document.createElement("div")
+  root.innerHTML = html
+
+  root.querySelectorAll("table").forEach((table) => {
+    (table as HTMLElement).style.width = "100%"
+    ;(table as HTMLElement).style.tableLayout = "auto"
+
+    // process thead, tbody, tfoot (or table if none present)
+    const segments: Element[] = []
+    if (table.tHead) segments.push(table.tHead)
+    segments.push(...Array.from(table.tBodies))
+    if (table.tFoot) segments.push(table.tFoot)
+    if (segments.length === 0) segments.push(table)
+
+    segments.forEach((seg) => {
+      const rows = Array.from(seg.querySelectorAll(":scope > tr"))
+      rows.forEach((tr) => {
+        const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
+        const hasColspan = cells.some((c) => c.hasAttribute("colspan"))
+        if (cells.length === 2 && !hasColspan) {
+          cells.forEach((cell, idx) => {
+            const el = cell as HTMLElement
+            const old = el.getAttribute("style") || ""
+            const noWidth = stripDecl(old, "width")
+            const next = `${noWidth}${noWidth ? "; " : ""}width: ${idx === 0 ? LEFT_COL : RIGHT_COL}`
+            el.setAttribute("style", next)
+          })
+        }
+      })
+    })
+  })
+
+  return root.innerHTML
+}
 
   const buildHtml = (data: FormData) => {
     const asOf = data.asOf
