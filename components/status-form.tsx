@@ -552,7 +552,30 @@ export default function StatusForm() {
     })
     return root.innerHTML
   }
+// Helper
+// Replace <p> inside table cells with inline spans (+ <br> separators)
+const unwrapParagraphsInTables = (html: string): string => {
+  if (!html) return ""
+  const root = document.createElement("div")
+  root.innerHTML = html
 
+  root.querySelectorAll("table").forEach((table) => {
+    table.querySelectorAll("td,th").forEach((cell) => {
+      const ps = Array.from(cell.querySelectorAll("p"))
+      ps.forEach((p, i) => {
+        const span = document.createElement("span")
+        span.innerHTML = (p as HTMLElement).innerHTML
+        // replace the <p> with its content (now in a span, no margins)
+        p.replaceWith(span)
+        // keep a visual break between former paragraphs
+        if (i !== ps.length - 1) span.insertAdjacentHTML("afterend", "<br>")
+      })
+    })
+  })
+
+  return root.innerHTML
+}
+// Helper
   const widenTables = (html: string): string => {
     if (!html) return html
     const root = document.createElement("div")
@@ -1101,15 +1124,39 @@ ${data.milestonesHtml ? `
     const target = e.currentTarget
     if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
   }
-  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const paste = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
-    if (paste) {
-      document.execCommand("insertHTML", false, paste)
-      const target = e.currentTarget
-      if (target) updateFormData("updatesHtml", target.innerHTML)
-    }
-  }
+ const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault()
+  const rawHtml = e.clipboardData.getData("text/html")
+  const rawText = e.clipboardData.getData("text/plain")
+
+  // Prefer HTML if present; fallback to escaped text with <br>
+  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+
+  // Strip <p> in table cells, remove inline backgrounds, then sanitize
+  html = unwrapParagraphsInTables(html)
+  html = stripInlineBackgrounds(html)
+  html = sanitizeHtml(html)
+
+  document.execCommand("insertHTML", false, html)
+  const target = e.currentTarget
+  if (target) updateFormData("updatesHtml", target.innerHTML)
+}
+
+const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault()
+  const rawHtml = e.clipboardData.getData("text/html")
+  const rawText = e.clipboardData.getData("text/plain")
+
+  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+  html = unwrapParagraphsInTables(html)
+  html = stripInlineBackgrounds(html)
+  html = sanitizeHtml(html)
+
+  document.execCommand("insertHTML", false, html)
+  const target = e.currentTarget
+  if (target) updateFormData("milestonesHtml", target.innerHTML)
+}
+
 
   // Sync editors with state
   useEffect(() => {
