@@ -446,162 +446,166 @@ export default function StatusForm() {
   const stripDecl = (style: string, prop: string) =>
     style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
 
-  
- const stripeTables = (html: string): string => {
-  if (!html) return html
-  const root = document.createElement("div")
-  root.innerHTML = html
+  // --- NEW: whitespace trimmer lives ABOVE stripeTables and is CALLED inside stripeTables
+  const trimCellWhitespace = (el: HTMLElement) => {
+    const isEmptyText = (n: Node) => n.nodeType === Node.TEXT_NODE && !/\S/.test(n.textContent || "")
+    const isEmptyBlock = (n: Node) => {
+      if (n.nodeType !== Node.ELEMENT_NODE) return false
+      const tag = (n as Element).tagName.toUpperCase()
+      const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag)
+      const text = (n as Element).textContent || ""
+      const onlyWhitespace = text.replace(/\u00a0|\s/g, "") === ""
+      const isBr = tag === "BR"
+      return isBr || (isBlock && onlyWhitespace)
+    }
 
-  const getChildRows = (seg: Element) =>
-    Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+    while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
+      el.removeChild(el.firstChild)
+    }
+    while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
+      el.removeChild(el.lastChild)
+    }
+  }
 
-  root.querySelectorAll("table").forEach((table) => {
-    const segments: Element[] = []
-    if (table.tHead) segments.push(table.tHead)
-    segments.push(...Array.from(table.tBodies))
-    if (table.tFoot) segments.push(table.tFoot)
-    if (segments.length === 0) segments.push(table)
+  const stripeTables = (html: string): string => {
+    if (!html) return html
+    const root = document.createElement("div")
+    root.innerHTML = html
 
-    segments.forEach((seg) => {
-      const rows = getChildRows(seg)
-      rows.forEach((tr, idx) => {
-        const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
-        ;(tr as HTMLElement).setAttribute("bgcolor", rowColor) // row-level fallback
+    const getChildRows = (seg: Element) =>
+      Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
 
-        Array.from(tr.children).forEach((cell) => {
-          if (!/^(TD|TH)$/i.test(cell.tagName)) return
-          const el = cell as HTMLElement
-          const old = el.getAttribute("style") || ""
+    root.querySelectorAll("table").forEach((table) => {
+      const segments: Element[] = []
+      if (table.tHead) segments.push(table.tHead)
+      segments.push(...Array.from(table.tBodies))
+      if (table.tFoot) segments.push(table.tFoot)
+      if (segments.length === 0) segments.push(table)
 
-          // keep an explicitly non-white bg if present
-          const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
-          const explicitBg = m ? m[1] : ""
-          const keepCellBg = explicitBg && !isWhiteish(explicitBg)
+      segments.forEach((seg) => {
+        const rows = getChildRows(seg)
+        rows.forEach((tr, idx) => {
+          const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
+          ;(tr as HTMLElement).setAttribute("bgcolor", rowColor) // row-level fallback
 
-          let next = stripBgDecls(old)
-          next = stripDecl(next, "text-align")
-          next = stripDecl(next, "vertical-align")
-          if (!keepCellBg) {
-            next += (next ? "; " : "") + `background-color:${rowColor}`
-            el.setAttribute("bgcolor", rowColor) // cell-level fallback
-          }
-          next += (next ? "; " : "") + "text-align:left; vertical-align:top"
-          el.setAttribute("style", next)
-          el.setAttribute("align", "left")   // email fallback
-          el.setAttribute("valign", "top")   // email fallback
+          Array.from(tr.children).forEach((cell) => {
+            if (!/^(TD|TH)$/i.test(cell.tagName)) return
+            const el = cell as HTMLElement
 
-          // tame big gaps from pasted <p>/<div>/<h*> etc.
-          const first = el.firstElementChild as HTMLElement | null
-          const last  = el.lastElementChild  as HTMLElement | null
-          const isBlock = (n?: Element | null) =>
-            !!n && /^(P|DIV|UL|OL|H1|H2|H3|H4|H5|H6)$/i.test(n.tagName)
-          if (isBlock(first)) first!.style.marginTop = "0"
-          if (isBlock(last))  last!.style.marginBottom = "0"
+            // NEW: remove leading/trailing empty paragraphs/BRs/whitespace
+            trimCellWhitespace(el)
+
+            const old = el.getAttribute("style") || ""
+
+            // keep an explicitly non-white bg if present
+            const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
+            const explicitBg = m ? m[1] : ""
+            const keepCellBg = explicitBg && !isWhiteish(explicitBg)
+
+            let next = stripBgDecls(old)
+            next = stripDecl(next, "text-align")
+            next = stripDecl(next, "vertical-align")
+            if (!keepCellBg) {
+              next += (next ? "; " : "") + `background-color:${rowColor}`
+              el.setAttribute("bgcolor", rowColor) // cell-level fallback
+            }
+            next += (next ? "; " : "") + "text-align:left; vertical-align:top"
+            el.setAttribute("style", next)
+            el.setAttribute("align", "left")   // email fallback
+            el.setAttribute("valign", "top")   // email fallback
+
+            // tame big gaps from pasted <p>/<div>/<h*> etc.
+            const first = el.firstElementChild as HTMLElement | null
+            const last  = el.lastElementChild  as HTMLElement | null
+            const isBlock = (n?: Element | null) =>
+              !!n && /^(P|DIV|UL|OL|H1|H2|H3|H4|H5|H6)$/i.test(n.tagName)
+            if (isBlock(first)) first!.style.marginTop = "0"
+            if (isBlock(last))  last!.style.marginBottom = "0"
+          })
         })
       })
     })
-  })
 
-  return root.innerHTML
-}
-
-// Helpers
-
-// add this helper somewhere near your other HTML helpers
-const stripInlineBackgrounds = (html: string) => {
-  if (!html) return ""
-  const root = document.createElement("div")
-  root.innerHTML = html
-  root.querySelectorAll("*").forEach((el) => {
-    const he = el as HTMLElement
-    const style = he.getAttribute("style") || ""
-    const next = style
-      .replace(/background(?:-color)?\s*:\s*[^;]+;?/gi, "")
-      .trim()
-    if (next) he.setAttribute("style", next)
-    else he.removeAttribute("style")
-  })
-  // remove <mark> highlight boxes too
-  root.querySelectorAll("mark").forEach((el) => {
-    const span = document.createElement("span")
-    span.innerHTML = (el as HTMLElement).innerHTML
-    el.replaceWith(span)
-  })
-  return root.innerHTML
-}
-const trimCellWhitespace = (el: HTMLElement) => {
-  const isEmptyText = (n: Node) => n.nodeType === 3 && !n.textContent?.trim();
-  const isEmptyBlock = (n: Node) => {
-    if (n.nodeType !== 1) return false;
-    const tag = (n as Element).tagName.toUpperCase();
-    const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag);
-    const onlyWhitespace =
-      !(n as Element).textContent || !(n as Element).textContent!.replace(/\u00a0|\s/g, "");
-    const isBr = tag === "BR";
-    return isBr || (isBlock && onlyWhitespace);
-  };
-
-  while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
-    el.removeChild(el.firstChild);
+    return root.innerHTML
   }
-  while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
-    el.removeChild(el.lastChild);
+
+  // Helpers
+
+  const stripInlineBackgrounds = (html: string) => {
+    if (!html) return ""
+    const root = document.createElement("div")
+    root.innerHTML = html
+    root.querySelectorAll("*").forEach((el) => {
+      const he = el as HTMLElement
+      const style = he.getAttribute("style") || ""
+      const next = style
+        .replace(/background(?:-color)?\s*:\s*[^;]+;?/gi, "")
+        .trim()
+      if (next) he.setAttribute("style", next)
+      else he.removeAttribute("style")
+    })
+    // remove <mark> highlight boxes too
+    root.querySelectorAll("mark").forEach((el) => {
+      const span = document.createElement("span")
+      span.innerHTML = (el as HTMLElement).innerHTML
+      el.replaceWith(span)
+    })
+    return root.innerHTML
   }
-};
 
-const widenTables = (html: string): string => {
-  if (!html) return html
-  const root = document.createElement("div")
-  root.innerHTML = html
+  const widenTables = (html: string): string => {
+    if (!html) return html
+    const root = document.createElement("div")
+    root.innerHTML = html
 
-  const getChildRows = (seg: Element) =>
-    Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+    const getChildRows = (seg: Element) =>
+      Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
 
-  root.querySelectorAll("table").forEach((table) => {
-    const t = table as HTMLElement
-    t.style.width = "100%"
-    t.setAttribute("width", "100%")      // attribute fallback
-    t.style.tableLayout = "fixed"        // helps % widths in email
+    root.querySelectorAll("table").forEach((table) => {
+      const t = table as HTMLElement
+      t.style.width = "100%"
+      t.setAttribute("width", "100%")      // attribute fallback
+      t.style.tableLayout = "fixed"        // helps % widths in email
 
-    const segments: Element[] = []
-    if (table.tHead) segments.push(table.tHead)
-    segments.push(...Array.from(table.tBodies))
-    if (table.tFoot) segments.push(table.tFoot)
-    if (segments.length === 0) segments.push(table)
+      const segments: Element[] = []
+      if (table.tHead) segments.push(table.tHead)
+      segments.push(...Array.from(table.tBodies))
+      if (table.tFoot) segments.push(table.tFoot)
+      if (segments.length === 0) segments.push(table)
 
-    segments.forEach((seg) => {
-      const rows = getChildRows(seg)
-      rows.forEach((tr) => {
-        const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
-        const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"))
-        if (cells.length === 2 && !hasColspan) {
-          cells.forEach((cell, idx) => {
-            const el = cell as HTMLElement
-            const old = el.getAttribute("style") || ""
-            const noWidth = stripDecl(old, "width")
-            const w = idx === 0 ? LEFT_COL : RIGHT_COL // "30%" / "70%"
-            el.setAttribute("style", `${noWidth}${noWidth ? "; " : ""}width:${w}`)
-            el.setAttribute("width", w) // attribute fallback
-            el.setAttribute("align", "left")
-            el.setAttribute("valign", "top")
-          })
-        }
+      segments.forEach((seg) => {
+        const rows = getChildRows(seg)
+        rows.forEach((tr) => {
+          const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
+          const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"))
+          if (cells.length === 2 && !hasColspan) {
+            cells.forEach((cell, idx) => {
+              const el = cell as HTMLElement
+              const old = el.getAttribute("style") || ""
+              const noWidth = stripDecl(old, "width")
+              const w = idx === 0 ? LEFT_COL : RIGHT_COL // "30%" / "70%"
+              el.setAttribute("style", `${noWidth}${noWidth ? "; " : ""}width:${w}`)
+              el.setAttribute("width", w) // attribute fallback
+              el.setAttribute("align", "left")
+              el.setAttribute("valign", "top")
+            })
+          }
+        })
       })
     })
-  })
 
-  return root.innerHTML
-}
-  
-// line 577 (insert)
-const processRichHtml = (html: string): string =>
-  widenTables(
-    stripeTables(
-      stripInlineBackgrounds(
-        sanitizeHtml(html)
+    return root.innerHTML
+  }
+
+  // line 577 (insert)
+  const processRichHtml = (html: string): string =>
+    widenTables(
+      stripeTables(
+        stripInlineBackgrounds(
+          sanitizeHtml(html)
+        )
       )
-    )
-  );
+    );
 
   const buildHtml = (data: FormData) => {
     const asOf = data.asOf
