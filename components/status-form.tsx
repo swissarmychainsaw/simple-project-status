@@ -30,10 +30,10 @@ import { useToast } from "@/hooks/use-toast"
 interface FormData {
   programTitle: string
   programSummary: string
+  asOf: string
   lastStatus: string
   currentStatus: string
   trending: string
-  asOf: string
   tpm: string
   engDri: string
   bizSponsor: string
@@ -43,6 +43,7 @@ interface FormData {
   updatesTrack: string
   updatesTeam: string
   updatesHtml: string
+  sectionTitle: string
   emailTo: string
 }
 
@@ -80,6 +81,7 @@ const SAVE_FIELDS = [
   "updatesTrack",
   "updatesTeam",
   "emailTo",
+  "sectionTitle",
 ]
 
 const SECURITY_CONFIG = {
@@ -141,10 +143,10 @@ export default function StatusForm() {
   const [formData, setFormData] = useState<FormData>({
     programTitle: "",
     programSummary: "",
+    asOf: "",
     lastStatus: "Green",
     currentStatus: "Green",
     trending: "Green",
-    asOf: "",
     tpm: "",
     engDri: "",
     bizSponsor: "",
@@ -154,6 +156,7 @@ export default function StatusForm() {
     updatesTrack: "",
     updatesTeam: "",
     updatesHtml: "",
+    sectionTitle: "",
     emailTo: "",
   })
 
@@ -345,7 +348,7 @@ export default function StatusForm() {
       .split(/\n\s*\n/)
       .map((s) => s.trim())
       .filter(Boolean)
-    return parts.map((p) => `<p>${safeInline(p).replace(/\n/g, "<br>")}</p>`).join("\n")
+    return parts.map((p) => safeInline(p).replace(/\n/g, "<br>")).join("<br><br>")
   }
 
   const linesToList = (text: string) => {
@@ -456,9 +459,52 @@ ${sanitizedCss}
         })()
       : ""
 
+    const processUpdatesHtml = (html: string) => {
+      if (!html) return html
+
+      // Add zebra striping and alignment to table cells
+      return html
+        .replace(/<td([^>]*)>/g, (match, attributes) => {
+          // Extract existing style if any
+          const styleMatch = attributes.match(/style="([^"]*)"/)
+          const existingStyle = styleMatch ? styleMatch[1] : ""
+
+          // Add left/top alignment to all cells
+          const newStyle = `text-align: left; vertical-align: top; ${existingStyle}`
+
+          if (attributes.includes("style=")) {
+            return `<td${attributes.replace(/style="[^"]*"/, `style="${newStyle}"`)}>`
+          } else {
+            return `<td${attributes} style="${newStyle}">`
+          }
+        })
+        .replace(/<tr([^>]*)>/g, (match, attributes, offset, string) => {
+          // Count previous tr tags to determine row number for zebra striping
+          const previousTrs = string.substring(0, offset).match(/<tr/g) || []
+          const rowIndex = previousTrs.length
+
+          // Extract existing style if any
+          const styleMatch = attributes.match(/style="([^"]*)"/)
+          const existingStyle = styleMatch ? styleMatch[1] : ""
+
+          const backgroundColor = rowIndex % 2 === 1 ? "#f9f9f9" : "#ffffff"
+          const newStyle = `background-color: ${backgroundColor}; ${existingStyle}`
+
+          if (attributes.includes("style=")) {
+            return `<tr${attributes.replace(/style="[^"]*"/, `style="${newStyle}"`)}>`
+          } else {
+            return `<tr${attributes} style="${newStyle}">`
+          }
+        })
+    }
+
     const updatesBlock =
       data.updatesHtml && data.updatesHtml.trim()
-        ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${data.updatesHtml}`
+        ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${
+            data.sectionTitle
+              ? `<h3 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 10px 0 8px 0; font-size: 18px;">${escapeHtml(data.sectionTitle)}</h3>`
+              : ""
+          }${data.updatesHtml}`
         : ""
 
     const tableStyle = `border-collapse: collapse; width: 100%; margin: 10px 0; font-family: ${opts.optFont}, sans-serif;`
@@ -467,6 +513,8 @@ ${sanitizedCss}
     const centerStyle = `${cellStyle} text-align: center;`
     const titleStyle = `${cellStyle} background-color: #e5e7eb; font-weight: bold; text-align: center;`
     const nameStyle = `${cellStyle} font-weight: bold; text-align: center;`
+    const evenRowStyle = `${cellStyle} background-color: #f9f9f9;`
+    const oddRowStyle = `${cellStyle} background-color: #ffffff;`
 
     const emailPill = (status: string) => {
       const colors = {
@@ -481,19 +529,19 @@ ${sanitizedCss}
     return `<div style="font-family: ${opts.optFont}, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #111; line-height: 1.45;">
 <table style="${tableStyle}">
 <tr><td style="${titleStyle}" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>
-<tr><td style="${cellStyle}">${nlToParas(data.programSummary)}</td></tr>
+<tr><td style="${evenRowStyle}">${nlToParas(data.programSummary)}</td></tr>
 </table>
 <table style="${tableStyle}">
 <tr><th style="${headerStyle}">Last Status</th><th style="${headerStyle}">Current Status</th><th style="${headerStyle}">Trending</th><th style="${headerStyle}">Date</th></tr>
-<tr><td style="${centerStyle}">${emailPill(data.lastStatus)}</td><td style="${centerStyle}">${emailPill(data.currentStatus)}</td><td style="${centerStyle}">${emailPill(data.trending)}</td><td style="${centerStyle}">${escapeHtml(asOf)}</td></tr>
+<tr><td style="${evenRowStyle} text-align: center;">${emailPill(data.lastStatus)}</td><td style="${evenRowStyle} text-align: center;">${emailPill(data.currentStatus)}</td><td style="${evenRowStyle} text-align: center;">${emailPill(data.trending)}</td><td style="${evenRowStyle} text-align: center;">${escapeHtml(asOf)}</td></tr>
 </table>
 <table style="${tableStyle}">
 <tr><th style="${headerStyle}">TPM</th><th style="${headerStyle}">Engineering DRI</th><th style="${headerStyle}">Business Sponsor</th><th style="${headerStyle}">Engineering Sponsor</th></tr>
-<tr><td style="${nameStyle}">${escapeHtml(data.tpm)}</td><td style="${nameStyle}">${escapeHtml(data.engDri)}</td><td style="${nameStyle}">${escapeHtml(data.bizSponsor)}</td><td style="${nameStyle}">${escapeHtml(data.engSponsor)}</td></tr>
+<tr><td style="${evenRowStyle} font-weight: bold; text-align: center;">${escapeHtml(data.tpm)}</td><td style="${evenRowStyle} font-weight: bold; text-align: center;">${escapeHtml(data.engDri)}</td><td style="${evenRowStyle} font-weight: bold; text-align: center;">${escapeHtml(data.bizSponsor)}</td><td style="${evenRowStyle} font-weight: bold; text-align: center;">${escapeHtml(data.engSponsor)}</td></tr>
 </table>
 ${data.execSummary ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Executive Summary</h2>${nlToParas(data.execSummary)}` : ""}
 ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
-${updatesBlock}
+${data.updatesHtml ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-serif; margin: 20px 0 10px 0;">Updates</h2>${processUpdatesHtml(data.updatesHtml)}` : ""}
 </div>`
   }
 
@@ -543,8 +591,7 @@ ${updatesBlock}
           const styleMatch = attributes.match(/style="([^"]*)"/)
           const existingStyle = styleMatch ? styleMatch[1] : ""
 
-          // Add zebra striping - even rows get light gray background
-          const backgroundColor = rowIndex % 2 === 0 ? "#f9f9f9" : "#ffffff"
+          const backgroundColor = rowIndex % 2 === 1 ? "#f9f9f9" : "#ffffff"
           const newStyle = `background-color: ${backgroundColor}; ${existingStyle}`
 
           if (attributes.includes("style=")) {
@@ -574,7 +621,7 @@ ${updatesBlock}
           </tr>
           <tr>
             <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
-              <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #333333;">${nlToParas(data.programSummary) || "Program summary description goes here."}</p>
+              <span style="margin: 0; font-size: 16px; line-height: 1.5; color: #333333;">${nlToParas(data.programSummary) || "Program summary description goes here."}</span>
             </td>
           </tr>
           <tr>
@@ -650,6 +697,11 @@ ${updatesBlock}
               ? `<tr>
             <td style="padding: 20px; border: 1px solid #CCCCCC; background-color: #FFFFFF;">
               <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">Updates</h3>
+              ${
+                data.sectionTitle
+                  ? `<h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #333333;">${escapeHtml(data.sectionTitle)}</h4>`
+                  : ""
+              }
               <div style="margin: 0; font-size: 16px; color: #333333;">${processUpdatesHtml(data.updatesHtml)}</div>
             </td>
           </tr>`
@@ -1354,6 +1406,16 @@ ${updatesBlock}
                 {/* Updates Section */}
                 <div>
                   <Label className="text-sm font-medium">Updates</Label>
+                  <div className="mt-2 mb-3">
+                    <Label className="text-xs text-gray-600">Section Title (optional)</Label>
+                    <Input
+                      type="text"
+                      value={formData.sectionTitle}
+                      onChange={(e) => updateFormData("sectionTitle", e.target.value)}
+                      placeholder="Security, Automation, Project Track Name, etc."
+                      className="mt-1 bg-white"
+                    />
+                  </div>
                   <div className="flex gap-1 mb-2">
                     <Button
                       type="button"
@@ -1381,6 +1443,20 @@ ${updatesBlock}
                       className="h-8 px-2"
                     >
                       <Underline className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        updateFormData("updatesHtml", "")
+                        if (updatesRef.current) {
+                          updatesRef.current.innerHTML = ""
+                        }
+                      }}
+                      className="h-8 px-3 ml-2"
+                    >
+                      Clear Field
                     </Button>
                   </div>
                   <div
