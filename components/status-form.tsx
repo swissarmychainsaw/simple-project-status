@@ -86,6 +86,7 @@ const SAVE_FIELDS = [
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 10000,
+  MAX_EXEC_SUMMARY_LENGTH: 20000,
   MAX_UPDATES_LENGTH: 100000, // 100KB limit for Updates section
   MAX_CSS_LENGTH: 5000,
   ALLOWED_TAGS: new Set([
@@ -257,7 +258,12 @@ export default function StatusForm() {
     const warnings: string[] = []
     let sanitized = value
 
-    const maxLength = field === "updatesHtml" ? SECURITY_CONFIG.MAX_UPDATES_LENGTH : SECURITY_CONFIG.MAX_FIELD_LENGTH
+    const maxLength =
+      field === "updatesHtml"
+        ? SECURITY_CONFIG.MAX_UPDATES_LENGTH
+        : field === "execSummary"
+          ? SECURITY_CONFIG.MAX_EXEC_SUMMARY_LENGTH
+          : SECURITY_CONFIG.MAX_FIELD_LENGTH
 
     // Length validation
     if (value.length > maxLength) {
