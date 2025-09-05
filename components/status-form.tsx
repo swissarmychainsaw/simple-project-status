@@ -173,7 +173,6 @@ const initialFormData: FormData = {
   sectionTitle: "",
   emailTo: "",
   updatesTitle: "Top Accomplishments",
-  // NEW defaults
   milestonesTitle: "Upcoming Milestones",
   milestonesSectionTitle: "",
   milestonesHtml: "",
@@ -370,23 +369,25 @@ export default function StatusForm() {
       .filter(Boolean)
     return parts.map((p) => safeInline(p).replace(/\n/g, "<br>")).join("<br><br>")
   }
-const unwrapParagraphsInTables = (html: string): string => {
-  if (!html) return "";
-  const root = document.createElement("div");
-  root.innerHTML = html;
 
-  root.querySelectorAll("table td, table th").forEach((cell) => {
-    const ps = Array.from(cell.querySelectorAll("p"));
-    ps.forEach((p, i) => {
-      const span = document.createElement("span");
-      span.innerHTML = (p as HTMLElement).innerHTML;
-      p.replaceWith(span);
-      if (i !== ps.length - 1) span.insertAdjacentHTML("afterend", "<br>");
-    });
-  });
+  // Replace <p> inside table cells with inline spans (+ <br> separators)
+  const unwrapParagraphsInTables = (html: string): string => {
+    if (!html) return ""
+    const root = document.createElement("div")
+    root.innerHTML = html
 
-  return root.innerHTML;
-};
+    root.querySelectorAll("table td, table th").forEach((cell) => {
+      const ps = Array.from(cell.querySelectorAll("p"))
+      ps.forEach((p, i) => {
+        const span = document.createElement("span")
+        span.innerHTML = (p as HTMLElement).innerHTML
+        p.replaceWith(span)
+        if (i !== ps.length - 1) span.insertAdjacentHTML("afterend", "<br>")
+      })
+    })
+
+    return root.innerHTML
+  }
 
   const linesToList = (text: string) => {
     const items = String(text || "")
@@ -397,94 +398,54 @@ const unwrapParagraphsInTables = (html: string): string => {
   }
 
   const sanitizeHtml = (html: string): string => {
-  if (!html || typeof html !== "string") return "";
-  try {
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = html;
+    if (!html || typeof html !== "string") return ""
+    try {
+      const wrapper = document.createElement("div")
+      wrapper.innerHTML = html
 
-    // Safer URL/protocol guard that doesn't need window.location
-    const isSafeHref = (href: string) => {
-      try {
-        const url = new URL(href, "https://example.com"); // base only for relative hrefs
-        return ["http:", "https:", "mailto:"].includes(url.protocol);
-      } catch {
-        return false;
-      }
-    };
-
-    // Walk all elements (no TreeWalker/NodeFilter)
-    Array.from(wrapper.querySelectorAll<HTMLElement>("*")).forEach((el) => {
-      const tag = el.tagName.toLowerCase();
-
-      if (!SECURITY_CONFIG.ALLOWED_TAGS.has(tag)) {
-        // unwrap: replace node with its children
-        const parent = el.parentNode;
-        if (parent) {
-          while (el.firstChild) parent.insertBefore(el.firstChild, el);
-          parent.removeChild(el);
+      // Safer URL/protocol guard that doesn't need window.location
+      const isSafeHref = (href: string) => {
+        try {
+          const url = new URL(href, "https://example.com")
+          return ["http:", "https:", "mailto:"].includes(url.protocol)
+        } catch {
+          return false
         }
-        return;
       }
 
-      // scrub attributes
-      Array.from(el.attributes).forEach((attr) => {
-        const attrName = attr.name.toLowerCase();
-        const attrValue = attr.value;
+      Array.from(wrapper.querySelectorAll<HTMLElement>("*")).forEach((el) => {
+        const tag = el.tagName.toLowerCase()
 
-        const allowed =
-          SECURITY_CONFIG.ALLOWED_ATTRIBUTES["*"].includes(attrName) ||
-          (SECURITY_CONFIG.ALLOWED_ATTRIBUTES as any)[tag]?.includes(attrName);
-
-        if (!allowed) {
-          el.removeAttribute(attr.name);
-          return;
-        }
-
-        if (attrName === "href") {
-          // block dangerous protocols
-          if (SECURITY_CONFIG.DANGEROUS_PROTOCOLS.test(attrValue) || !isSafeHref(attrValue)) {
-            el.removeAttribute("href");
+        if (!SECURITY_CONFIG.ALLOWED_TAGS.has(tag)) {
+          const parent = el.parentNode
+          if (parent) {
+            while (el.firstChild) parent.insertBefore(el.firstChild, el)
+            parent.removeChild(el)
           }
+          return
         }
-      });
-    });
 
-    return wrapper.innerHTML;
-  } catch (error) {
-    console.error("HTML sanitization failed:", error);
-    // escape as last resort
-    return escapeHtml(html);
-  }
-};
-
-        for (const attr of Array.from(el.attributes)) {
+        Array.from(el.attributes).forEach((attr) => {
           const attrName = attr.name.toLowerCase()
           const attrValue = attr.value
 
-          if (
-            !SECURITY_CONFIG.ALLOWED_ATTRIBUTES["*"].includes(attrName) &&
-            !(SECURITY_CONFIG.ALLOWED_ATTRIBUTES as any)[tag]?.includes(attrName)
-          ) {
+          const allowed =
+            SECURITY_CONFIG.ALLOWED_ATTRIBUTES["*"].includes(attrName) ||
+            (SECURITY_CONFIG.ALLOWED_ATTRIBUTES as any)[tag]?.includes(attrName)
+
+          if (!allowed) {
             el.removeAttribute(attr.name)
-            continue
+            return
           }
 
           if (attrName === "href") {
-            if (SECURITY_CONFIG.DANGEROUS_PROTOCOLS.test(attrValue)) {
+            if (SECURITY_CONFIG.DANGEROUS_PROTOCOLS.test(attrValue) || !isSafeHref(attrValue)) {
               el.removeAttribute("href")
-            } else {
-              try {
-                const url = new URL(attrValue, window.location.origin)
-                if (!["http:", "https:", "mailto:"].includes(url.protocol)) el.removeAttribute("href")
-              } catch {
-                el.removeAttribute("href")
-              }
             }
           }
-        }
-      }
+        })
+      })
 
-      toRemove.forEach((n) => n.replaceWith(...Array.from(n.childNodes)))
       return wrapper.innerHTML
     } catch (error) {
       console.error("HTML sanitization failed:", error)
@@ -506,30 +467,29 @@ const unwrapParagraphsInTables = (html: string): string => {
   const stripDecl = (style: string, prop: string) =>
     style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
 
-  // --- NEW: whitespace trimmer lives ABOVE stripeTables and is CALLED inside stripeTables
-const trimCellWhitespace = (el: HTMLElement) => {
-  const TEXT_NODE = 3;      // Node.TEXT_NODE
-  const ELEMENT_NODE = 1;   // Node.ELEMENT_NODE
+  // Trim leading/trailing empty nodes inside a cell
+  const trimCellWhitespace = (el: HTMLElement) => {
+    const TEXT_NODE = 3
+    const ELEMENT_NODE = 1
 
-  const isEmptyText = (n: Node) => n.nodeType === TEXT_NODE && !/\S/.test(n.textContent || "");
-  const isEmptyBlock = (n: Node) => {
-    if (n.nodeType !== ELEMENT_NODE) return false;
-    const tag = (n as Element).tagName.toUpperCase();
-    const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag);
-    const text = (n as Element).textContent || "";
-    const onlyWhitespace = text.replace(/\u00a0|\s/g, "") === "";
-    const isBr = tag === "BR";
-    return isBr || (isBlock && onlyWhitespace);
-  };
+    const isEmptyText = (n: Node) => n.nodeType === TEXT_NODE && !/\S/.test(n.textContent || "")
+    const isEmptyBlock = (n: Node) => {
+      if (n.nodeType !== ELEMENT_NODE) return false
+      const tag = (n as Element).tagName.toUpperCase()
+      const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag)
+      const text = (n as Element).textContent || ""
+      const onlyWhitespace = text.replace(/\u00a0|\s/g, "") === ""
+      const isBr = tag === "BR"
+      return isBr || (isBlock && onlyWhitespace)
+    }
 
-  while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
-    el.removeChild(el.firstChild);
+    while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
+      el.removeChild(el.firstChild)
+    }
+    while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
+      el.removeChild(el.lastChild)
+    }
   }
-  while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
-    el.removeChild(el.lastChild);
-  }
-};
-
 
   const stripeTables = (html: string): string => {
     if (!html) return html
@@ -537,7 +497,7 @@ const trimCellWhitespace = (el: HTMLElement) => {
     root.innerHTML = html
 
     const getChildRows = (seg: Element) =>
-      Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+      Array.from(seg.children).filter((el) => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
 
     root.querySelectorAll("table").forEach((table) => {
       const segments: Element[] = []
@@ -550,18 +510,15 @@ const trimCellWhitespace = (el: HTMLElement) => {
         const rows = getChildRows(seg)
         rows.forEach((tr, idx) => {
           const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
-          ;(tr as HTMLElement).setAttribute("bgcolor", rowColor) // row-level fallback
+          ;(tr as HTMLElement).setAttribute("bgcolor", rowColor)
 
           Array.from(tr.children).forEach((cell) => {
             if (!/^(TD|TH)$/i.test(cell.tagName)) return
             const el = cell as HTMLElement
 
-            // NEW: remove leading/trailing empty paragraphs/BRs/whitespace
             trimCellWhitespace(el)
 
             const old = el.getAttribute("style") || ""
-
-            // keep an explicitly non-white bg if present
             const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
             const explicitBg = m ? m[1] : ""
             const keepCellBg = explicitBg && !isWhiteish(explicitBg)
@@ -571,20 +528,18 @@ const trimCellWhitespace = (el: HTMLElement) => {
             next = stripDecl(next, "vertical-align")
             if (!keepCellBg) {
               next += (next ? "; " : "") + `background-color:${rowColor}`
-              el.setAttribute("bgcolor", rowColor) // cell-level fallback
+              el.setAttribute("bgcolor", rowColor)
             }
             next += (next ? "; " : "") + "text-align:left; vertical-align:top"
             el.setAttribute("style", next)
-            el.setAttribute("align", "left")   // email fallback
-            el.setAttribute("valign", "top")   // email fallback
+            el.setAttribute("align", "left")
+            el.setAttribute("valign", "top")
 
-            // tame big gaps from pasted <p>/<div>/<h*> etc.
             const first = el.firstElementChild as HTMLElement | null
-            const last  = el.lastElementChild  as HTMLElement | null
-            const isBlock = (n?: Element | null) =>
-              !!n && /^(P|DIV|UL|OL|H1|H2|H3|H4|H5|H6)$/i.test(n.tagName)
+            const last = el.lastElementChild as HTMLElement | null
+            const isBlock = (n?: Element | null) => !!n && /^(P|DIV|UL|OL|H1|H2|H3|H4|H5|H6)$/i.test(n.tagName)
             if (isBlock(first)) first!.style.marginTop = "0"
-            if (isBlock(last))  last!.style.marginBottom = "0"
+            if (isBlock(last)) last!.style.marginBottom = "0"
           })
         })
       })
@@ -593,8 +548,6 @@ const trimCellWhitespace = (el: HTMLElement) => {
     return root.innerHTML
   }
 
-  // Helpers
-
   const stripInlineBackgrounds = (html: string) => {
     if (!html) return ""
     const root = document.createElement("div")
@@ -602,13 +555,10 @@ const trimCellWhitespace = (el: HTMLElement) => {
     root.querySelectorAll("*").forEach((el) => {
       const he = el as HTMLElement
       const style = he.getAttribute("style") || ""
-      const next = style
-        .replace(/background(?:-color)?\s*:\s*[^;]+;?/gi, "")
-        .trim()
+      const next = style.replace(/background(?:-color)?\s*:\s*[^;]+;?/gi, "").trim()
       if (next) he.setAttribute("style", next)
       else he.removeAttribute("style")
     })
-    // remove <mark> highlight boxes too
     root.querySelectorAll("mark").forEach((el) => {
       const span = document.createElement("span")
       span.innerHTML = (el as HTMLElement).innerHTML
@@ -616,43 +566,20 @@ const trimCellWhitespace = (el: HTMLElement) => {
     })
     return root.innerHTML
   }
-// Helper
-// Replace <p> inside table cells with inline spans (+ <br> separators)
-const unwrapParagraphsInTables = (html: string): string => {
-  if (!html) return ""
-  const root = document.createElement("div")
-  root.innerHTML = html
 
-  root.querySelectorAll("table").forEach((table) => {
-    table.querySelectorAll("td,th").forEach((cell) => {
-      const ps = Array.from(cell.querySelectorAll("p"))
-      ps.forEach((p, i) => {
-        const span = document.createElement("span")
-        span.innerHTML = (p as HTMLElement).innerHTML
-        // replace the <p> with its content (now in a span, no margins)
-        p.replaceWith(span)
-        // keep a visual break between former paragraphs
-        if (i !== ps.length - 1) span.insertAdjacentHTML("afterend", "<br>")
-      })
-    })
-  })
-
-  return root.innerHTML
-}
-// Helper
   const widenTables = (html: string): string => {
     if (!html) return html
     const root = document.createElement("div")
     root.innerHTML = html
 
     const getChildRows = (seg: Element) =>
-      Array.from(seg.children).filter(el => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+      Array.from(seg.children).filter((el) => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
 
     root.querySelectorAll("table").forEach((table) => {
       const t = table as HTMLElement
       t.style.width = "100%"
-      t.setAttribute("width", "100%")      // attribute fallback
-      t.style.tableLayout = "fixed"        // helps % widths in email
+      t.setAttribute("width", "100%")
+      t.style.tableLayout = "fixed"
 
       const segments: Element[] = []
       if (table.tHead) segments.push(table.tHead)
@@ -670,9 +597,9 @@ const unwrapParagraphsInTables = (html: string): string => {
               const el = cell as HTMLElement
               const old = el.getAttribute("style") || ""
               const noWidth = stripDecl(old, "width")
-              const w = idx === 0 ? LEFT_COL : RIGHT_COL // "30%" / "70%"
+              const w = idx === 0 ? LEFT_COL : RIGHT_COL
               el.setAttribute("style", `${noWidth}${noWidth ? "; " : ""}width:${w}`)
-              el.setAttribute("width", w) // attribute fallback
+              el.setAttribute("width", w)
               el.setAttribute("align", "left")
               el.setAttribute("valign", "top")
             })
@@ -684,15 +611,8 @@ const unwrapParagraphsInTables = (html: string): string => {
     return root.innerHTML
   }
 
-  // line 577 (insert)
   const processRichHtml = (html: string): string =>
-    widenTables(
-      stripeTables(
-        stripInlineBackgrounds(
-          sanitizeHtml(html)
-        )
-      )
-    );
+    widenTables(stripeTables(stripInlineBackgrounds(sanitizeHtml(html))))
 
   const buildHtml = (data: FormData) => {
     const asOf = data.asOf
@@ -745,8 +665,6 @@ const unwrapParagraphsInTables = (html: string): string => {
         </tr>
         <tr>
           <td style="${evenRowStyle} padding:0;">
-          <td style="${evenRowStyle}padding:0;">
-
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
@@ -794,20 +712,15 @@ const unwrapParagraphsInTables = (html: string): string => {
           </td>
         </tr>
 
-
-
 ${data.execSummary ? `
 <tr>
   <td style="${oddRowStyle}">
     <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
     <div style="margin:0;font-size:16px;color:#333333;">
-      
       ${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}
-
     </div>
   </td>
 </tr>` : ""}
-
 
         ${data.lowlights ? `
         <tr>
@@ -910,7 +823,6 @@ ${data.execSummary ? `
 </table>
 
 ${data.execSummary ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}` : ""}
-
 
 ${data.lowlights ? `<h2 style="color:#333;margin:20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
 
@@ -1080,7 +992,6 @@ ${data.milestonesHtml ? `
       const url = URL.createObjectURL(blob)
       const filename = `status-report-${new Date().toISOString().split("T")[0]}.html`
 
-      // Modern browsers
       const a = document.createElement("a")
       a.style.display = "none"
       a.href = url
@@ -1173,12 +1084,17 @@ ${data.milestonesHtml ? `
   }
   const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault()
-    const paste = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
-    if (paste) {
-      document.execCommand("insertHTML", false, paste)
-      const target = e.currentTarget
-      if (target) updateFormData("milestonesHtml", target.innerHTML)
-    }
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
+
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
+
+    document.execCommand("insertHTML", false, html)
+    const target = e.currentTarget
+    if (target) updateFormData("milestonesHtml", target.innerHTML)
   }
 
   // Updates handlers
@@ -1190,53 +1106,22 @@ ${data.milestonesHtml ? `
     const target = e.currentTarget
     if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
   }
- const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-  e.preventDefault()
-  const rawHtml = e.clipboardData.getData("text/html")
-  const rawText = e.clipboardData.getData("text/plain")
+  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
 
-  // Prefer HTML if present; fallback to escaped text with <br>
-  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
 
-  // Strip <p> in table cells, remove inline backgrounds, then sanitize
-  html = unwrapParagraphsInTables(html)
-  html = stripInlineBackgrounds(html)
-  html = sanitizeHtml(html)
+    document.execCommand("insertHTML", false, html)
+    const target = e.currentTarget
+    if (target) updateFormData("updatesHtml", target.innerHTML)
+  }
 
-  document.execCommand("insertHTML", false, html)
-  const target = e.currentTarget
-  if (target) updateFormData("updatesHtml", target.innerHTML)
-}
-
-const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-  e.preventDefault()
-  const rawHtml = e.clipboardData.getData("text/html")
-  const rawText = e.clipboardData.getData("text/plain")
-
-  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
-  html = unwrapParagraphsInTables(html)
-  html = stripInlineBackgrounds(html)
-  html = sanitizeHtml(html)
-
-  document.execCommand("insertHTML", false, html)
-  const target = e.currentTarget
-  if (target) updateFormData("milestonesHtml", target.innerHTML)
-}
-
-
-  // Sync editors with state
-  useEffect(() => {
-    if (updatesRef.current && updatesRef.current.innerHTML !== formData.updatesHtml) {
-      updatesRef.current.innerHTML = formData.updatesHtml
-    }
-  }, [formData.updatesHtml])
-
-  useEffect(() => {
-    if (milestonesRef.current && milestonesRef.current.innerHTML !== formData.milestonesHtml) {
-      milestonesRef.current.innerHTML = formData.milestonesHtml
-    }
-  }, [formData.milestonesHtml])
-
+  // Exec Summary handlers
   const handleExecSummaryInput = (e: React.FormEvent<HTMLDivElement>) => {
     const html = e.currentTarget?.innerHTML ?? ""
     updateFormData("execSummary", html)
@@ -1253,18 +1138,37 @@ const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
   }
   const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault()
-    const paste = e.clipboardData.getData("text/html") || e.clipboardData.getData("text/plain")
-    if (paste) {
-      document.execCommand("insertHTML", false, paste)
-      const target = e.currentTarget
-      if (target) {
-        updateFormData("execSummary", target.innerHTML)
-        const len = getPlainTextLength(target.innerHTML)
-        setExecLen(len)
-        setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
-      }
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
+
+    document.execCommand("insertHTML", false, html)
+
+    const target = e.currentTarget
+    if (target) {
+      updateFormData("execSummary", target.innerHTML)
+      const len = getPlainTextLength(target.innerHTML)
+      setExecLen(len)
+      setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
     }
   }
+
+  // Sync editors with state
+  useEffect(() => {
+    if (updatesRef.current && updatesRef.current.innerHTML !== formData.updatesHtml) {
+      updatesRef.current.innerHTML = formData.updatesHtml
+    }
+  }, [formData.updatesHtml])
+
+  useEffect(() => {
+    if (milestonesRef.current && milestonesRef.current.innerHTML !== formData.milestonesHtml) {
+      milestonesRef.current.innerHTML = formData.milestonesHtml
+    }
+  }, [formData.milestonesHtml])
 
   useEffect(() => {
     if (execSummaryRef.current) {
