@@ -634,7 +634,9 @@ ${data.execSummary ? `
   <td style="${oddRowStyle}">
     <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
     <div style="margin:0;font-size:16px;color:#333333;">
-      ${nlToParas(stripInlineBackgrounds(data.execSummary))}
+      
+      ${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}
+
     </div>
   </td>
 </tr>` : ""}
@@ -740,7 +742,9 @@ ${data.execSummary ? `
   </tr>
 </table>
 
-${data.execSummary ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${nlToParas(data.execSummary)}` : ""}
+${data.execSummary ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}` : ""}
+
+
 ${data.lowlights ? `<h2 style="color:#333;margin:20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
 
 ${data.updatesHtml ? `
