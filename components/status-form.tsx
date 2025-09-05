@@ -490,6 +490,22 @@ export default function StatusForm() {
       el.removeChild(el.lastChild)
     }
   }
+// Unwrap <p> inside table cells in-place and trim cell whitespace
+const unwrapPsInCellsInPlace = (root: HTMLElement) => {
+  root.querySelectorAll("table td, table th").forEach((cell) => {
+    const ps = Array.from(cell.querySelectorAll("p"));
+    ps.forEach((p, i) => {
+      // move children out of <p>
+      const frag = document.createDocumentFragment();
+      while (p.firstChild) frag.appendChild(p.firstChild);
+      // keep a line break between former paragraphs
+      if (i !== ps.length - 1) frag.appendChild(document.createElement("br"));
+      p.replaceWith(frag);
+    });
+    // remove leading/trailing empty text/BR/empty blocks
+    trimCellWhitespace(cell as HTMLElement);
+  });
+};
 
   const stripeTables = (html: string): string => {
     if (!html) return html
@@ -1107,28 +1123,65 @@ ${data.milestonesHtml ? `
     if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
   }
   const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const rawHtml = e.clipboardData.getData("text/html")
-    const rawText = e.clipboardData.getData("text/plain")
+  e.preventDefault();
+  const rawHtml = e.clipboardData.getData("text/html");
+  const rawText = e.clipboardData.getData("text/plain");
+  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>");
+  html = unwrapParagraphsInTables(html);
+  html = stripInlineBackgrounds(html);
+  html = sanitizeHtml(html);
 
-    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
-    html = unwrapParagraphsInTables(html)
-    html = stripInlineBackgrounds(html)
-    html = sanitizeHtml(html)
+  document.execCommand("insertHTML", false, html);
 
-    document.execCommand("insertHTML", false, html)
-    const target = e.currentTarget
-    if (target) updateFormData("updatesHtml", target.innerHTML)
+  const target = e.currentTarget;
+  if (target) {
+    // normalize live DOM after browser insert (browsers may re-wrap with <p>)
+    unwrapPsInCellsInPlace(target);
+    updateFormData("updatesHtml", target.innerHTML);
   }
+};
 
-  // Exec Summary handlers
-  const handleExecSummaryInput = (e: React.FormEvent<HTMLDivElement>) => {
-    const html = e.currentTarget?.innerHTML ?? ""
-    updateFormData("execSummary", html)
-    const len = getPlainTextLength(html)
-    setExecLen(len)
-    setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
+const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault();
+  const rawHtml = e.clipboardData.getData("text/html");
+  const rawText = e.clipboardData.getData("text/plain");
+  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>");
+  html = unwrapParagraphsInTables(html);
+  html = stripInlineBackgrounds(html);
+  html = sanitizeHtml(html);
+
+  document.execCommand("insertHTML", false, html);
+
+  const target = e.currentTarget;
+  if (target) {
+    unwrapPsInCellsInPlace(target);
+    updateFormData("milestonesHtml", target.innerHTML);
   }
+};
+
+// optional: exec summary if tables can land there
+const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault();
+  const rawHtml = e.clipboardData.getData("text/html");
+  const rawText = e.clipboardData.getData("text/plain");
+  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>");
+
+  html = unwrapParagraphsInTables(html);
+  html = stripInlineBackgrounds(html);
+  html = sanitizeHtml(html);
+
+  document.execCommand("insertHTML", false, html);
+
+  const target = e.currentTarget;
+  if (target) {
+    unwrapPsInCellsInPlace(target);
+    updateFormData("execSummary", target.innerHTML);
+    const len = getPlainTextLength(target.innerHTML);
+    setExecLen(len);
+    setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT);
+  }
+};
+
   const handleExecSummaryBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     const html = e.currentTarget?.innerHTML ?? ""
     updateFormData("execSummary", html)
@@ -1437,6 +1490,8 @@ ${data.milestonesHtml ? `
                     #updatesHtml table tr > td:nth-child(2), #updatesHtml table tr > th:nth-child(2) { width: 70%; }
                     #updatesHtml table > tr:nth-of-type(odd) > td, #updatesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
                     #updatesHtml table > tr:nth-of-type(even) > td, #updatesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
+                    #updatesHtml p { margin: 0; }
+                    #milestonesHtml p { margin: 0; }
                   `}</style>
                 </div>
               </CardContent>
