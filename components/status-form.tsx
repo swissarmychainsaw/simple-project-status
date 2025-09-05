@@ -481,6 +481,43 @@ ${sanitizedCss}
 
   const stripBgDecls = (style: string) => style.replace(/background(?:-color)?:\s*[^;]+;?/gi, "").trim()
 
+  const LEFT_COL = "30%"
+  const RIGHT_COL = "70%"
+
+  const stripDecl = (style: string, prop: string) =>
+    style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
+
+  const widenUpdatesTables = (html: string): string => {
+    if (!html) return html
+    const root = document.createElement("div")
+    root.innerHTML = html
+
+    root.querySelectorAll("table").forEach((table) => {
+      // Make widths apply
+      ;(table as HTMLElement).style.width = "100%"
+      ;(table as HTMLElement).style.tableLayout = "auto"
+
+      // Only process simple 2-col tables; skip complex layouts
+      const rows = Array.from(table.querySelectorAll(":scope > tbody > tr, :scope > tr"))
+      rows.forEach((tr) => {
+        const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
+        const hasColspan = cells.some((c) => c.hasAttribute("colspan"))
+
+        if (cells.length === 2 && !hasColspan) {
+          cells.forEach((cell, idx) => {
+            const el = cell as HTMLElement
+            const old = el.getAttribute("style") || ""
+            const noWidth = stripDecl(old, "width")
+            const next = `${noWidth}${noWidth ? "; " : ""}width: ${idx === 0 ? LEFT_COL : RIGHT_COL}`
+            el.setAttribute("style", next)
+          })
+        }
+      })
+    })
+
+    return root.innerHTML
+  }
+
   const processUpdatesHtmlDOM = (html: string): string => {
     if (!html) return html
     const root = document.createElement("div")
@@ -533,7 +570,7 @@ ${sanitizedCss}
       return `<div style="display: inline-block; background-color: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;">Green</div>`
     }
 
-    const processedUpdates = processUpdatesHtmlDOM(data.updatesHtml)
+    const processedUpdates = widenUpdatesTables(processUpdatesHtmlDOM(data.updatesHtml))
 
     const evenRowStyle = "background-color: #f9f9f9; padding: 20px; border: 1px solid #CCCCCC;"
     const oddRowStyle = "background-color: #ffffff; padding: 20px; border: 1px solid #CCCCCC;"
@@ -631,21 +668,20 @@ ${sanitizedCss}
           ${
             data.updatesHtml
               ? `
-            <tr style="${evenRowStyle}">
-              <td style="padding: 16px; font-size: 20px; font-weight: bold; color: #333;">Updates</td>
-            </tr>
-            ${
-              data.sectionTitle
-                ? `
-            <tr style="${oddRowStyle}">
-              <td style="padding: 12px; font-size: 18px; font-weight: 600; color: #555;">${data.sectionTitle}</td>
-            </tr>
-            `
-                : ""
-            }
-            <tr style="${data.sectionTitle ? evenRowStyle : oddRowStyle}">
+        </table>
+        
+        <h2 style="font-size: 20px; font-weight: bold; color: #333; margin: 24px 0 8px 0;">Updates</h2>
+        ${
+          data.sectionTitle
+            ? `<h3 style="font-size: 18px; font-weight: 600; color: #555; margin: 8px 0 16px 0;">${data.sectionTitle}</h3>`
+            : ""
+        }
+        
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
               <td style="padding: 16px;">${processedUpdates}</td>
             </tr>
+        </table>
           `
               : ""
           }
@@ -694,7 +730,7 @@ ${sanitizedCss}
       return `<span style="display: inline-block; padding: 6px 12px; border-radius: 10px; font-weight: bold; background-color: ${color.bg}; color: ${color.color};">${escapeHtml(status)}</span>`
     }
 
-    const processedUpdates = processUpdatesHtmlDOM(data.updatesHtml)
+    const processedUpdates = widenUpdatesTables(processUpdatesHtmlDOM(data.updatesHtml))
 
     return `<div style="font-family: ${opts.optFont}, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #111; line-height: 1.45;">
 <table style="${tableStyle}">
@@ -1570,6 +1606,11 @@ ${data.lowlights ? `<h2 style="color: #333; font-family: ${opts.optFont}, sans-s
   #updatesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
   #updatesHtml table th, #updatesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
   #updatesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
+  /* Added CSS hints for 30/70 column width in editor preview */
+  #updatesHtml table tr > td:first-child,
+  #updatesHtml table tr > th:first-child { width: 30%; }
+  #updatesHtml table tr > td:nth-child(2),
+  #updatesHtml table tr > th:nth-child(2) { width: 70%; }
   /* Preview-only striping. Email clients ignore this; we set inline styles below. */
   #updatesHtml table > tr:nth-of-type(odd) > td,
   #updatesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
