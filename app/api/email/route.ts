@@ -15,54 +15,46 @@ export async function POST(req: Request) {
     }
 
     const { to, subject, html } = await req.json();
-
     if (!to || !html) {
       return NextResponse.json({ error: "Missing 'to' or 'html'." }, { status: 400 });
     }
 
-    // normalize recipients (supports string, array, or comma/space separated)
-    const toList: string[] = Array.isArray(to)
-      ? to
-      : String(to)
-          .split(/[,\s;]+/)
-          .map(s => s.trim())
-          .filter(Boolean);
-
+    // Inline PNG as CID "gns-logo"
     const attachments: Array<{
       filename: string;
       content: string;
-      encoding: "base64";
       contentType?: string;
       contentId?: string;
     }> = [];
 
     try {
       const logoPath = path.join(process.cwd(), "public", "gns-logo.png");
-      const logoB64 = await readFile(logoPath, { encoding: "base64" });
+      const logoBase64 = (await readFile(logoPath)).toString("base64");
       attachments.push({
         filename: "gns-logo.png",
-        content: logoB64,
-        encoding: "base64",
+        content: logoBase64,         // <-- base64!
         contentType: "image/png",
-        contentId: "gns-logo", // matches <img src="cid:gns-logo" />
+        contentId: "gns-logo",       // <-- matches <img src="cid:gns-logo">
       });
-    } catch (err) {
-      console.warn("Logo not found, skipping inline attachment:", err);
+    } catch (e) {
+      console.warn("Logo not found, skipping inline attachment:", e);
     }
 
     const { data, error } = await resend.emails.send({
       from: process.env.MAIL_FROM ?? "Status Reports <status@yourdomain.com>",
-      to: toList,
+      to: Array.isArray(to) ? to : [to],
       subject: subject || "Status Report",
-      html,           // must contain <img src="cid:gns-logo" />
-      attachments,    // inline cid attachment
+      html,                           // must contain <img src="cid:gns-logo" />
+      attachments,
     });
 
     if (error) {
-      return NextResponse.json({ error }, { status: 500 });
+      console.error("Resend error:", error);
+      return NextResponse.json({ error }, { status: 502 });
     }
     return NextResponse.json({ success: true, id: data?.id });
   } catch (err: any) {
+    console.error("Email send failed:", err);
     return NextResponse.json(
       { error: "Email send failed", detail: err?.message ?? String(err) },
       { status: 500 }
