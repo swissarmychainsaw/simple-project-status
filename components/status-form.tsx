@@ -572,10 +572,8 @@ useEffect(() => {
     })
     return root.innerHTML
   }
-// WidenTables
-const LEFT_COL = "30%";
-const RIGHT_COL = "70%";
 
+  // WidenTables
 const widenTables = (html: string): string => {
   if (!html) return html;
   const root = document.createElement("div");
@@ -584,14 +582,12 @@ const widenTables = (html: string): string => {
   root.querySelectorAll("table").forEach((table) => {
     const t = table as HTMLTableElement;
 
-    // Table basics
     t.style.width = "100%";
     t.setAttribute("width", "100%");
     t.style.tableLayout = "fixed";
-    // Confluence often injects this; it can mess with layout
-    t.style.removeProperty("white-space");
+    t.style.removeProperty("white-space"); // strip Confluence artifact
 
-    // Ensure a COLGROUP exists with 30/70
+    // Ensure 30/70 colgroup
     let cg = t.querySelector("colgroup");
     if (!cg) {
       cg = document.createElement("colgroup");
@@ -605,7 +601,6 @@ const widenTables = (html: string): string => {
       }
     }
 
-    // Walk rows and enforce 30/70 + top/left on cells
     const segments: Element[] = [];
     if (t.tHead) segments.push(t.tHead);
     segments.push(...Array.from(t.tBodies));
@@ -619,17 +614,13 @@ const widenTables = (html: string): string => {
         if (cells.length === 2 && !hasColspan) {
           cells.forEach((cell, idx) => {
             const el = cell as HTMLElement;
-
-            // Clean conflicting Confluence styles
             el.style.removeProperty("min-width");
             el.style.removeProperty("white-space");
 
-            // Enforce width via CSS + legacy attribute
             const w = idx === 0 ? LEFT_COL : RIGHT_COL;
             el.style.width = w;
             el.setAttribute("width", w);
 
-            // Enforce alignment (CSS + legacy attrs for email clients)
             el.style.verticalAlign = "top";
             el.setAttribute("valign", "top");
             el.style.textAlign = "left";
@@ -643,25 +634,28 @@ const widenTables = (html: string): string => {
   return root.innerHTML;
 };
 
-//WidenTables
+
+// End WidenTables
 
   
 const normalizeEditorHtml = (html: string) =>
   unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(html)));
-
-const updateFormData = (field: keyof FormData, value: string) => {
-  const needsHtmlNormalize = field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary";
+  
+function updateFormData(field: keyof FormData, value: string) {
+  const needsHtmlNormalize =
+    field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary";
   const v = needsHtmlNormalize ? normalizeEditorHtml(value) : value;
 
-  const validation = validateInput(field, v);
+  const validation = validateInput(field as string, v);
   setFormData((prev) => ({ ...prev, [field]: validation.sanitized }));
-  if (SAVE_FIELDS.includes(field as any)) {
+  if ((SAVE_FIELDS as readonly string[]).includes(field as any)) {
     persistField(field as string, validation.sanitized);
   }
   if (validation.warnings.length > 0) {
     setSecurityWarnings((prev) => [...prev, ...validation.warnings]);
   }
-};
+}
+
 
   const processRichHtml = (html: string): string =>
   widenTables(
