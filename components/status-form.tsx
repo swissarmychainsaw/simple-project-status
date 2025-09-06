@@ -244,7 +244,7 @@ export default function StatusForm() {
     }
   }
 
- // Load persisted data on mount
+// Load persisted data on mount + seed example data if empty
 useEffect(() => {
   SAVE_FIELDS.forEach((field) => {
     const value = safeLocalStorageGet(PERSIST_PREFIX + field)
@@ -258,23 +258,21 @@ useEffect(() => {
       }
     }
   })
+
+ // Seed example data if empty
+  const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
+  if (!savedSummary) {
+    setFormData((prev) => ({
+      ...prev,
+      programSummary:
+        "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
+      tpm: "Nick Adams",
+      engDri: "Antony Alexander",
+      bizSponsor: "Niha Mathur",
+      engSponsor: "Suchreet Dhaliwal",
+    }))
+  }
 }, [])
-
-
-    // Seed example data if empty
-    const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
-    if (!savedSummary) {
-      setFormData((prev) => ({
-        ...prev,
-        programSummary:
-          "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
-        tpm: "Nick Adams",
-        engDri: "Antony Alexander",
-        bizSponsor: "Niha Mathur",
-        engSponsor: "Suchreet Dhaliwal",
-      }))
-    }
-  }, [])
 
   const validateInput = (field: string, value: string) => {
     const warnings: string[] = []
@@ -323,17 +321,7 @@ useEffect(() => {
     safeLocalStorageSet(PERSIST_PREFIX + field, validation.sanitized)
   }
 
-  const updateFormData = (field: keyof FormData, value: string) => {
-    const validation = validateInput(field, value)
-    setFormData((prev) => ({ ...prev, [field]: validation.sanitized }))
-    if (SAVE_FIELDS.includes(field as any)) {
-      persistField(field as string, validation.sanitized)
-    }
-    if (validation.warnings.length > 0) {
-      setSecurityWarnings((prev) => [...prev, ...validation.warnings])
-    }
-  }
-
+  
   const updateDesignOptions = (field: keyof DesignOptions, value: string) => {
     let processedValue = value
     if (field === "optCustomCss") processedValue = sanitizeCss(value)
