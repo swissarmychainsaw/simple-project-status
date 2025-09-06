@@ -29,14 +29,22 @@ export async function POST(req: Request) {
     }> = [];
 
     try {
-      const logoPath = path.join(process.cwd(), "public", "gns-logo.png");
-      const logo = await readFile(logoPath); // Buffer
-      attachments.push({
-        filename: "gns-logo.png",
-        content: logo,
-        contentType: "image/png",
-        contentId: "gns-logo",
-      });
+
+const logoPath = path.join(process.cwd(), "public", "gns-logo.png");
+const logo = await readFile(logoPath);
+
+const attachments = [
+  {
+    filename: "gns-logo.png",
+    content: logo.toString("base64"),
+    encoding: "base64",
+    contentType: "image/png",
+    contentId: "gns-logo", // must match <img src="cid:gns-logo">
+  },
+];
+
+
+      
     } catch (err) {
       // Don’t fail the request if the logo is missing
       console.warn("Logo not found, skipping inline attachment:", err);
