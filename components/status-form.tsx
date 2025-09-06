@@ -760,15 +760,16 @@ return `<!DOCTYPE html>
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
-<!-- Title + Summary with left logo spanning two rows -->
+<!-- Title + Summary with right-aligned logo spanning two rows -->
 <tr>
-  <td rowspan="2" style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
-    ${getLogoImg(false)}
-  </td>
   <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
     <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
       ${data.programTitle || "Your Program/Project Title here"}
     </h1>
+  </td>
+  <td rowspan="2"
+      style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;vertical-align:middle;">
+    ${getLogoImg(false)}
   </td>
 </tr>
 <tr>
@@ -778,6 +779,7 @@ return `<!DOCTYPE html>
     </span>
   </td>
 </tr>
+
 
         <tr>
           <td style="${evenRowStyle}padding:0;">
@@ -899,21 +901,24 @@ ${data.execSummary ? `
 
   return `
 <div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
+<!-- Title + Summary with logo spanning two rows -->
+<table style="${tableStyle}">
+  <tr>
+    <td style="${titleStyle}">
+      ${data.programTitle || "Your Program/Project Title here"}
+    </td>
+    <td rowspan="2"
+        style="${cellStyle} width:${LOGO_WIDTH + 20}px;text-align:center;background-color:#fff;vertical-align:middle;">
+      ${getLogoImg(true)}
+    </td>
+  </tr>
+  <tr>
+    <td style="${evenRow}">
+      ${nlToParas(data.programSummary)}
+    </td>
+  </tr>
+</table>
 
-  <!-- Title + Summary with logo spanning two rows -->
-  <table style="${tableStyle}">
-    <tr>
-    <td rowspan="2" style="${cellStyle} width:${LOGO_WIDTH + 20}px; text-align:center; background-color:#fff;">
-  ${getLogoImg(true)}
-</td>
-      <td style="${titleStyle}">
-        ${data.programTitle || "Your Program/Project Title here"}
-      </td>
-    </tr>
-    <tr>
-      <td style="${evenRow}">${nlToParas(data.programSummary)}</td>
-    </tr>
-  </table>
 
   <!-- Status row -->
   <table style="${tableStyle}">
