@@ -895,6 +895,7 @@ function updateFormData(field: keyof FormData, value: string) {
 
 
   const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+
   const asOf = data.asOf
     ? (() => {
         const [y, m, d] = data.asOf.split("-").map(Number);
@@ -916,13 +917,11 @@ function updateFormData(field: keyof FormData, value: string) {
 
   const processedUpdates    = processRichHtml(data.updatesHtml);
   const processedMilestones = processRichHtml(data.milestonesHtml);
+  const logoEmail = getLogoImg(true); // <-- define here
 
   return `
 <div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
 <!-- Title + Summary with logo spanning two rows -->
-
-// in buildEmailHtml header table
-const logoEmail = getLogoImg(true);
 
 <table style="${tableStyle}">
   <tr>
