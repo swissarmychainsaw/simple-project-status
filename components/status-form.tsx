@@ -25,6 +25,18 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
+
+import Image from "next/image";
+import logo from "@/public/ns-logo.png"; // adjust alias if needed
+
+export default function Header() {
+  return <Image src={logo} alt="GNS logo" priority />;
+}
+
+const logoPath = path.join(process.cwd(), "public", "gns-logo.png");
+const logo = await fs.readFile(logoPath);
+// use as base64 content with contentId: "gns-logo"
+
 interface FormData {
   programTitle: string
   programSummary: string
