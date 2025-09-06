@@ -572,50 +572,80 @@ useEffect(() => {
     })
     return root.innerHTML
   }
+// WidenTables
+const LEFT_COL = "30%";
+const RIGHT_COL = "70%";
 
-  const widenTables = (html: string): string => {
-    if (!html) return html
-    const root = document.createElement("div")
-    root.innerHTML = html
+const widenTables = (html: string): string => {
+  if (!html) return html;
+  const root = document.createElement("div");
+  root.innerHTML = html;
 
-    const getChildRows = (seg: Element) =>
-      Array.from(seg.children).filter((el) => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+  root.querySelectorAll("table").forEach((table) => {
+    const t = table as HTMLTableElement;
 
-    root.querySelectorAll("table").forEach((table) => {
-      const t = table as HTMLElement
-      t.style.width = "100%"
-      t.setAttribute("width", "100%")
-      t.style.tableLayout = "fixed"
+    // Table basics
+    t.style.width = "100%";
+    t.setAttribute("width", "100%");
+    t.style.tableLayout = "fixed";
+    // Confluence often injects this; it can mess with layout
+    t.style.removeProperty("white-space");
 
-      const segments: Element[] = []
-      if (table.tHead) segments.push(table.tHead)
-      segments.push(...Array.from(table.tBodies))
-      if (table.tFoot) segments.push(table.tFoot)
-      if (segments.length === 0) segments.push(table)
+    // Ensure a COLGROUP exists with 30/70
+    let cg = t.querySelector("colgroup");
+    if (!cg) {
+      cg = document.createElement("colgroup");
+      cg.innerHTML = `<col style="width:${LEFT_COL}"><col style="width:${RIGHT_COL}">`;
+      t.insertBefore(cg, t.firstChild);
+    } else {
+      const cols = cg.querySelectorAll("col");
+      if (cols.length >= 2) {
+        (cols[0] as HTMLElement).style.width = LEFT_COL;
+        (cols[1] as HTMLElement).style.width = RIGHT_COL;
+      }
+    }
 
-      segments.forEach((seg) => {
-        const rows = getChildRows(seg)
-        rows.forEach((tr) => {
-          const cells = Array.from(tr.children).filter((el) => /^(TD|TH)$/i.test(el.tagName))
-          const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"))
-          if (cells.length === 2 && !hasColspan) {
-            cells.forEach((cell, idx) => {
-              const el = cell as HTMLElement
-              const old = el.getAttribute("style") || ""
-              const noWidth = stripDecl(old, "width")
-              const w = idx === 0 ? LEFT_COL : RIGHT_COL
-              el.setAttribute("style", `${noWidth}${noWidth ? "; " : ""}width:${w}`)
-              el.setAttribute("width", w)
-              el.setAttribute("align", "left")
-              el.setAttribute("valign", "top")
-            })
-          }
-        })
-      })
-    })
+    // Walk rows and enforce 30/70 + top/left on cells
+    const segments: Element[] = [];
+    if (t.tHead) segments.push(t.tHead);
+    segments.push(...Array.from(t.tBodies));
+    if (t.tFoot) segments.push(t.tFoot);
+    if (!segments.length) segments.push(t);
 
-    return root.innerHTML
-  }
+    segments.forEach((seg) => {
+      seg.querySelectorAll("tr").forEach((tr) => {
+        const cells = Array.from(tr.querySelectorAll("th,td"));
+        const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"));
+        if (cells.length === 2 && !hasColspan) {
+          cells.forEach((cell, idx) => {
+            const el = cell as HTMLElement;
+
+            // Clean conflicting Confluence styles
+            el.style.removeProperty("min-width");
+            el.style.removeProperty("white-space");
+
+            // Enforce width via CSS + legacy attribute
+            const w = idx === 0 ? LEFT_COL : RIGHT_COL;
+            el.style.width = w;
+            el.setAttribute("width", w);
+
+            // Enforce alignment (CSS + legacy attrs for email clients)
+            el.style.verticalAlign = "top";
+            el.setAttribute("valign", "top");
+            el.style.textAlign = "left";
+            el.setAttribute("align", "left");
+          });
+        }
+      });
+    });
+  });
+
+  return root.innerHTML;
+};
+
+//WidenTables
+
+  
 const normalizeEditorHtml = (html: string) =>
   unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(html)));
 
