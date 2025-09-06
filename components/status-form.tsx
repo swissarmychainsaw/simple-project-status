@@ -244,20 +244,22 @@ export default function StatusForm() {
     }
   }
 
-  // Load persisted data on mount
-  useEffect(() => {
-    SAVE_FIELDS.forEach((field) => {
-      const value = safeLocalStorageGet(PERSIST_PREFIX + field)
-      if (value !== null) {
-        if (field === "updatesHtml" || field === "milestonesHtml") {
-          setFormData((prev) => ({ ...prev, [field]: sanitizeHtml(value) }))
-        } else if ((field as string).startsWith("opt")) {
-          setDesignOptions((prev) => ({ ...prev, [field as keyof DesignOptions]: value }))
-        } else {
-          setFormData((prev) => ({ ...prev, [field]: value }))
-        }
+ // Load persisted data on mount
+useEffect(() => {
+  SAVE_FIELDS.forEach((field) => {
+    const value = safeLocalStorageGet(PERSIST_PREFIX + field)
+    if (value !== null) {
+      if (field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary") {
+        setFormData((prev) => ({ ...prev, [field]: normalizeEditorHtml(value) }))
+      } else if ((field as string).startsWith("opt")) {
+        setDesignOptions((prev) => ({ ...prev, [field as keyof DesignOptions]: value }))
+      } else {
+        setFormData((prev) => ({ ...prev, [field]: value }))
       }
-    })
+    }
+  })
+}, [])
+
 
     // Seed example data if empty
     const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
