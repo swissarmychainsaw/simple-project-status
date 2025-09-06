@@ -362,8 +362,8 @@ export default function StatusForm() {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#x27;")
-      .replace(/&lt;(:?\/)?(b|i|u)&gt;/g, "<$1$2>")
-
+      .replace(/&lt;(\/)?(b|i|u)&gt;/g, "<$1$2>")
+  
   const nlToParas = (text: string) => {
     const parts = String(text || "")
       .split(/\n\s*\n/)
@@ -862,7 +862,13 @@ ${data.execSummary ? `
   </tr>
 </table>
 
-${data.execSummary ? `<h2 ...>Executive Summary</h2>${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}` : ""}
+
+${data.execSummary
+  ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${
+      unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))
+    }`
+  : ""
+}
 
 ${data.lowlights ? `<h2 style=\"color:#333;margin:20px 0 10px 0;\">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
 
