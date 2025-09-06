@@ -1,7 +1,8 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,21 +10,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Bold,
-  Italic,
-  Underline,
-  Copy,
-  Download,
-  RotateCcw,
-  Eye,
-  Code,
-  CheckCircle,
-  Shield,
-  Loader2,
-  AlertTriangle,
-  Mail,
+  Bold, Italic, Underline, Copy, Download, RotateCcw, Eye, Code,
+  CheckCircle, Shield, Loader2, AlertTriangle, Mail,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+
+// Optional helper used inside your page, NOT default-exported:
+export function ReportHeader() {
+  // If the file is in /public/gns-logo.png you can reference it by path:
+  return <Image src="/gns-logo.png" alt="GNS logo" width={120} height={40} priority />
+}
 
  import Image from "next/image";
  // Optional helper used inside your page, NOT default-exported:
@@ -31,11 +27,6 @@ import { useToast } from "@/hooks/use-toast"
    // if the file is in /public/gns-logo.png you can reference it by path:
    return <Image src="/gns-logo.png" alt="GNS logo" width={120} height={40} priority />;
  }
-
-
-export default function Header() {
-  return <Image src={logo} alt="GNS logo" priority />;
-}
 
 interface FormData {
   programTitle: string
