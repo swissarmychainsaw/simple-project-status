@@ -497,62 +497,64 @@ useEffect(() => {
     })
   }
 
-  const stripeTables = (html: string): string => {
-    if (!html) return html
-    const root = document.createElement("div")
-    root.innerHTML = html
+  // add near the other color consts
+const HEADER_BG = "#f5f5f5";
 
-    const getChildRows = (seg: Element) =>
-      Array.from(seg.children).filter((el) => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
+// replace your current stripeTables with this version
+const stripeTables = (html: string): string => {
+  if (!html) return html
+  const root = document.createElement("div")
+  root.innerHTML = html
 
-    root.querySelectorAll("table").forEach((table) => {
-      const segments: Element[] = []
-      if (table.tHead) segments.push(table.tHead)
-      segments.push(...Array.from(table.tBodies))
-      if (table.tFoot) segments.push(table.tFoot)
-      if (segments.length === 0) segments.push(table)
+  const getChildRows = (seg: Element) =>
+    Array.from(seg.children).filter((el) => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
 
-      segments.forEach((seg) => {
-        const rows = getChildRows(seg)
-        rows.forEach((tr, idx) => {
-          const rowColor = idx % 2 === 1 ? STRIPE_EVEN : STRIPE_ODD
-          ;(tr as HTMLElement).setAttribute("bgcolor", rowColor)
+  root.querySelectorAll("table").forEach((table) => {
+    const segments: Element[] = []
+    if (table.tHead) segments.push(table.tHead)
+    segments.push(...Array.from(table.tBodies))
+    if (table.tFoot) segments.push(table.tFoot)
+    if (segments.length === 0) segments.push(table)
 
-          Array.from(tr.children).forEach((cell) => {
-            if (!/^(TD|TH)$/i.test(cell.tagName)) return
-            const el = cell as HTMLElement
+    let rowCounter = 0 // count across the whole table (not per segment)
 
-            trimCellWhitespace(el)
+    segments.forEach((seg) => {
+      const rows = getChildRows(seg)
+      rows.forEach((tr) => {
+        const isHeader = rowCounter === 0
+        const rowColor = isHeader
+          ? HEADER_BG
+          : (rowCounter - 1) % 2 === 0
+          ? STRIPE_ODD
+          : STRIPE_EVEN
 
-            const old = el.getAttribute("style") || ""
-            const m = old.match(/background(?:-color)?:\s*([^;]+)\s*;?/i)
-            const explicitBg = m ? m[1] : ""
-            const keepCellBg = explicitBg && !isWhiteish(explicitBg)
+        ;(tr as HTMLElement).setAttribute("bgcolor", rowColor)
 
-            let next = stripBgDecls(old)
-            next = stripDecl(next, "text-align")
-            next = stripDecl(next, "vertical-align")
-            if (!keepCellBg) {
-              next += (next ? "; " : "") + `background-color:${rowColor}`
-              el.setAttribute("bgcolor", rowColor)
-            }
-            next += (next ? "; " : "") + "text-align:left; vertical-align:top"
-            el.setAttribute("style", next)
-            el.setAttribute("align", "left")
-            el.setAttribute("valign", "top")
+        Array.from(tr.children).forEach((cell) => {
+          if (!/^(TD|TH)$/i.test(cell.tagName)) return
+          const el = cell as HTMLElement
 
-            const first = el.firstElementChild as HTMLElement | null
-            const last = el.lastElementChild as HTMLElement | null
-            const isBlock = (n?: Element | null) => !!n && /^(P|DIV|UL|OL|H1|H2|H3|H4|H5|H6)$/i.test(n.tagName)
-            if (isBlock(first)) first!.style.marginTop = "0"
-            if (isBlock(last)) last!.style.marginBottom = "0"
-          })
+          trimCellWhitespace(el)
+
+          // scrub conflicting styles, then apply ours
+          let next = stripBgDecls(el.getAttribute("style") || "")
+          next = stripDecl(next, "text-align")
+          next = stripDecl(next, "vertical-align")
+
+          next += (next ? "; " : "") + `background-color:${rowColor}; text-align:left; vertical-align:top`
+          el.setAttribute("style", next)
+          el.setAttribute("align", "left")
+          el.setAttribute("valign", "top")
         })
+
+        rowCounter++
       })
     })
+  })
 
-    return root.innerHTML
-  }
+  return root.innerHTML
+}
+
 
   const stripInlineBackgrounds = (html: string) => {
     if (!html) return ""
@@ -1511,6 +1513,19 @@ ${data.milestonesHtml ? `
                     #updatesHtml table > tr:nth-of-type(even) > td, #updatesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
                     #updatesHtml p { margin: 0; }
                     #milestonesHtml p { margin: 0; }
+                    /* First row should always be gray in the editor */
+                    #updatesHtml table thead tr,
+#updatesHtml table tr:first-of-type > th,
+#updatesHtml table tr:first-of-type > td {
+  background-color: #f5f5f5 !important;
+}
+
+#milestonesHtml table thead tr,
+#milestonesHtml table tr:first-of-type > th,
+#milestonesHtml table tr:first-of-type > td {
+  background-color: #f5f5f5 !important;
+}
+
                   `}</style>
                 </div>
               </CardContent>
@@ -1576,6 +1591,19 @@ ${data.milestonesHtml ? `
                   #milestonesHtml table tr > td:nth-child(2), #milestonesHtml table tr > th:nth-child(2) { width: 70%; }
                   #milestonesHtml table > tr:nth-of-type(odd) > td, #milestonesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
                   #milestonesHtml table > tr:nth-of-type(even) > td, #milestonesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
+                  /* First row should always be gray in the editor */
+                  #updatesHtml table thead tr,
+                  #updatesHtml table tr:first-of-type > th,
+                  #updatesHtml table tr:first-of-type > td {
+                  background-color: #f5f5f5 !important;
+                  }
+
+                  #milestonesHtml table thead tr,
+                  #milestonesHtml table tr:first-of-type > th,
+#milestonesHtml table tr:first-of-type > td {
+  background-color: #f5f5f5 !important;
+}
+
                 `}</style>
               </CardContent>
             </Card>
