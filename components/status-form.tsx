@@ -626,6 +626,22 @@ export default function StatusForm() {
 
     return root.innerHTML
   }
+const normalizeEditorHtml = (html: string) =>
+  unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(html)));
+
+const updateFormData = (field: keyof FormData, value: string) => {
+  const needsHtmlNormalize = field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary";
+  const v = needsHtmlNormalize ? normalizeEditorHtml(value) : value;
+
+  const validation = validateInput(field, v);
+  setFormData((prev) => ({ ...prev, [field]: validation.sanitized }));
+  if (SAVE_FIELDS.includes(field as any)) {
+    persistField(field as string, validation.sanitized);
+  }
+  if (validation.warnings.length > 0) {
+    setSecurityWarnings((prev) => [...prev, ...validation.warnings]);
+  }
+};
 
   const processRichHtml = (html: string): string =>
   widenTables(
