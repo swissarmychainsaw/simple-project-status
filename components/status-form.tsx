@@ -55,6 +55,8 @@ interface DesignOptions {
   optDensity: string
   optBorders: string
   optCustomCss: string
+  optLogoMode: "cid" | "url" | "none"   
+  optLogoUrl: string                  
 }
 
 const statusOptions = ["Green", "Yellow", "Red"]
@@ -192,6 +194,8 @@ export default function StatusForm() {
     optDensity: "comfortable",
     optBorders: "lines",
     optCustomCss: "",
+  optLogoMode: "cid",   // ← add
+  optLogoUrl: "",       // ← add
   })
 
   const [generatedHtml, setGeneratedHtml] = useState("")
@@ -212,6 +216,17 @@ export default function StatusForm() {
   const [execLen, setExecLen] = useState(0)
   const [execOver, setExecOver] = useState(false)
 
+const OPT_FIELDS = [
+  "optFont",
+  "optAccent",
+  "optDensity",
+  "optBorders",
+  "optCustomCss",
+  "optLogoMode",
+  "optLogoUrl",
+] as const
+
+  
   const safeLocalStorageGet = (key: string): string | null => {
     try {
       const value = localStorage.getItem(key)
@@ -262,8 +277,30 @@ useEffect(() => {
       }
     }
   })
+// NEW: load design options
+  OPT_FIELDS.forEach((field) => {
+    const value = safeLocalStorageGet(PERSIST_PREFIX + field)
+    if (value !== null) {
+      setDesignOptions((prev) => ({ ...prev, [field]: value } as DesignOptions))
+    }
+  })
 
- // Seed example data if empty
+  // seed example data (unchanged)...
+  const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
+  if (!savedSummary) {
+    setFormData((prev) => ({
+      ...prev,
+      programSummary:
+        "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
+      tpm: "Nick Adams",
+      engDri: "Antony Alexander",
+      bizSponsor: "Niha Mathur",
+      engSponsor: "Suchreet Dhaliwal",
+    }))
+  }
+}, [])
+
+  // Seed example data if empty
   const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
   if (!savedSummary) {
     setFormData((prev) => ({
@@ -327,18 +364,20 @@ useEffect(() => {
 
   
   const updateDesignOptions = (field: keyof DesignOptions, value: string) => {
-    let processedValue = value
-    if (field === "optCustomCss") processedValue = sanitizeCss(value)
+  let processedValue = value
+  if (field === "optCustomCss") processedValue = sanitizeCss(value)
 
-    const validation = validateInput(field, processedValue)
-    setDesignOptions((prev) => ({ ...prev, [field]: validation.sanitized }))
-    if (SAVE_FIELDS.includes(field as any)) {
-      persistField(field as string, validation.sanitized)
-    }
-    if (validation.warnings.length > 0) {
-      setSecurityWarnings((prev) => [...prev, ...validation.warnings])
-    }
+  const validation = validateInput(field, processedValue)
+  setDesignOptions((prev) => ({ ...prev, [field]: validation.sanitized }))
+
+  // always persist design options
+  safeLocalStorageSet(PERSIST_PREFIX + field, validation.sanitized)
+
+  if (validation.warnings.length > 0) {
+    setSecurityWarnings((prev) => [...prev, ...validation.warnings])
   }
+}
+
 
   // HTML helpers
   const escapeHtml = (s: string) =>
@@ -448,6 +487,33 @@ useEffect(() => {
       return escapeHtml(html)
     }
   }
+
+const getLogoImg = (forEmail: boolean): string => {
+  if (designOptions.optLogoMode === "none") return ""
+
+  // pick the correct src
+  let src: string
+  if (designOptions.optLogoMode === "url") {
+    // use provided URL (fallback to web path if empty)
+    src = designOptions.optLogoUrl?.trim() || LOGO_SRC_WEB
+  } else {
+    // "cid" mode: email uses CID, preview uses web path
+    src = forEmail ? `cid:${LOGO_CID}` : LOGO_SRC_WEB
+  }
+
+  // very light sanity check: only allow http/https/cid in src
+  const ok = /^(cid:|https?:\/\/|\/)/i.test(src)
+  const safeSrc = ok ? src : LOGO_SRC_WEB
+
+  return `
+    <img src="${escapeHtml(safeSrc)}"
+         alt="GNS logo"
+         width="${LOGO_WIDTH}"
+         style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  `
+}
+
+
 
   const STRIPE_ODD = "#ffffff"
   const STRIPE_EVEN = "#f9f9f9"
@@ -729,6 +795,10 @@ return `<!DOCTYPE html>
               ${nlToParas(data.programSummary) || "Program summary description goes here."}
             </span>
           </td>
+<td rowspan="2" style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+  ${getLogoImg(false)}
+</td>
+
         </tr>
 
         <tr>
@@ -855,10 +925,9 @@ ${data.execSummary ? `
   <!-- Title + Summary with logo spanning two rows -->
   <table style="${tableStyle}">
     <tr>
-      <td rowspan="2" style="${cellStyle} width:${LOGO_WIDTH + 20}px;text-align:center;background:#fff;">
-        <img src="cid:${LOGO_CID}" alt="GNS logo" width="${LOGO_WIDTH}"
-             style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-      </td>
+    <td rowspan="2" style="${cellStyle} width:${LOGO_WIDTH + 20}px; text-align:center; background-color:#fff;">
+  ${getLogoImg(true)}
+</td>
       <td style="${titleStyle}">
         ${data.programTitle || "Your Program/Project Title here"}
       </td>
@@ -925,48 +994,64 @@ ${data.execSummary ? `
 </div>`;
 };
 
-
-  const emailReport = async () => {
-    if (execOver) {
-      toast({
-        title: "Executive Summary is too long",
-        description: `Limit is ${EXEC_SUMMARY_PLAIN_LIMIT} plain-text characters.`,
-        variant: "destructive",
-      })
-      return
-    }
-    if (!formData.emailTo.trim()) {
-      toast({ title: "Email Required", description: "Please enter an email address first.", variant: "destructive" })
-      return
-    }
-
-    setIsEmailing(true)
-    try {
-      let htmlToSend = generatedHtml
-      if (!htmlToSend) htmlToSend = await generate()
-
-      const response = await fetch("/api/email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: formData.emailTo.trim(),
-          html: htmlToSend,
-          subject: formData.programTitle || "Status Report",
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.text()
-        throw new Error(`API returned ${response.status}: ${errorData}`)
-      }
-
-      toast({ title: "Email Sent", description: `Report sent successfully to ${formData.emailTo}` })
-    } catch (error: any) {
-      toast({ title: "Email Failed", description: `Failed to send email: ${error.message}`, variant: "destructive" })
-    } finally {
-      setIsEmailing(false)
-    }
+// Replace your existing emailReport with this version
+const emailReport = async () => {
+  if (execOver) {
+    toast({
+      title: "Executive Summary is too long",
+      description: `Limit is ${EXEC_SUMMARY_PLAIN_LIMIT} plain-text characters.`,
+      variant: "destructive",
+    });
+    return;
   }
+
+  const recipient = formData.emailTo.trim();
+  if (!recipient) {
+    toast({
+      title: "Email Required",
+      description: "Please enter an email address first.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsEmailing(true);
+  try {
+    // 👉 Use the EMAIL-SAFE HTML (contains src="cid:gns-logo")
+    const htmlToSend = buildEmailHtml(formData, designOptions);
+
+    const res = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: recipient,
+        subject: formData.programTitle || "Status Report",
+        html: htmlToSend,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`API returned ${res.status}: ${errorText}`);
+    }
+
+    toast({
+      title: "Email Sent",
+      description: `Report sent successfully to ${recipient}`,
+    });
+  } catch (error: any) {
+    toast({
+      title: "Email Failed",
+      description: `Failed to send email: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    setIsEmailing(false);
+  }
+};
+
+  
+  
 
   const generate = async () => {
     if (execOver) {
@@ -1644,6 +1729,34 @@ ${data.execSummary ? `
                     </SelectContent>
                   </Select>
                 </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <Label className="text-sm font-medium">Logo mode</Label>
+    <Select
+      value={designOptions.optLogoMode}
+      onValueChange={(v) => updateDesignOptions("optLogoMode", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cid">Embed inline (CID)</SelectItem>
+        <SelectItem value="url">Load from URL</SelectItem>
+        <SelectItem value="none">Hide logo</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {designOptions.optLogoMode === "url" && (
+    <div>
+      <Label className="text-sm font-medium">Logo URL (http/https)</Label>
+      <Input
+        placeholder="https://example.com/path/logo.png"
+        value={designOptions.optLogoUrl}
+        onChange={(e) => updateDesignOptions("optLogoUrl", e.target.value)}
+        className="bg-white"
+      />
+    </div>
+  )}
+</div>
 
                 <div>
                   <Label htmlFor="optAccent" className="text-sm font-medium">Accent Color</Label>
