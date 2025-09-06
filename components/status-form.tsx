@@ -827,99 +827,104 @@ ${data.execSummary ? `
   }
 
   const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
-  
-    const asOf = data.asOf
-      ? (() => {
-          const [year, month, day] = data.asOf.split("-").map(Number)
-          const date = new Date(year, month - 1, day)
-          return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-        })()
-      : ""
+  const asOf = data.asOf
+    ? (() => {
+        const [y, m, d] = data.asOf.split("-").map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      })()
+    : "";
 
-    const tableStyle = `border-collapse: collapse; width: 100%; margin: 10px 0; font-family: ${opts.optFont}, sans-serif;`
-const cellStyle = `border-left:1px solid #dcdcdc;border-right:1px solid #dcdcdc;padding:12px;text-align:left;vertical-align:top;`
-    const headerStyle = `${cellStyle} background-color: #f7f7f7; font-weight: bold; text-align: center;`
-    const titleStyle = `${cellStyle} background-color: #e5e7eb; font-weight: bold; text-align: center;`
-    const evenRowStyle = `${cellStyle} background-color: #f9f9f9;`
+  const tableStyle = `border-collapse:collapse;width:100%;margin:10px 0;font-family:${opts.optFont},sans-serif;`;
+  const cellStyle  = `border-left:1px solid #dcdcdc;border-right:1px solid #dcdcdc;padding:12px;text-align:left;vertical-align:top;`;
+  const headerStyle= `${cellStyle} background-color:#f7f7f7;font-weight:bold;text-align:center;`;
+  const titleStyle = `${cellStyle} background-color:#e5e7eb;font-weight:bold;text-align:left;`;
+  const evenRow    = `${cellStyle} background-color:#f9f9f9;`;
 
-     
+  const emailPill = (s: string) => {
+    const colors = { green: { bg:"#27c08a", color:"#fff" }, yellow: { bg:"#f4c542", color:"#111" }, red: { bg:"#e5534b", color:"#fff" } } as const;
+    const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
+    return `<span style="display:inline-block;padding:6px 12px;border-radius:10px;font-weight:bold;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
+  };
 
+  const processedUpdates    = processRichHtml(data.updatesHtml);
+  const processedMilestones = processRichHtml(data.milestonesHtml);
 
-    const emailPill = (status: string) => {
-      const colors = {
-        green: { bg: "#27c08a", color: "#fff" },
-        yellow: { bg: "#f4c542", color: "#111" },
-        red: { bg: "#e5534b", color: "#fff" },
-      } as const
-      const c = colors[(status || "").toLowerCase() as keyof typeof colors] || colors.green
-      return `<span style="display:inline-block;padding:6px 12px;border-radius:10px;font-weight:bold;background-color:${c.bg};color:${c.color};">${escapeHtml(
-        status,
-      )}</span>`
-    }
+  return `
+<div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
 
-    const processedUpdates = processRichHtml(data.updatesHtml)
-    const processedMilestones = processRichHtml(data.milestonesHtml)
+  <!-- Title + Summary with logo spanning two rows -->
+  <table style="${tableStyle}">
+    <tr>
+      <td rowspan="2" style="${cellStyle} width:${LOGO_WIDTH + 20}px;text-align:center;background:#fff;">
+        <img src="cid:${LOGO_CID}" alt="GNS logo" width="${LOGO_WIDTH}"
+             style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+      </td>
+      <td style="${titleStyle}">
+        ${data.programTitle || "Your Program/Project Title here"}
+      </td>
+    </tr>
+    <tr>
+      <td style="${evenRow}">${nlToParas(data.programSummary)}</td>
+    </tr>
+  </table>
 
-    return `<div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
+  <!-- Status row -->
+  <table style="${tableStyle}">
+    <tr>
+      <th style="${headerStyle}">Last Status</th>
+      <th style="${headerStyle}">Current Status</th>
+      <th style="${headerStyle}">Trending</th>
+      <th style="${headerStyle}">Date</th>
+    </tr>
+    <tr>
+      <td style="${evenRow} text-align:center;">${emailPill(data.lastStatus)}</td>
+      <td style="${evenRow} text-align:center;">${emailPill(data.currentStatus)}</td>
+      <td style="${evenRow} text-align:center;">${emailPill(data.trending)}</td>
+      <td style="${evenRow} text-align:center;">${escapeHtml(asOf)}</td>
+    </tr>
+  </table>
 
-<table style="${tableStyle}">
-  <tr>
-    <td rowspan="2" style="${cellStyle} width:${LOGO_WIDTH + 20}px; text-align:center; background-color:#fff;">
-      <img src="cid:${LOGO_CID}"
-           alt="GNS logo"
-           width="${LOGO_WIDTH}"
-           style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-    </td>
-    <td style="${titleStyle}">${data.programTitle || "Your Program/Project Title here"}</td>
-  </tr>
-  <tr>
-    <td style="${evenRowStyle}">${nlToParas(data.programSummary)}</td>
-  </tr>
-</table>
+  <!-- Team row -->
+  <table style="${tableStyle}">
+    <tr>
+      <th style="${headerStyle}">TPM</th>
+      <th style="${headerStyle}">Engineering DRI</th>
+      <th style="${headerStyle}">Business Sponsor</th>
+      <th style="${headerStyle}">Engineering Sponsor</th>
+    </tr>
+    <tr>
+      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
+      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engDri)}</td>
+      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.bizSponsor)}</td>
+      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engSponsor)}</td>
+    </tr>
+  </table>
 
-<!-- the rest of your email HTML stays the same -->
-`
-}
+  ${data.execSummary ? `
+    <h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>
+    ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
+  ` : ""}
 
-<table style="${tableStyle}">
-  <tr>
-    <th style="${headerStyle}">TPM</th>
-    <th style="${headerStyle}">Engineering DRI</th>
-    <th style="${headerStyle}">Business Sponsor</th>
-    <th style="${headerStyle}">Engineering Sponsor</th>
-  </tr>
-  <tr>
-    <td style="${evenRowStyle} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
-    <td style="${evenRowStyle} font-weight:bold; text-align:center;">${escapeHtml(data.engDri)}</td>
-    <td style="${evenRowStyle} font-weight:bold; text-align:center;">${escapeHtml(data.bizSponsor)}</td>
-    <td style="${evenRowStyle} font-weight:bold; text-align:center;">${escapeHtml(data.engSponsor)}</td>
-  </tr>
-</table>
+  ${data.lowlights ? `
+    <h2 style="color:#333;margin:20px 0 10px 0;">Lowlights</h2>
+    ${linesToList(data.lowlights)}
+  ` : ""}
 
+  ${data.updatesHtml ? `
+    <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.updatesTitle || "Top Accomplishments"}</h2>
+    ${data.sectionTitle ? `<h3 style="color:#555;margin:10px 0;font-size:18px;font-weight:600;">${data.sectionTitle}</h3>` : ""}
+    ${processedUpdates}
+  ` : ""}
 
-${data.execSummary
-  ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${
-      unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))
-    }`
-  : ""
-}
+  ${data.milestonesHtml ? `
+    <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.milestonesTitle || "Upcoming Milestones"}</h2>
+    ${data.milestonesSectionTitle ? `<h3 style="color:#555;margin:10px 0;font-size:18px;font-weight:600;">${data.milestonesSectionTitle}</h3>` : ""}
+    ${processedMilestones}
+  ` : ""}
 
-${data.lowlights ? `<h2 style=\"color:#333;margin:20px 0 10px 0;\">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
+</div>`;
+};
 
-${data.updatesHtml ? `
-  <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.updatesTitle || "Top Accomplishments"}</h2>
-  ${data.sectionTitle ? `<h3 style="color:#555;margin:10px 0;font-size:18px;font-weight:600;">${data.sectionTitle}</h3>` : ""}
-  ${processedUpdates}
-` : ""}
-
-${data.milestonesHtml ? `
-  <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.milestonesTitle || "Upcoming Milestones"}</h2>
-  ${data.milestonesSectionTitle ? `<h3 style="color:#555;margin:10px 0;font-size:18px;font-weight:600;">${data.milestonesSectionTitle}</h3>` : ""}
-  ${processedMilestones}
-` : ""}
-
-</div>`
-  }
 
   const emailReport = async () => {
     if (execOver) {
