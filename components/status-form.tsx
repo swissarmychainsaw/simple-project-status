@@ -65,6 +65,10 @@ const fontOptions = [
   { value: "Helvetica, Arial, sans-serif", label: "Helvetica" },
   { value: "Georgia, serif", label: "Georgia" },
 ]
+// Logo constants
+const LOGO_WIDTH = 120;               // px
+const LOGO_SRC_WEB = "/gns-logo.png"; // put the PNG in /public
+const LOGO_CID = "gns-logo";          // used for inline-embedded email images
 
 const PERSIST_PREFIX = "statusReportGenerator."
 const EXEC_SUMMARY_PLAIN_LIMIT = 20000
@@ -692,32 +696,41 @@ function updateFormData(field: keyof FormData, value: string) {
 
     const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
     const oddRowStyle = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
+// BUILD HTML
+// inside buildHtml(), where the top table renders:
 
-    return `<!DOCTYPE html>
+return `<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Status Report</title>
-</head>
+<head> ... </head>
 <body>
   <table style="width:700px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
+
+        <!-- Title + Summary with left logo spanning two rows -->
         <tr>
-          <td style="background-color:#E8E8E8;padding:20px;text-align:center;border:1px solid #CCCCCC;">
-            <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">${
-              data.programTitle || "Your Program/Project Title here"
-            }</h1>
+          <td rowspan="2" style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+            <img src="${LOGO_SRC_WEB}"
+                 alt="GNS logo"
+                 width="${LOGO_WIDTH}"
+                 style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+          </td>
+
+          <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
+            <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
+              ${data.programTitle || "Your Program/Project Title here"}
+            </h1>
           </td>
         </tr>
+
         <tr>
-          <td style="${oddRowStyle}">
-            <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">${
-              nlToParas(data.programSummary) || "Program summary description goes here."
-            }</span>
+          <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
+            <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
+              ${nlToParas(data.programSummary) || "Program summary description goes here."}
+            </span>
           </td>
         </tr>
+
         <tr>
           <td style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
@@ -814,6 +827,7 @@ ${data.execSummary ? `
   }
 
   const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+  
     const asOf = data.asOf
       ? (() => {
           const [year, month, day] = data.asOf.split("-").map(Number)
@@ -847,25 +861,25 @@ const cellStyle = `border-left:1px solid #dcdcdc;border-right:1px solid #dcdcdc;
     const processedMilestones = processRichHtml(data.milestonesHtml)
 
     return `<div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
-<table style="${tableStyle}">
-  <tr><td style="${titleStyle}" colspan="2">${data.programTitle || "Your Program/Project Title here"}</td></tr>
-  <tr><td style="${evenRowStyle}">${nlToParas(data.programSummary)}</td></tr>
-</table>
 
 <table style="${tableStyle}">
   <tr>
-    <th style="${headerStyle}">Last Status</th>
-    <th style="${headerStyle}">Current Status</th>
-    <th style="${headerStyle}">Trending</th>
-    <th style="${headerStyle}">Date</th>
+    <td rowspan="2" style="${cellStyle} width:${LOGO_WIDTH + 20}px; text-align:center; background-color:#fff;">
+      <img src="cid:${LOGO_CID}"
+           alt="GNS logo"
+           width="${LOGO_WIDTH}"
+           style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+    </td>
+    <td style="${titleStyle}">${data.programTitle || "Your Program/Project Title here"}</td>
   </tr>
   <tr>
-    <td style="${evenRowStyle} text-align:center;">${emailPill(data.lastStatus)}</td>
-    <td style="${evenRowStyle} text-align:center;">${emailPill(data.currentStatus)}</td>
-    <td style="${evenRowStyle} text-align:center;">${emailPill(data.trending)}</td>
-    <td style="${evenRowStyle} text-align:center;">${escapeHtml(asOf)}</td>
+    <td style="${evenRowStyle}">${nlToParas(data.programSummary)}</td>
   </tr>
 </table>
+
+<!-- the rest of your email HTML stays the same -->
+`
+}
 
 <table style="${tableStyle}">
   <tr>
