@@ -29,4 +29,11 @@ export async function POST(req: Request) {
     attachments: [
       {
         filename: "gns-logo.png",
-        path: path.join(process.cwd(),
+        path: path.join(process.cwd(), "public", "gns-logo.png"),
+        cid: "gns-logo", // matches <img src="cid:gns-logo" ...>
+      },
+    ],
+  });
+
+  return NextResponse.json({ success: true, messageId: info.messageId });
+}
