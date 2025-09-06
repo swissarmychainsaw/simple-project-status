@@ -21,12 +21,6 @@ export function ReportHeader() {
   return <Image src="/gns-logo.png" alt="GNS logo" width={120} height={40} priority />
 }
 
- import Image from "next/image";
- // Optional helper used inside your page, NOT default-exported:
- export function ReportHeader() {
-   // if the file is in /public/gns-logo.png you can reference it by path:
-   return <Image src="/gns-logo.png" alt="GNS logo" width={120} height={40} priority />;
- }
 
 interface FormData {
   programTitle: string
