@@ -20,42 +20,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing 'to' or 'html'." }, { status: 400 });
     }
 
-    // Try to attach the logo inline (referenced in HTML as <img src="cid:gns-logo" />)
+    // normalize recipients (supports string, array, or comma/space separated)
+    const toList: string[] = Array.isArray(to)
+      ? to
+      : String(to)
+          .split(/[,\s;]+/)
+          .map(s => s.trim())
+          .filter(Boolean);
+
     const attachments: Array<{
       filename: string;
-      content: Buffer | string;
+      content: string;
+      encoding: "base64";
       contentType?: string;
       contentId?: string;
     }> = [];
 
     try {
-
-const logoPath = path.join(process.cwd(), "public", "gns-logo.png");
-const logo = await readFile(logoPath);
-
-const attachments = [
-  {
-    filename: "gns-logo.png",
-    content: logo.toString("base64"),
-    encoding: "base64",
-    contentType: "image/png",
-    contentId: "gns-logo", // must match <img src="cid:gns-logo">
-  },
-];
-
-
-      
+      const logoPath = path.join(process.cwd(), "public", "gns-logo.png");
+      const logoB64 = await readFile(logoPath, { encoding: "base64" });
+      attachments.push({
+        filename: "gns-logo.png",
+        content: logoB64,
+        encoding: "base64",
+        contentType: "image/png",
+        contentId: "gns-logo", // matches <img src="cid:gns-logo" />
+      });
     } catch (err) {
-      // Don’t fail the request if the logo is missing
       console.warn("Logo not found, skipping inline attachment:", err);
     }
 
     const { data, error } = await resend.emails.send({
       from: process.env.MAIL_FROM ?? "Status Reports <status@yourdomain.com>",
-      to: Array.isArray(to) ? to : [to],
+      to: toList,
       subject: subject || "Status Report",
-      html,
-      attachments,
+      html,           // must contain <img src="cid:gns-logo" />
+      attachments,    // inline cid attachment
     });
 
     if (error) {
