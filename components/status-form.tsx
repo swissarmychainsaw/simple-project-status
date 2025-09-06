@@ -93,6 +93,8 @@ const SAVE_FIELDS = [
   "milestonesTitle",
   "milestonesSectionTitle",
   "milestonesHtml",
+  // persist updates content too
+  "updatesHtml",
 ] as const
 
 const isLargeFieldKey = (k: string) => /(?:updatesHtml|milestonesHtml)/.test(k)
@@ -360,7 +362,7 @@ export default function StatusForm() {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#x27;")
-      .replace(/&lt;(\/)?(b|i|u)&gt;/g, "<$1$2>")
+      .replace(/&lt;(:?\/)?(b|i|u)&gt;/g, "<$1$2>")
 
   const nlToParas = (text: string) => {
     const parts = String(text || "")
@@ -370,7 +372,7 @@ export default function StatusForm() {
     return parts.map((p) => safeInline(p).replace(/\n/g, "<br>")).join("<br><br>")
   }
 
-  // Replace <p> inside table cells with inline spans (+ <br> separators)
+  // Replace <p> inside table cells with inline spans (+ <br> separators) before insertion
   const unwrapParagraphsInTables = (html: string): string => {
     if (!html) return ""
     const root = document.createElement("div")
@@ -490,22 +492,20 @@ export default function StatusForm() {
       el.removeChild(el.lastChild)
     }
   }
-// Unwrap <p> inside table cells in-place and trim cell whitespace
-const unwrapPsInCellsInPlace = (root: HTMLElement) => {
-  root.querySelectorAll("table td, table th").forEach((cell) => {
-    const ps = Array.from(cell.querySelectorAll("p"));
-    ps.forEach((p, i) => {
-      // move children out of <p>
-      const frag = document.createDocumentFragment();
-      while (p.firstChild) frag.appendChild(p.firstChild);
-      // keep a line break between former paragraphs
-      if (i !== ps.length - 1) frag.appendChild(document.createElement("br"));
-      p.replaceWith(frag);
-    });
-    // remove leading/trailing empty text/BR/empty blocks
-    trimCellWhitespace(cell as HTMLElement);
-  });
-};
+
+  // Unwrap <p> inside table cells in-place and trim cell whitespace
+  const unwrapPsInCellsInPlace = (root: HTMLElement) => {
+    root.querySelectorAll("table td, table th").forEach((cell) => {
+      const ps = Array.from(cell.querySelectorAll("p"))
+      ps.forEach((p, i) => {
+        const frag = document.createDocumentFragment()
+        while (p.firstChild) frag.appendChild(p.firstChild)
+        if (i !== ps.length - 1) frag.appendChild(document.createElement("br"))
+        p.replaceWith(frag)
+      })
+      trimCellWhitespace(cell as HTMLElement)
+    })
+  }
 
   const stripeTables = (html: string): string => {
     if (!html) return html
@@ -680,7 +680,7 @@ const unwrapPsInCellsInPlace = (root: HTMLElement) => {
           </td>
         </tr>
         <tr>
-          <td style="${evenRowStyle} padding:0;">
+          <td style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
@@ -704,7 +704,7 @@ const unwrapPsInCellsInPlace = (root: HTMLElement) => {
           </td>
         </tr>
         <tr>
-          <td style="${oddRowStyle} padding:0;">
+          <td style="${oddRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
@@ -761,7 +761,7 @@ ${data.execSummary ? `
       <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${
         data.milestonesTitle || "Upcoming Milestones"
       }</h2>
-      ${data.milestonesSectionTitle ? `<h3 style="font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;">${data.milestonesSectionTitle}</h3>` : ""}
+      ${data.milestonesSectionTitle ? `<h3 style=\"font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;\">${data.milestonesSectionTitle}</h3>` : ""}
       <table style="width:100%;border-collapse:collapse;">
         <tr><td style="padding:16px;">${processedMilestones}</td></tr>
       </table>` : ""}
@@ -840,7 +840,7 @@ ${data.execSummary ? `
 
 ${data.execSummary ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}` : ""}
 
-${data.lowlights ? `<h2 style="color:#333;margin:20px 0 10px 0;">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
+${data.lowlights ? `<h2 style=\"color:#333;margin:20px 0 10px 0;\">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
 
 ${data.updatesHtml ? `
   <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.updatesTitle || "Top Accomplishments"}</h2>
@@ -1089,7 +1089,39 @@ ${data.milestonesHtml ? `
     }
   }
 
+  // ---------------------
+  // Updates handlers
+  // ---------------------
+  const handleUpdatesInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
+  }
+  const handleUpdatesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
+  }
+  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
+
+    document.execCommand("insertHTML", false, html)
+
+    const target = e.currentTarget
+    if (target) {
+      // normalize live DOM after browser insert (browsers may re-wrap with <p>)
+      unwrapPsInCellsInPlace(target)
+      updateFormData("updatesHtml", target.innerHTML)
+    }
+  }
+
+  // ---------------------
   // Milestones handlers
+  // ---------------------
   const handleMilestonesInput = (e: React.FormEvent<HTMLDivElement>) => {
     const target = e.currentTarget
     if (target && target.innerHTML !== undefined) updateFormData("milestonesHtml", target.innerHTML)
@@ -1110,78 +1142,22 @@ ${data.milestonesHtml ? `
 
     document.execCommand("insertHTML", false, html)
     const target = e.currentTarget
-    if (target) updateFormData("milestonesHtml", target.innerHTML)
+    if (target) {
+      unwrapPsInCellsInPlace(target)
+      updateFormData("milestonesHtml", target.innerHTML)
+    }
   }
 
-  // Updates handlers
-  const handleUpdatesInput = (e: React.FormEvent<HTMLDivElement>) => {
-    const target = e.currentTarget
-    if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
+  // ---------------------
+  // Executive Summary handlers
+  // ---------------------
+  const handleExecSummaryInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const html = e.currentTarget?.innerHTML ?? ""
+    updateFormData("execSummary", html)
+    const len = getPlainTextLength(html)
+    setExecLen(len)
+    setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT)
   }
-  const handleUpdatesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-    const target = e.currentTarget
-    if (target && target.innerHTML !== undefined) updateFormData("updatesHtml", target.innerHTML)
-  }
-  const handleUpdatesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-  e.preventDefault();
-  const rawHtml = e.clipboardData.getData("text/html");
-  const rawText = e.clipboardData.getData("text/plain");
-  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>");
-  html = unwrapParagraphsInTables(html);
-  html = stripInlineBackgrounds(html);
-  html = sanitizeHtml(html);
-
-  document.execCommand("insertHTML", false, html);
-
-  const target = e.currentTarget;
-  if (target) {
-    // normalize live DOM after browser insert (browsers may re-wrap with <p>)
-    unwrapPsInCellsInPlace(target);
-    updateFormData("updatesHtml", target.innerHTML);
-  }
-};
-
-const handleMilestonesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-  e.preventDefault();
-  const rawHtml = e.clipboardData.getData("text/html");
-  const rawText = e.clipboardData.getData("text/plain");
-  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>");
-  html = unwrapParagraphsInTables(html);
-  html = stripInlineBackgrounds(html);
-  html = sanitizeHtml(html);
-
-  document.execCommand("insertHTML", false, html);
-
-  const target = e.currentTarget;
-  if (target) {
-    unwrapPsInCellsInPlace(target);
-    updateFormData("milestonesHtml", target.innerHTML);
-  }
-};
-
-// optional: exec summary if tables can land there
-const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-  e.preventDefault();
-  const rawHtml = e.clipboardData.getData("text/html");
-  const rawText = e.clipboardData.getData("text/plain");
-  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>");
-
-  html = unwrapParagraphsInTables(html);
-  html = stripInlineBackgrounds(html);
-  html = sanitizeHtml(html);
-
-  document.execCommand("insertHTML", false, html);
-
-  const target = e.currentTarget;
-  if (target) {
-    unwrapPsInCellsInPlace(target);
-    updateFormData("execSummary", target.innerHTML);
-    const len = getPlainTextLength(target.innerHTML);
-    setExecLen(len);
-    setExecOver(len > EXEC_SUMMARY_PLAIN_LIMIT);
-  }
-};
-
   const handleExecSummaryBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     const html = e.currentTarget?.innerHTML ?? ""
     updateFormData("execSummary", html)
@@ -1203,6 +1179,7 @@ const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
 
     const target = e.currentTarget
     if (target) {
+      unwrapPsInCellsInPlace(target)
       updateFormData("execSummary", target.innerHTML)
       const len = getPlainTextLength(target.innerHTML)
       setExecLen(len)
@@ -1237,8 +1214,6 @@ const handleExecSummaryPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
       execSummaryRef.current.innerHTML = formData.execSummary
     }
   }, [formData.execSummary])
-
-  const sendEmailReport = emailReport
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
