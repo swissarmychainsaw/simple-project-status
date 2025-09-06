@@ -628,8 +628,15 @@ export default function StatusForm() {
   }
 
   const processRichHtml = (html: string): string =>
-    widenTables(stripeTables(stripInlineBackgrounds(sanitizeHtml(html))))
-
+  widenTables(
+    stripeTables(
+      stripInlineBackgrounds(
+        unwrapParagraphsInTables(        // <— add this
+          sanitizeHtml(html)
+        )
+      )
+    )
+  )
   const buildHtml = (data: FormData) => {
     const asOf = data.asOf
       ? (() => {
@@ -733,7 +740,8 @@ ${data.execSummary ? `
   <td style="${oddRowStyle}">
     <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
     <div style="margin:0;font-size:16px;color:#333333;">
-      ${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}
+      ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
+
     </div>
   </td>
 </tr>` : ""}
@@ -838,7 +846,7 @@ ${data.execSummary ? `
   </tr>
 </table>
 
-${data.execSummary ? `<h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>${sanitizeHtml(stripInlineBackgrounds(data.execSummary))}` : ""}
+${data.execSummary ? `<h2 ...>Executive Summary</h2>${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}` : ""}
 
 ${data.lowlights ? `<h2 style=\"color:#333;margin:20px 0 10px 0;\">Lowlights</h2>${linesToList(data.lowlights)}` : ""}
 
