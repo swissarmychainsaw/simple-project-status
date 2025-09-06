@@ -722,19 +722,20 @@ function updateFormData(field: keyof FormData, value: string) {
           <td style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
+                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
+            
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Last Status</h3>
                   ${pill(data.lastStatus)}
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
+                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Current Status</h3>
                   ${pill(data.currentStatus)}
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
+                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Trending</h3>
                   ${pill(data.trending)}
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#F5F5F5;">
+                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Date</h3>
                   <p style="margin:0;font-size:14px;color:#333333;">${escapeHtml(asOf)}</p>
                 </td>
@@ -822,10 +823,13 @@ ${data.execSummary ? `
       : ""
 
     const tableStyle = `border-collapse: collapse; width: 100%; margin: 10px 0; font-family: ${opts.optFont}, sans-serif;`
-    const cellStyle = `border: 1px solid #dcdcdc; padding: 12px; text-align: left; vertical-align: top;`
+const cellStyle = `border-left:1px solid #dcdcdc;border-right:1px solid #dcdcdc;padding:12px;text-align:left;vertical-align:top;`
     const headerStyle = `${cellStyle} background-color: #f7f7f7; font-weight: bold; text-align: center;`
     const titleStyle = `${cellStyle} background-color: #e5e7eb; font-weight: bold; text-align: center;`
     const evenRowStyle = `${cellStyle} background-color: #f9f9f9;`
+
+     
+
 
     const emailPill = (status: string) => {
       const colors = {
