@@ -726,70 +726,75 @@ function updateFormData(field: keyof FormData, value: string) {
       )
     )
   )
-  const buildHtml = (data: FormData) => {
-    const asOf = data.asOf
-      ? (() => {
-          const [year, month, day] = data.asOf.split("-").map(Number)
-          const date = new Date(year, month - 1, day)
-          return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-        })()
-      : ""
+ const buildHtml = (data: FormData) => {
+  const asOf = data.asOf
+    ? (() => {
+        const [year, month, day] = data.asOf.split("-").map(Number)
+        const date = new Date(year, month - 1, day)
+        return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+      })()
+    : ""
 
-    const pill = (val: string) => {
-      const v = escapeHtml(val || "").toLowerCase()
-      if (v === "red")
-        return `<div style="display:inline-block;background-color:#e5534b;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Red</div>`
-      if (v === "yellow")
-        return `<div style="display:inline-block;background-color:#f4c542;color:#111;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Yellow</div>`
-      return `<div style="display:inline-block;background-color:#4CAF50;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Green</div>`
-    }
+  const pill = (val: string) => {
+    const v = escapeHtml(val || "").toLowerCase()
+    if (v === "red")
+      return `<div style="display:inline-block;background-color:#e5534b;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Red</div>`
+    if (v === "yellow")
+      return `<div style="display:inline-block;background-color:#f4c542;color:#111;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Yellow</div>`
+    return `<div style="display:inline-block;background-color:#4CAF50;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Green</div>`
+  }
 
-    const processedUpdates = processRichHtml(data.updatesHtml)
-    const processedMilestones = processRichHtml(data.milestonesHtml)
+  const processedUpdates = processRichHtml(data.updatesHtml)
+  const processedMilestones = processRichHtml(data.milestonesHtml)
 
-    const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
-    const oddRowStyle = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
-// BUILD HTML
-// inside buildHtml(), where the top table renders:
+  const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
+  const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
 
-return `<!DOCTYPE html>
+  const logoHtml = getLogoImg(false)
+  // If the logo renders, the header table has 2 columns; otherwise, it has 1.
+  const COLSPAN = logoHtml ? 2 : 1
+
+  return `<!DOCTYPE html>
 <html lang="en">
-<head> ... </head>
-<body>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Status Report</title>
+</head>
+<body style="margin:0;padding:0;">
   <table style="width:700px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
-<!-- Title + Summary with right-aligned logo spanning two rows -->
-<tr>
-  <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
-    <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
-      ${data.programTitle || "Your Program/Project Title here"}
-    </h1>
-  </td>
-  <td rowspan="2"
-      style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;vertical-align:middle;">
-    ${getLogoImg(false)}
-  </td>
-</tr>
-<tr>
-  <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
-    <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
-      ${nlToParas(data.programSummary) || "Program summary description goes here."}
-    </span>
-  </td>
-</tr>
-
+        <!-- Title + Summary with right-aligned logo spanning two rows -->
+        <tr>
+          <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
+            <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
+              ${data.programTitle || "Your Program/Project Title here"}
+            </h1>
+          </td>
+          ${logoHtml ? `
+          <td rowspan="2"
+              style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;vertical-align:middle;">
+            ${logoHtml}
+          </td>` : ``}
+        </tr>
 
         <tr>
-          <td style="${evenRowStyle}padding:0;">
+          <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
+            <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
+              ${nlToParas(data.programSummary) || "Program summary description goes here."}
+            </span>
+          </td>
+        </tr>
+
+        <!-- Status row -->
+        <tr>
+          <td colspan="${COLSPAN}" style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
-              <!-- Status row -->
               <tr>
-              <td colspan="2" style="${evenRowStyle}padding:0;">
-              <table style="width:100%;border-collapse:collapse;">
-              <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
-            
+                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Last Status</h3>
                   ${pill(data.lastStatus)}
                 </td>
@@ -809,8 +814,10 @@ return `<!DOCTYPE html>
             </table>
           </td>
         </tr>
+
+        <!-- Team row -->
         <tr>
-          <td style="${oddRowStyle}padding:0;">
+          <td colspan="${COLSPAN}" style="${oddRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
@@ -834,20 +841,19 @@ return `<!DOCTYPE html>
           </td>
         </tr>
 
-${data.execSummary ? `
-<tr>
-  <td style="${oddRowStyle}">
-    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
-    <div style="margin:0;font-size:16px;color:#333333;">
-      ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
-
-    </div>
-  </td>
-</tr>` : ""}
+        ${data.execSummary ? `
+        <tr>
+          <td colspan="${COLSPAN}" style="${oddRowStyle}">
+            <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
+            <div style="margin:0;font-size:16px;color:#333333;">
+              ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
+            </div>
+          </td>
+        </tr>` : ""}
 
         ${data.lowlights ? `
         <tr>
-          <td style="${oddRowStyle}">
+          <td colspan="${COLSPAN}" style="${oddRowStyle}">
             <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Lowlights</h3>
             <div style="margin:0;font-size:16px;color:#333333;">${linesToList(data.lowlights)}</div>
           </td>
@@ -856,19 +862,15 @@ ${data.execSummary ? `
       </table>
 
       ${data.updatesHtml ? `
-      <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${
-        data.updatesTitle || "Top Accomplishments"
-      }</h2>
+      <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${data.updatesTitle || "Top Accomplishments"}</h2>
       ${data.sectionTitle ? `<h3 style="font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;">${data.sectionTitle}</h3>` : ""}
       <table style="width:100%;border-collapse:collapse;">
         <tr><td style="padding:16px;">${processedUpdates}</td></tr>
       </table>` : ""}
 
       ${data.milestonesHtml ? `
-      <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${
-        data.milestonesTitle || "Upcoming Milestones"
-      }</h2>
-      ${data.milestonesSectionTitle ? `<h3 style=\"font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;\">${data.milestonesSectionTitle}</h3>` : ""}
+      <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${data.milestonesTitle || "Upcoming Milestones"}</h2>
+      ${data.milestonesSectionTitle ? `<h3 style="font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;">${data.milestonesSectionTitle}</h3>` : ""}
       <table style="width:100%;border-collapse:collapse;">
         <tr><td style="padding:16px;">${processedMilestones}</td></tr>
       </table>` : ""}
@@ -877,7 +879,8 @@ ${data.execSummary ? `
   </table>
 </body>
 </html>`
-  }
+}
+
 
   const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   const asOf = data.asOf
@@ -905,15 +908,20 @@ ${data.execSummary ? `
   return `
 <div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
 <!-- Title + Summary with logo spanning two rows -->
+
+// in buildEmailHtml header table
+const logoEmail = getLogoImg(true);
+
 <table style="${tableStyle}">
   <tr>
     <td style="${titleStyle}">
       ${data.programTitle || "Your Program/Project Title here"}
     </td>
+    ${logoEmail ? `
     <td rowspan="2"
         style="${cellStyle} width:${LOGO_WIDTH + 20}px;text-align:center;background-color:#fff;vertical-align:middle;">
-      ${getLogoImg(true)}
-    </td>
+      ${logoEmail}
+    </td>` : ``}
   </tr>
   <tr>
     <td style="${evenRow}">
@@ -922,12 +930,8 @@ ${data.execSummary ? `
   </tr>
 </table>
 
-
-  <!-- Status row -->
-
-<tr>
-  <td colspan="2" style="${evenRowStyle}padding:0;">
-    <table style="width:100%;border-collapse:collapse;">
+  
+   <!-- Status row -->
   <table style="${tableStyle}">
     <tr>
       <th style="${headerStyle}">Last Status</th>
@@ -944,6 +948,7 @@ ${data.execSummary ? `
   </table>
 
   <!-- Team row -->
+<!-- Team row -->
   <table style="${tableStyle}">
     <tr>
       <th style="${headerStyle}">TPM</th>
@@ -952,7 +957,7 @@ ${data.execSummary ? `
       <th style="${headerStyle}">Engineering Sponsor</th>
     </tr>
     <tr>
-      <td colspan="2" style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
+      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
       <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engDri)}</td>
       <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.bizSponsor)}</td>
       <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engSponsor)}</td>
