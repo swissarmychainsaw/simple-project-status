@@ -300,20 +300,7 @@ useEffect(() => {
   }
 }, [])
 
-  // Seed example data if empty
-  const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
-  if (!savedSummary) {
-    setFormData((prev) => ({
-      ...prev,
-      programSummary:
-        "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
-      tpm: "Nick Adams",
-      engDri: "Antony Alexander",
-      bizSponsor: "Niha Mathur",
-      engSponsor: "Suchreet Dhaliwal",
-    }))
-  }
-}, [])
+  
 
   const validateInput = (field: string, value: string) => {
     const warnings: string[] = []
@@ -773,33 +760,24 @@ return `<!DOCTYPE html>
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
-        <!-- Title + Summary with left logo spanning two rows -->
-        <tr>
-          <td rowspan="2" style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
-            <img src="${LOGO_SRC_WEB}"
-                 alt="GNS logo"
-                 width="${LOGO_WIDTH}"
-                 style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-          </td>
-
-          <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
-            <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
-              ${data.programTitle || "Your Program/Project Title here"}
-            </h1>
-          </td>
-        </tr>
-
-        <tr>
-          <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
-            <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
-              ${nlToParas(data.programSummary) || "Program summary description goes here."}
-            </span>
-          </td>
-<td rowspan="2" style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
-  ${getLogoImg(false)}
-</td>
-
-        </tr>
+<!-- Title + Summary with left logo spanning two rows -->
+<tr>
+  <td rowspan="2" style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+    ${getLogoImg(false)}
+  </td>
+  <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
+    <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
+      ${data.programTitle || "Your Program/Project Title here"}
+    </h1>
+  </td>
+</tr>
+<tr>
+  <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
+    <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
+      ${nlToParas(data.programSummary) || "Program summary description goes here."}
+    </span>
+  </td>
+</tr>
 
         <tr>
           <td style="${evenRowStyle}padding:0;">
