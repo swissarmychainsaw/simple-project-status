@@ -784,8 +784,11 @@ return `<!DOCTYPE html>
         <tr>
           <td style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
+              <!-- Status row -->
               <tr>
-                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
+              <td colspan="2" style="${evenRowStyle}padding:0;">
+              <table style="width:100%;border-collapse:collapse;">
+              <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
             
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Last Status</h3>
                   ${pill(data.lastStatus)}
@@ -921,6 +924,10 @@ ${data.execSummary ? `
 
 
   <!-- Status row -->
+
+<tr>
+  <td colspan="2" style="${evenRowStyle}padding:0;">
+    <table style="width:100%;border-collapse:collapse;">
   <table style="${tableStyle}">
     <tr>
       <th style="${headerStyle}">Last Status</th>
@@ -945,7 +952,7 @@ ${data.execSummary ? `
       <th style="${headerStyle}">Engineering Sponsor</th>
     </tr>
     <tr>
-      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
+      <td colspan="2" style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
       <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engDri)}</td>
       <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.bizSponsor)}</td>
       <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engSponsor)}</td>
