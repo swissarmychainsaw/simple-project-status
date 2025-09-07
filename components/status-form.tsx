@@ -1017,7 +1017,7 @@ const pill = (val: string) => {
 }
 
 
-buildEmailHtml// Email Report email report
+// buildEmailHtml Email Report email report
 //
 //
 
