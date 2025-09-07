@@ -578,27 +578,29 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
   const caption = opts.optBannerCaption || "Program Status";
 
   let src = "";
-  let alt = (preset?.alt || caption);
+  const alt = preset?.alt || caption;
 
   if (opts.optBannerMode === "url") {
-    // For preview we can use a relative /public path; for email prefer absolute URL
     const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
     src = forEmail ? absoluteUrl(webSrc) : webSrc;
   } else {
-    // "cid" mode
     if (!preset) return "";
     src = `cid:${preset.cid}`;
   }
 
-  // Note: images may be blocked; we also render a small caption text below
+  // IMPORTANT: omit caption in emails so nothing renders as a line of text above the table
+  const captionHtml = forEmail
+    ? ""
+    : `<div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+         ${escapeHtml(caption)}
+       </div>`;
+
   return `
     <img src="${escapeHtml(src)}"
          alt="${escapeHtml(alt)}"
          width="700"
          style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-      ${escapeHtml(caption)}
-    </div>
+    ${captionHtml}
   `;
 };
 
@@ -1028,35 +1030,33 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     : "";
 
   // ---- email-safe style helpers
-  const containerWidth = 760; // visual width of the content
-  const tableStyle =
-    "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
-  const baseFont =
-    `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
-  const cell =
-    `${baseFont}padding:16px;border:1px solid #e5e7eb;text-align:left;vertical-align:top;`;
-  const headCell =
-    `${cell}background-color:#f5f5f5;font-weight:700;text-align:center;`;
-  const titleCell =
-    `${cell}background-color:#e5e7eb;font-weight:700;font-size:20px;`;
-  const logoCell =
-    `${cell}background-color:#ffffff;text-align:center;vertical-align:middle;`;
+  const containerWidth = 760;
+  const tableStyle = "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+  const baseFont = `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
+
+  // Refactor: base cell has no alignment so we can control it per-td
+  const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
+  const cellLeft   = `${cellBase}text-align:left;vertical-align:top;`;
+  const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
+
+  const headCell  = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+  const titleCell = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
+  const logoCell  = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
 
   const emailPill = (s: string) => {
     const colors = {
-      green: { bg: "#27c08a", color: "#fff" },
+      green:  { bg: "#27c08a", color: "#fff" },
       yellow: { bg: "#f4c542", color: "#111" },
-      red: { bg: "#e5534b", color: "#fff" },
+      red:    { bg: "#e5534b", color: "#fff" },
     } as const;
     const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
     return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
   };
 
-const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
-
+  const banner = getBannerHtml(true, opts);
   const processedUpdates    = processRichHtml(data.updatesHtml);
   const processedMilestones = processRichHtml(data.milestonesHtml);
-  const logoEmail = getLogoImg(true); // uses cid:gns-logo for emails
+  const logoEmail = getLogoImg(true);
 
   return `
 <table style="width:700px;margin:0 auto;border-collapse:collapse;">
@@ -1078,7 +1078,7 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
       }
     </tr>
     <tr>
-      <td style="${cell}" bgcolor="#ffffff" align="left" valign="top">
+      <td style="${cellLeft}" bgcolor="#ffffff" align="left" valign="top">
         ${nlToParas(data.programSummary)}
       </td>
     </tr>
@@ -1093,10 +1093,10 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
       <td style="${headCell}" bgcolor="#f5f5f5">Date</td>
     </tr>
     <tr>
-      <td style="${cell}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
-      <td style="${cell}" align="center" valign="middle">${emailPill(data.currentStatus)}</td>
-      <td style="${cell}" align="center" valign="middle">${emailPill(data.trending)}</td>
-      <td style="${cell}" align="center" valign="middle">${escapeHtml(asOf)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.currentStatus)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.trending)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(asOf)}</td>
     </tr>
   </table>
 
@@ -1109,17 +1109,17 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
       <td style="${headCell}" bgcolor="#f5f5f5">Engineering Sponsor</td>
     </tr>
     <tr>
-      <td style="${cell}" align="center"><strong>${escapeHtml(data.tpm)}</strong></td>
-      <td style="${cell}" align="center"><strong>${escapeHtml(data.engDri)}</strong></td>
-      <td style="${cell}" align="center"><strong>${escapeHtml(data.bizSponsor)}</strong></td>
-      <td style="${cell}" align="center"><strong>${escapeHtml(data.engSponsor)}</strong></td>
+      <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.tpm)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.engDri)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.bizSponsor)}</td>
+      <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.engSponsor)}</td>
     </tr>
   </table>
 
   ${data.execSummary ? `
     <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
       <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Executive Summary</td></tr>
-      <tr><td style="${cell}" bgcolor="#ffffff" align="left">
+      <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
         ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
       </td></tr>
     </table>` : ""}
@@ -1127,7 +1127,7 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
   ${data.lowlights ? `
     <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
       <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Lowlights</td></tr>
-      <tr><td style="${cell}" bgcolor="#ffffff" align="left">
+      <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
         ${linesToList(data.lowlights)}
       </td></tr>
     </table>` : ""}
@@ -1137,10 +1137,10 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
       <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
         ${escapeHtml(data.updatesTitle || "Top Accomplishments")}
       </td></tr>
-      ${data.sectionTitle ? `<tr><td style="${cell}" bgcolor="#ffffff" align="left">
+      ${data.sectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
         <strong>${escapeHtml(data.sectionTitle)}</strong>
       </td></tr>` : ""}
-      <tr><td style="${cell}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
+      <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
     </table>` : ""}
 
   ${data.milestonesHtml ? `
@@ -1148,14 +1148,13 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
       <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
         ${escapeHtml(data.milestonesTitle || "Upcoming Milestones")}
       </td></tr>
-      ${data.milestonesSectionTitle ? `<tr><td style="${cell}" bgcolor="#ffffff" align="left">
+      ${data.milestonesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
         <strong>${escapeHtml(data.milestonesSectionTitle)}</strong>
       </td></tr>` : ""}
-      <tr><td style="${cell}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
+      <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
     </table>` : ""}
 </div>`;
 };
-
 
 // Email Report email report
 //
