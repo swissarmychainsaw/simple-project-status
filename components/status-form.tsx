@@ -1174,82 +1174,6 @@ const emailReport = async () => {
   const recipient = formData.emailTo.trim();
   if (!recipient) {
     toast({
-      title: "Email required",
-      description: "Please enter an email address first.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  setIsEmailing(true);
-  try {
-    // Build the email-safe HTML (uses cid:gns-logo and, if configured, cid:<banner>)
-    const htmlToSend = buildEmailHtml(formData, designOptions);
-
-    // Only pass bannerId if we're actually using a CID banner
-    const usingCidBanner =
-      designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
-
-    const payload: Record<string, unknown> = {
-      to: recipient,
-      subject: formData.programTitle || "Status Report",
-      html: htmlToSend,
-    };
-
-    if (usingCidBanner) {
-      payload.bannerId = designOptions.optBannerId; // e.g. "gns" | "azure" | "cie" | ...
-    }
-
-
-    if (!res.ok) {
-      throw new Error(await res.text());
-    }
-
-    toast({ title: "Email sent", description: `Report sent to ${recipient}` });
-  } catch (err: any) {
-    toast({
-      title: "Email failed",
-      description: err?.message || "Unknown error",
-      variant: "destructive",
-    });
-  } finally {
-    setIsEmailing(false);
-  }
-};
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API returned ${res.status}: ${errorText}`);
-    }
-
-    toast({
-      title: "Email Sent",
-      description: `Report sent successfully to ${recipient}`,
-    });
-  } catch (error: any) {
-    toast({
-      title: "Email Failed",
-      description: `Failed to send email: ${error.message}`,
-      variant: "destructive",
-    });
-  } finally {
-    setIsEmailing(false);
-  }
-};
-
-const emailReport = async () => {
-  if (execOver) {
-    toast({
-      title: "Executive Summary is too long",
-      description: `Limit is ${EXEC_SUMMARY_PLAIN_LIMIT} plain-text characters.`,
-      variant: "destructive",
-    });
-    return;
-  }
-
-  const recipient = formData.emailTo.trim();
-  if (!recipient) {
-    toast({
       title: "Email Required",
       description: "Please enter an email address first.",
       variant: "destructive",
@@ -1275,6 +1199,33 @@ const emailReport = async () => {
         bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
       }),
     });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`API returned ${res.status}: ${errorText}`);
+    }
+
+    toast({
+      title: "Email Sent",
+      description: `Report sent successfully to ${recipient}`,
+    });
+  } catch (error: any) {
+    toast({
+      title: "Email Failed",
+      description: `Failed to send email: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    setIsEmailing(false);
+  }
+};
+
+
+
+
+
+
+  
 
     if (!res.ok) {
       const errorText = await res.text();
