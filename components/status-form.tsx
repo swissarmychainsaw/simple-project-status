@@ -98,6 +98,25 @@ const BANNERS = {
 type BannerKey = keyof typeof BANNERS;
 
 
+const BANNER_DEFAULTS: Partial<Record<BannerKey, {
+  title: string
+  summary: string
+  tpm?: string
+  engDri?: string
+  bizSponsor?: string
+  engSponsor?: string
+}>> = {
+  gns: {
+    title: "Global Network Services (GNS)",
+    summary:
+      "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
+    // Optional: prefill people if you want
+    tpm: "Nick Adams",
+    engDri: "Antony Alexander",
+    bizSponsor: "Niha Mathur",
+    engSponsor: "Suchreet Dhaliwal",
+  },
+};
 
 
 
@@ -1763,7 +1782,295 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             </div>
           </div>
         )}
+ {/* Design Options */}
+            <Card>
+              <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {/* Banner controls */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <Label className="text-sm font-medium">Banner mode</Label>
+    <Select
+      value={designOptions.optBannerMode}
+      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cid">Embed inline (CID)</SelectItem>
+        <SelectItem value="url">Load from URL</SelectItem>
+        <SelectItem value="none">No banner</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
 
+  {designOptions.optBannerMode === "cid" && (
+    <div>
+      <Label className="text-sm font-medium">Banner preset</Label>
+      <Select
+        value={designOptions.optBannerId}
+        onValueChange={(v) => updateDesignOptions("optBannerId", v)}
+      >
+        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {/* keep this list in sync with BANNERS keys */}
+          <SelectItem value="gns">GNS</SelectItem>
+          <SelectItem value="azure">Azure</SelectItem>
+          <SelectItem value="cie">CIE</SelectItem>
+          <SelectItem value="netmig">One Big Network Migration</SelectItem>
+          <SelectItem value="azlens">Azure Lens</SelectItem>
+          <SelectItem value="ipv6">IPv6 Network</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )}
+
+  {designOptions.optBannerMode === "url" && (
+    <div>
+      <Label className="text-sm font-medium">Banner URL (absolute)</Label>
+      <Input
+        placeholder="https://cdn.example.com/banners/custom.png"
+        value={designOptions.optBannerUrl}
+        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
+        className="bg-white"
+      />
+    </div>
+  )}
+
+  <div className="md:col-span-2">
+    <Label className="text-sm font-medium">Banner caption (optional)</Label>
+    <Input
+      placeholder="Program Status"
+      value={designOptions.optBannerCaption}
+      onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
+      className="bg-white"
+    />
+  </div>
+</div>
+
+                <div>
+                  <Label htmlFor="optFont" className="text-sm font-medium">Font Family</Label>
+                  <Select value={designOptions.optFont} onValueChange={(v) => updateDesignOptions("optFont", v)}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {fontOptions.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <Label className="text-sm font-medium">Logo mode</Label>
+    <Select
+      value={designOptions.optLogoMode}
+      onValueChange={(v) => updateDesignOptions("optLogoMode", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cid">Embed inline (CID)</SelectItem>
+        <SelectItem value="url">Load from URL</SelectItem>
+        <SelectItem value="none">Hide logo</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+
+{/* Banner & Profile */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <Label className="text-sm font-medium">Banner mode</Label>
+    <Select
+      value={designOptions.optBannerMode}
+      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cid">Embed inline (CID)</SelectItem>
+        <SelectItem value="url">Load from URL</SelectItem>
+        <SelectItem value="none">No banner</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {designOptions.optBannerMode === "url" && (
+    <div>
+      <Label className="text-sm font-medium">Banner URL</Label>
+      <Input
+        placeholder="https://…/banner.png"
+        value={designOptions.optBannerUrl}
+        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
+        className="bg-white"
+      />
+    </div>
+  )}
+
+  {designOptions.optBannerMode !== "none" && (
+    <>
+      <div>
+        <Label className="text-sm font-medium">Preset banner (profile)</Label>
+        <Select
+          value={designOptions.optBannerId}
+          onValueChange={(v) => onBannerChange(v as BannerKey)}
+        >
+          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="gns">GNS</SelectItem>
+            <SelectItem value="azure">Azure</SelectItem>
+            <SelectItem value="cie">CIE</SelectItem>
+            <SelectItem value="netmig">Network Migration</SelectItem>
+            <SelectItem value="azlens">Azure Lens</SelectItem>
+            <SelectItem value="ipv6">IPv6</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2 mt-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => applyProfile(designOptions.optBannerId as BannerKey, true)}
+          >
+            Apply defaults (overwrite)
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Banner caption</Label>
+        <Input
+          placeholder="Program Status"
+          value={designOptions.optBannerCaption}
+          onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
+          className="bg-white"
+        />
+      </div>
+    </>
+  )}
+</div>
+
+
+  
+
+  {designOptions.optLogoMode === "url" && (
+    <div>
+      <Label className="text-sm font-medium">Logo URL (http/https)</Label>
+      <Input
+        placeholder="https://example.com/path/logo.png"
+        value={designOptions.optLogoUrl}
+        onChange={(e) => updateDesignOptions("optLogoUrl", e.target.value)}
+        className="bg-white"
+      />
+    </div>
+  )}
+</div>
+
+                <div>
+                  <Label htmlFor="optAccent" className="text-sm font-medium">Accent Color</Label>
+                  <Input id="optAccent" type="color" value={designOptions.optAccent} onChange={(e) => updateDesignOptions("optAccent", e.target.value)} className="bg-white h-10" />
+                </div>
+
+                <div>
+                  <Label htmlFor="optDensity" className="text-sm font-medium">Density</Label>
+                  <Select value={designOptions.optDensity} onValueChange={(v) => updateDesignOptions("optDensity", v)}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="comfortable">Comfortable</SelectItem>
+                      <SelectItem value="compact">Compact</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="optBorders" className="text-sm font-medium">Table Style</Label>
+                  <Select value={designOptions.optBorders} onValueChange={(v) => updateDesignOptions("optBorders", v)}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lines">Lines</SelectItem>
+                      <SelectItem value="shaded">Shaded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="optCustomCss" className="text-sm font-medium">Custom CSS</Label>
+                  <Textarea
+                    id="optCustomCss"
+                    placeholder="Add custom CSS styles…"
+                    value={designOptions.optCustomCss}
+                    onChange={(e) => updateDesignOptions("optCustomCss", e.target.value)}
+                    rows={3}
+                    maxLength={SECURITY_CONFIG.MAX_CSS_LENGTH}
+                    className="resize-none bg-white font-mono text-xs"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={generate} disabled={isGenerating || execOver} className="flex-1 min-w-[120px]">
+                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+                    Generate
+                  </Button>
+                  <Button onClick={copyHtml} disabled={isCopying} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
+                    {isCopying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
+                    Copy HTML
+                  </Button>
+                  <Button onClick={copyRenderedContent} disabled={copyRenderedLoading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
+                    {copyRenderedLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                    {copyRenderedFeedback || "Copy for Email"}
+                  </Button>
+                  <Button onClick={downloadHtml} disabled={isDownloading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
+                    {isDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    Download
+                  </Button>
+                  <Button onClick={emailReport} disabled={isEmailing || execOver} variant="default" className="flex-1 min-w-[120px]">
+                    {isEmailing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                    {isEmailing ? "Sending..." : "Email me this report"}
+                  </Button>
+                  <Button onClick={resetSaved} variant="outline" size="sm">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Preview */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Preview</CardTitle>
+                  <div className="flex gap-2">
+                    <Button variant={previewMode === "preview" ? "default" : "outline"} size="sm" onClick={() => setPreviewMode("preview")}>
+                      <Eye className="w-4 h-4 mr-1" />
+                      Preview
+                    </Button>
+                    <Button variant={previewMode === "code" ? "default" : "outline"} size="sm" onClick={() => setPreviewMode("code")}>
+                      <Code className="w-4 h-4 mr-1" />
+                      Code
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {previewMode === "preview" ? (
+                  <div
+                    className="border rounded-lg p-4 bg-white min-h-[400px] overflow-auto"
+                    dangerouslySetInnerHTML={{
+                      __html: generatedHtml || "<p class='text-gray-500'>Click Generate to see preview</p>",
+                    }}
+                  />
+                ) : (
+                  <Textarea
+                    value={generatedHtml || "// Click Generate to see HTML code"}
+                    readOnly
+                    className="font-mono text-xs min-h-[400px] bg-gray-50"
+                  />
+                )}
+              </CardContent>
+            </Card>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Form */}
           <div className="space-y-6">
@@ -2338,295 +2645,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
 
 
-            {/* Design Options */}
-            <Card>
-              <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {/* Banner controls */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <Label className="text-sm font-medium">Banner mode</Label>
-    <Select
-      value={designOptions.optBannerMode}
-      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cid">Embed inline (CID)</SelectItem>
-        <SelectItem value="url">Load from URL</SelectItem>
-        <SelectItem value="none">No banner</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-
-  {designOptions.optBannerMode === "cid" && (
-    <div>
-      <Label className="text-sm font-medium">Banner preset</Label>
-      <Select
-        value={designOptions.optBannerId}
-        onValueChange={(v) => updateDesignOptions("optBannerId", v)}
-      >
-        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {/* keep this list in sync with BANNERS keys */}
-          <SelectItem value="gns">GNS</SelectItem>
-          <SelectItem value="azure">Azure</SelectItem>
-          <SelectItem value="cie">CIE</SelectItem>
-          <SelectItem value="netmig">One Big Network Migration</SelectItem>
-          <SelectItem value="azlens">Azure Lens</SelectItem>
-          <SelectItem value="ipv6">IPv6 Network</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  )}
-
-  {designOptions.optBannerMode === "url" && (
-    <div>
-      <Label className="text-sm font-medium">Banner URL (absolute)</Label>
-      <Input
-        placeholder="https://cdn.example.com/banners/custom.png"
-        value={designOptions.optBannerUrl}
-        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
-        className="bg-white"
-      />
-    </div>
-  )}
-
-  <div className="md:col-span-2">
-    <Label className="text-sm font-medium">Banner caption (optional)</Label>
-    <Input
-      placeholder="Program Status"
-      value={designOptions.optBannerCaption}
-      onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
-      className="bg-white"
-    />
-  </div>
-</div>
-
-                <div>
-                  <Label htmlFor="optFont" className="text-sm font-medium">Font Family</Label>
-                  <Select value={designOptions.optFont} onValueChange={(v) => updateDesignOptions("optFont", v)}>
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {fontOptions.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <Label className="text-sm font-medium">Logo mode</Label>
-    <Select
-      value={designOptions.optLogoMode}
-      onValueChange={(v) => updateDesignOptions("optLogoMode", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cid">Embed inline (CID)</SelectItem>
-        <SelectItem value="url">Load from URL</SelectItem>
-        <SelectItem value="none">Hide logo</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-
-
-{/* Banner & Profile */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <Label className="text-sm font-medium">Banner mode</Label>
-    <Select
-      value={designOptions.optBannerMode}
-      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cid">Embed inline (CID)</SelectItem>
-        <SelectItem value="url">Load from URL</SelectItem>
-        <SelectItem value="none">No banner</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-
-  {designOptions.optBannerMode === "url" && (
-    <div>
-      <Label className="text-sm font-medium">Banner URL</Label>
-      <Input
-        placeholder="https://…/banner.png"
-        value={designOptions.optBannerUrl}
-        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
-        className="bg-white"
-      />
-    </div>
-  )}
-
-  {designOptions.optBannerMode !== "none" && (
-    <>
-      <div>
-        <Label className="text-sm font-medium">Preset banner (profile)</Label>
-        <Select
-          value={designOptions.optBannerId}
-          onValueChange={(v) => onBannerChange(v as BannerKey)}
-        >
-          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="gns">GNS</SelectItem>
-            <SelectItem value="azure">Azure</SelectItem>
-            <SelectItem value="cie">CIE</SelectItem>
-            <SelectItem value="netmig">Network Migration</SelectItem>
-            <SelectItem value="azlens">Azure Lens</SelectItem>
-            <SelectItem value="ipv6">IPv6</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex gap-2 mt-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => applyProfile(designOptions.optBannerId as BannerKey, true)}
-          >
-            Apply defaults (overwrite)
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        <Label className="text-sm font-medium">Banner caption</Label>
-        <Input
-          placeholder="Program Status"
-          value={designOptions.optBannerCaption}
-          onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
-          className="bg-white"
-        />
-      </div>
-    </>
-  )}
-</div>
-
-
-  
-
-  {designOptions.optLogoMode === "url" && (
-    <div>
-      <Label className="text-sm font-medium">Logo URL (http/https)</Label>
-      <Input
-        placeholder="https://example.com/path/logo.png"
-        value={designOptions.optLogoUrl}
-        onChange={(e) => updateDesignOptions("optLogoUrl", e.target.value)}
-        className="bg-white"
-      />
-    </div>
-  )}
-</div>
-
-                <div>
-                  <Label htmlFor="optAccent" className="text-sm font-medium">Accent Color</Label>
-                  <Input id="optAccent" type="color" value={designOptions.optAccent} onChange={(e) => updateDesignOptions("optAccent", e.target.value)} className="bg-white h-10" />
-                </div>
-
-                <div>
-                  <Label htmlFor="optDensity" className="text-sm font-medium">Density</Label>
-                  <Select value={designOptions.optDensity} onValueChange={(v) => updateDesignOptions("optDensity", v)}>
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="comfortable">Comfortable</SelectItem>
-                      <SelectItem value="compact">Compact</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="optBorders" className="text-sm font-medium">Table Style</Label>
-                  <Select value={designOptions.optBorders} onValueChange={(v) => updateDesignOptions("optBorders", v)}>
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lines">Lines</SelectItem>
-                      <SelectItem value="shaded">Shaded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="optCustomCss" className="text-sm font-medium">Custom CSS</Label>
-                  <Textarea
-                    id="optCustomCss"
-                    placeholder="Add custom CSS styles…"
-                    value={designOptions.optCustomCss}
-                    onChange={(e) => updateDesignOptions("optCustomCss", e.target.value)}
-                    rows={3}
-                    maxLength={SECURITY_CONFIG.MAX_CSS_LENGTH}
-                    className="resize-none bg-white font-mono text-xs"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={generate} disabled={isGenerating || execOver} className="flex-1 min-w-[120px]">
-                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
-                    Generate
-                  </Button>
-                  <Button onClick={copyHtml} disabled={isCopying} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
-                    {isCopying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
-                    Copy HTML
-                  </Button>
-                  <Button onClick={copyRenderedContent} disabled={copyRenderedLoading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
-                    {copyRenderedLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-                    {copyRenderedFeedback || "Copy for Email"}
-                  </Button>
-                  <Button onClick={downloadHtml} disabled={isDownloading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
-                    {isDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                    Download
-                  </Button>
-                  <Button onClick={emailReport} disabled={isEmailing || execOver} variant="default" className="flex-1 min-w-[120px]">
-                    {isEmailing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-                    {isEmailing ? "Sending..." : "Email me this report"}
-                  </Button>
-                  <Button onClick={resetSaved} variant="outline" size="sm">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reset
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Preview */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Preview</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant={previewMode === "preview" ? "default" : "outline"} size="sm" onClick={() => setPreviewMode("preview")}>
-                      <Eye className="w-4 h-4 mr-1" />
-                      Preview
-                    </Button>
-                    <Button variant={previewMode === "code" ? "default" : "outline"} size="sm" onClick={() => setPreviewMode("code")}>
-                      <Code className="w-4 h-4 mr-1" />
-                      Code
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {previewMode === "preview" ? (
-                  <div
-                    className="border rounded-lg p-4 bg-white min-h-[400px] overflow-auto"
-                    dangerouslySetInnerHTML={{
-                      __html: generatedHtml || "<p class='text-gray-500'>Click Generate to see preview</p>",
-                    }}
-                  />
-                ) : (
-                  <Textarea
-                    value={generatedHtml || "// Click Generate to see HTML code"}
-                    readOnly
-                    className="font-mono text-xs min-h-[400px] bg-gray-50"
-                  />
-                )}
-              </CardContent>
-            </Card>
+           
           </div>
         </div>
       </div>
