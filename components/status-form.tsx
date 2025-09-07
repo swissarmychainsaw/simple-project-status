@@ -44,7 +44,6 @@ interface FormData {
   milestonesTitle: string
   milestonesSectionTitle: string
   milestonesHtml: string
-    // NEW sections
   keyDecisionsTitle: string
   keyDecisionsSectionTitle: string
   keyDecisionsHtml: string
@@ -67,6 +66,10 @@ interface DesignOptions {
   optCustomCss: string
   optLogoMode: "cid" | "url" | "none"   
   optLogoUrl: string                  
+  optBannerMode: "url" | "cid" | "none"
+  optBannerId: BannerKey
+  optBannerUrl: string        // optional override when mode = "url"
+  optBannerCaption: string    // e.g. "Program Status"
 }
 
 const statusOptions = ["Green", "Yellow", "Red"]
@@ -81,6 +84,22 @@ const fontOptions = [
 const LOGO_WIDTH = 120;               // px
 const LOGO_SRC_WEB = "/gns-logo.png"; // put the PNG in /public
 const LOGO_CID = "gns-logo";          // used for inline-embedded email images
+
+// --- Banners ---
+// Put the PNGs in /public/banners/*.png (recommended size ~1400×280 for good retina; we render width=700)
+const BANNERS = {
+  gns:   { web: "/banners/gns-banner.png",   cid: "banner-gns",   alt: "GNS — Global Network Services" },
+  azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure — Program Status" },
+  cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
+  netmig:{ web: "/banners/OBN-mig.png",  cid: "banner-netmig",alt: "One Big Network Migration — Project Status" },
+  azlens:{ web: "/banners/azure-lens.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
+  ipv6:  { web: "/banners/ipv6.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
+} as const;
+type BannerKey = keyof typeof BANNERS;
+
+
+
+
 
 const PERSIST_PREFIX = "statusReportGenerator."
 const EXEC_SUMMARY_PLAIN_LIMIT = 20000
@@ -231,6 +250,12 @@ export default function StatusForm() {
     optCustomCss: "",
   optLogoMode: "cid",   // ← add
   optLogoUrl: "",       // ← add
+
+  // NEW defaults
+  optBannerMode: "url",
+  optBannerId: "gns",
+  optBannerUrl: "",
+  optBannerCaption: "Program Status",
   })
 
   const [generatedHtml, setGeneratedHtml] = useState("")
@@ -540,6 +565,41 @@ const getLogoImg = (forEmail: boolean): string => {
   `
 }
 
+const absoluteUrl = (p: string) => {
+  try { return new URL(p, window.location.origin).toString(); }
+  catch { return p; }
+};
+
+const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
+  if (opts.optBannerMode === "none") return "";
+
+  const preset = BANNERS[opts.optBannerId];
+  const caption = opts.optBannerCaption || "Program Status";
+
+  let src = "";
+  let alt = (preset?.alt || caption);
+
+  if (opts.optBannerMode === "url") {
+    // For preview we can use a relative /public path; for email prefer absolute URL
+    const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
+    src = forEmail ? absoluteUrl(webSrc) : webSrc;
+  } else {
+    // "cid" mode
+    if (!preset) return "";
+    src = `cid:${preset.cid}`;
+  }
+
+  // Note: images may be blocked; we also render a small caption text below
+  return `
+    <img src="${escapeHtml(src)}"
+         alt="${escapeHtml(alt)}"
+         width="700"
+         style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>
+  `;
+};
 
 
   const STRIPE_ODD = "#ffffff"
@@ -778,7 +838,9 @@ function updateFormData(field: keyof FormData, value: string) {
       })()
     : ""
 
-  const pill = (val: string) => {
+const banner = getBannerHtml(false, designOptions);    // in buildHtml(...)
+  
+const pill = (val: string) => {
     const v = escapeHtml(val || "").toLowerCase()
     if (v === "red")
       return `<div style="display:inline-block;background-color:#e5534b;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:bold;">Red</div>`
@@ -951,112 +1013,149 @@ function updateFormData(field: keyof FormData, value: string) {
 </html>`
 }
 
+{/*  buildEmailHtml BUILD EMAIL buildemailhtml */}
 
-  const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
-
+const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   const asOf = data.asOf
     ? (() => {
         const [y, m, d] = data.asOf.split("-").map(Number);
-        return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+        return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
       })()
     : "";
 
-  const tableStyle = `border-collapse:collapse;width:100%;margin:10px 0;font-family:${opts.optFont},sans-serif;`;
-  const cellStyle  = `border-left:1px solid #dcdcdc;border-right:1px solid #dcdcdc;padding:12px;text-align:left;vertical-align:top;`;
-  const headerStyle= `${cellStyle} background-color:#f7f7f7;font-weight:bold;text-align:center;`;
-  const titleStyle = `${cellStyle} background-color:#e5e7eb;font-weight:bold;text-align:left;`;
-  const evenRow    = `${cellStyle} background-color:#f9f9f9;`;
+  // ---- email-safe style helpers
+  const containerWidth = 760; // visual width of the content
+  const tableStyle =
+    "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+  const baseFont =
+    `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
+  const cell =
+    `${baseFont}padding:16px;border:1px solid #e5e7eb;text-align:left;vertical-align:top;`;
+  const headCell =
+    `${cell}background-color:#f5f5f5;font-weight:700;text-align:center;`;
+  const titleCell =
+    `${cell}background-color:#e5e7eb;font-weight:700;font-size:20px;`;
+  const logoCell =
+    `${cell}background-color:#ffffff;text-align:center;vertical-align:middle;`;
 
   const emailPill = (s: string) => {
-    const colors = { green: { bg:"#27c08a", color:"#fff" }, yellow: { bg:"#f4c542", color:"#111" }, red: { bg:"#e5534b", color:"#fff" } } as const;
+    const colors = {
+      green: { bg: "#27c08a", color: "#fff" },
+      yellow: { bg: "#f4c542", color: "#111" },
+      red: { bg: "#e5534b", color: "#fff" },
+    } as const;
     const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
-    return `<span style="display:inline-block;padding:6px 12px;border-radius:10px;font-weight:bold;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
+    return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
   };
+
+const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
 
   const processedUpdates    = processRichHtml(data.updatesHtml);
   const processedMilestones = processRichHtml(data.milestonesHtml);
-  const logoEmail = getLogoImg(true); // <-- define here
+  const logoEmail = getLogoImg(true); // uses cid:gns-logo for emails
 
   return `
-<div style="font-family:${opts.optFont},sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#111;line-height:1.45;">
-<!-- Title + Summary with logo spanning two rows -->
-
-<table style="${tableStyle}">
-  <tr>
-    <td style="${titleStyle}">
-      ${data.programTitle || "Your Program/Project Title here"}
-    </td>
-    ${logoEmail ? `
-    <td rowspan="2"
-        style="${cellStyle} width:${LOGO_WIDTH + 20}px;text-align:center;background-color:#fff;vertical-align:middle;">
-      ${logoEmail}
-    </td>` : ``}
-  </tr>
-  <tr>
-    <td style="${evenRow}">
-      ${nlToParas(data.programSummary)}
-    </td>
-  </tr>
+<table style="width:700px;margin:0 auto;border-collapse:collapse;">
+  <tr><td style="padding:0;">${banner}</td></tr>
 </table>
 
-  
-   <!-- Status row -->
-  <table style="${tableStyle}">
+<div style="${baseFont}margin:0;padding:24px 0;background-color:#ffffff;">
+  <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
     <tr>
-      <th style="${headerStyle}">Last Status</th>
-      <th style="${headerStyle}">Current Status</th>
-      <th style="${headerStyle}">Trending</th>
-      <th style="${headerStyle}">Date</th>
+      <td style="${titleCell}" bgcolor="#e5e7eb" align="left" valign="middle">
+        ${escapeHtml(data.programTitle || "Your Program/Project Title here")}
+      </td>
+      ${
+        logoEmail
+          ? `<td rowspan="2" style="${logoCell}" bgcolor="#ffffff" align="center" valign="middle" width="${LOGO_WIDTH + 40}">
+               ${logoEmail}
+             </td>`
+          : ""
+      }
     </tr>
     <tr>
-      <td style="${evenRow} text-align:center;">${emailPill(data.lastStatus)}</td>
-      <td style="${evenRow} text-align:center;">${emailPill(data.currentStatus)}</td>
-      <td style="${evenRow} text-align:center;">${emailPill(data.trending)}</td>
-      <td style="${evenRow} text-align:center;">${escapeHtml(asOf)}</td>
+      <td style="${cell}" bgcolor="#ffffff" align="left" valign="top">
+        ${nlToParas(data.programSummary)}
+      </td>
     </tr>
   </table>
 
-  <!-- Team row -->
-<!-- Team row -->
-  <table style="${tableStyle}">
+  <!-- Status -->
+  <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
     <tr>
-      <th style="${headerStyle}">TPM</th>
-      <th style="${headerStyle}">Engineering DRI</th>
-      <th style="${headerStyle}">Business Sponsor</th>
-      <th style="${headerStyle}">Engineering Sponsor</th>
+      <td style="${headCell}" bgcolor="#f5f5f5">Last Status</td>
+      <td style="${headCell}" bgcolor="#f5f5f5">Current Status</td>
+      <td style="${headCell}" bgcolor="#f5f5f5">Trending</td>
+      <td style="${headCell}" bgcolor="#f5f5f5">Date</td>
     </tr>
     <tr>
-      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.tpm)}</td>
-      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engDri)}</td>
-      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.bizSponsor)}</td>
-      <td style="${evenRow} font-weight:bold; text-align:center;">${escapeHtml(data.engSponsor)}</td>
+      <td style="${cell}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
+      <td style="${cell}" align="center" valign="middle">${emailPill(data.currentStatus)}</td>
+      <td style="${cell}" align="center" valign="middle">${emailPill(data.trending)}</td>
+      <td style="${cell}" align="center" valign="middle">${escapeHtml(asOf)}</td>
+    </tr>
+  </table>
+
+  <!-- Team -->
+  <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
+    <tr>
+      <td style="${headCell}" bgcolor="#f5f5f5">TPM</td>
+      <td style="${headCell}" bgcolor="#f5f5f5">Engineering DRI</td>
+      <td style="${headCell}" bgcolor="#f5f5f5">Business Sponsor</td>
+      <td style="${headCell}" bgcolor="#f5f5f5">Engineering Sponsor</td>
+    </tr>
+    <tr>
+      <td style="${cell}" align="center"><strong>${escapeHtml(data.tpm)}</strong></td>
+      <td style="${cell}" align="center"><strong>${escapeHtml(data.engDri)}</strong></td>
+      <td style="${cell}" align="center"><strong>${escapeHtml(data.bizSponsor)}</strong></td>
+      <td style="${cell}" align="center"><strong>${escapeHtml(data.engSponsor)}</strong></td>
     </tr>
   </table>
 
   ${data.execSummary ? `
-    <h2 style="color:#333;margin:20px 0 10px 0;">Executive Summary</h2>
-    ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
-  ` : ""}
+    <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
+      <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Executive Summary</td></tr>
+      <tr><td style="${cell}" bgcolor="#ffffff" align="left">
+        ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
+      </td></tr>
+    </table>` : ""}
 
   ${data.lowlights ? `
-    <h2 style="color:#333;margin:20px 0 10px 0;">Lowlights</h2>
-    ${linesToList(data.lowlights)}
-  ` : ""}
+    <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
+      <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Lowlights</td></tr>
+      <tr><td style="${cell}" bgcolor="#ffffff" align="left">
+        ${linesToList(data.lowlights)}
+      </td></tr>
+    </table>` : ""}
 
   ${data.updatesHtml ? `
-    <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.updatesTitle || "Top Accomplishments"}</h2>
-    ${data.sectionTitle ? `<h3 style="color:#555;margin:10px 0;font-size:18px;font-weight:600;">${data.sectionTitle}</h3>` : ""}
-    ${processedUpdates}
-  ` : ""}
+    <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
+      <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        ${escapeHtml(data.updatesTitle || "Top Accomplishments")}
+      </td></tr>
+      ${data.sectionTitle ? `<tr><td style="${cell}" bgcolor="#ffffff" align="left">
+        <strong>${escapeHtml(data.sectionTitle)}</strong>
+      </td></tr>` : ""}
+      <tr><td style="${cell}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
+    </table>` : ""}
 
   ${data.milestonesHtml ? `
-    <h2 style="color:#333;margin:20px 0 10px 0;font-size:20px;">${data.milestonesTitle || "Upcoming Milestones"}</h2>
-    ${data.milestonesSectionTitle ? `<h3 style="color:#555;margin:10px 0;font-size:18px;font-weight:600;">${data.milestonesSectionTitle}</h3>` : ""}
-    ${processedMilestones}
-  ` : ""}
-
+    <table role="presentation" align="center" width="${containerWidth}" style="${tableStyle}">
+      <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        ${escapeHtml(data.milestonesTitle || "Upcoming Milestones")}
+      </td></tr>
+      ${data.milestonesSectionTitle ? `<tr><td style="${cell}" bgcolor="#ffffff" align="left">
+        <strong>${escapeHtml(data.milestonesSectionTitle)}</strong>
+      </td></tr>` : ""}
+      <tr><td style="${cell}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
+    </table>` : ""}
 </div>`;
 };
+
 
 // Replace your existing emailReport with this version
 const emailReport = async () => {
@@ -1932,7 +2031,8 @@ const emailReport = async () => {
   </CardContent>
 </Card>
 
-<!-- Risks & Issue Mitigation Plan -->
+{/* Risks & Issue Mitigation Plan */}
+
 <Card>
   <CardHeader>
     <CardTitle>Risks &amp; Issue Mitigation Plan</CardTitle>
