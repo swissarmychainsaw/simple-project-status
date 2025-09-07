@@ -1,163 +1,144 @@
 // app/api/email/route.ts
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { promises as fs } from "fs";
 import path from "path";
+import fs from "fs/promises";
 
+// If you deploy on edge accidentally, fs won't work.
+// Make sure this route runs on the Node runtime.
 export const runtime = "nodejs";
 
-type ApiBody = {
-  to: string | string[];
-  subject?: string;
+// Map banner ids from the UI to their public files and cids
+const BANNERS: Record<
+  string,
+  { cid: string; filename: string; relPath: string }
+> = {
+  gns:   { cid: "banner-gns",   filename: "gns-banner.png",   relPath: "banners/gns-banner.png" },
+  azure: { cid: "banner-azure", filename: "azure-banner.png", relPath: "banners/azure-banner.png" },
+  cie:   { cid: "banner-cie",   filename: "cie-banner.png",   relPath: "banners/cie-banner.png" },
+  netmig:{ cid: "banner-netmig",filename: "OBN-mig.png",      relPath: "banners/OBN-mig.png" },
+  azlens:{ cid: "banner-azlens",filename: "azure-lens.png",   relPath: "banners/azure-lens.png" },
+  ipv6:  { cid: "banner-ipv6",  filename: "ipv6.png",         relPath: "banners/ipv6.png" },
+};
+
+// Shared inline logo (only attached if the HTML actually references it)
+const LOGO = {
+  cid: "gns-logo",
+  filename: "gns-logo.png",
+  relPath: "gns-logo.png", // /public/gns-logo.png
+};
+
+type Payload = {
+  to: string;
+  subject: string;
   html: string;
-  text?: string;
-  from?: string;
-  bannerId?: string; // e.g. "gns", "azure", ... only sent when using CID banners
+  // present only when the client is using CID banners
+  bannerId?: string;
 };
 
-type Driver = "resend-smtp" | "ethereal";
-
-// Map the CID tokens used in your HTML to files in /public
-// (These match your frontend constants: LOGO_CID and BANNERS[*].cid)
-const CID_TO_PUBLIC_FILE: Record<string, string> = {
-  "gns-logo": "/gns-logo.png",
-
-  "banner-gns": "/banners/gns-banner.png",
-  "banner-azure": "/banners/azure-banner.png",
-  "banner-cie": "/banners/cie-banner.png",
-  "banner-netmig": "/banners/OBN-mig.png",
-  "banner-azlens": "/banners/azure-lens.png",
-  "banner-ipv6": "/banners/ipv6.png",
-};
-
-// Helper: turn a /public relative path into an absolute FS path
-const publicPath = (rel: string) => path.join(process.cwd(), "public", rel.replace(/^\//, ""));
-
-// Find any cid:* references in the HTML so we can attach them automatically
-function findCidsInHtml(html: string): Set<string> {
-  const out = new Set<string>();
-  const re = /cid:([a-zA-Z0-9._-]+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) out.add(m[1]);
-  return out;
+function env(name: string, fallback?: string) {
+  const v = process.env[name] ?? fallback;
+  if (!v) throw new Error(`Missing required env var: ${name}`);
+  return v;
 }
 
-async function buildCidAttachments(html: string, bannerId?: string) {
-  const cids = findCidsInHtml(html);
-
-  // If the client told us which banner is in CID mode, ensure its CID is included
-  if (bannerId) cids.add(`banner-${bannerId}`);
-
-  const attachments: Array<{
-    filename: string;
-    path: string;
-    cid: string;
-  }> = [];
-
-  for (const cid of cids) {
-    const rel = CID_TO_PUBLIC_FILE[cid];
-    if (!rel) continue;
-    const abs = publicPath(rel);
-    try {
-      await fs.access(abs);
-      attachments.push({
-        filename: path.basename(abs),
-        path: abs,
-        cid,
-      });
-    } catch {
-      console.warn(`[email] Skipping missing CID asset: ${cid} -> ${abs}`);
-    }
-  }
-  return attachments;
+async function fileAsAttachment(relPath: string, filename: string, cid: string) {
+  const abs = path.join(process.cwd(), "public", relPath);
+  const content = await fs.readFile(abs);
+  return {
+    filename,
+    content,
+    cid,
+    contentType: inferMime(filename),
+  };
 }
 
-export async function POST(req: Request) {
+function inferMime(filename: string) {
+  const ext = filename.toLowerCase().split(".").pop() || "";
+  if (ext === "png") return "image/png";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "gif") return "image/gif";
+  return "application/octet-stream";
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const driverParam = url.searchParams.get("driver"); // optional override: ?driver=ethereal or ?driver=resend
-    const body = (await req.json()) as ApiBody;
+    const { to, subject, html, bannerId }: Payload = await req.json();
 
-    if (!body?.to || !body?.html) {
+    if (!to || !subject || !html) {
       return NextResponse.json(
-        { ok: false, error: "`to` and `html` are required" },
-        { status: 400 },
+        { ok: false, error: "Missing 'to', 'subject', or 'html'." },
+        { status: 400 }
       );
     }
 
-    // Decide mail driver
-    let driver: Driver = "ethereal";
-    if (driverParam === "resend") driver = "resend-smtp";
-    else if (driverParam === "ethereal") driver = "ethereal";
-    else if (process.env.RESEND_API_KEY) driver = "resend-smtp";
+    // --- Resend SMTP transporter (dev-friendly, works locally) ---
+    const host = process.env.RESEND_SMTP_HOST || "smtp.resend.com";
+    const port = Number(process.env.RESEND_SMTP_PORT || 587);
+    const secure = port === 465; // true for 465, false for 587
+    const user = process.env.RESEND_SMTP_USER || "resend";
+    const pass = env("RESEND_API_KEY");
 
-    // Create transporter
-    let transporter;
-    if (driver === "resend-smtp") {
-      if (!process.env.RESEND_API_KEY) {
-        return NextResponse.json(
-          { ok: false, error: "RESEND_API_KEY is missing but driver=resend-smtp was selected" },
-          { status: 500 },
-        );
-      }
-      transporter = nodemailer.createTransport({
-        host: "smtp.resend.com",
-        port: 465,
-        secure: true,
-        auth: {
-          user: "resend",
-          pass: process.env.RESEND_API_KEY,
-        },
-      });
-    } else {
-      // Ethereal fallback (only when no RESEND key or explicitly forced)
-      const test = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: test.smtp.host,
-        port: test.smtp.port,
-        secure: test.smtp.secure,
-        auth: { user: test.user, pass: test.pass },
-      });
-    }
-
-    // Build attachments for any cid:* refs (logo/banner) from /public
-    const cidAttachments = await buildCidAttachments(body.html, body.bannerId);
-
-    // From: prefer body.from, then env, then a harmless default (note: Resend requires a verified domain)
-    const fromAddress =
-      body.from ||
-      process.env.MAIL_FROM || // e.g. "reports@yourdomain.com"
-      "no-reply@example.com";
-
-    const info = await transporter.sendMail({
-      from: fromAddress,
-      to: body.to,
-      subject: body.subject || "Status Report",
-      html: body.html,
-      text: body.text, // optional plain text
-      attachments: cidAttachments,
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
     });
 
-    const previewUrl =
-      driver === "ethereal" ? nodemailer.getTestMessageUrl(info) : undefined;
+    // --- Build attachments only if referenced in HTML ---
+    const attachments: Array<any> = [];
 
-    const payload = {
-      ok: true,
-      driver,
-      messageId: info.messageId,
-      accepted: info.accepted,
-      rejected: info.rejected,
-      response: info.response,
-      ...(previewUrl ? { previewUrl } : {}),
-    };
-
-    console.log("[/api/email] sendMail result:", payload);
-    return NextResponse.json(payload);
-  } catch (err: any) {
-    console.error("[/api/email] error:", err);
-    return NextResponse.json(
-      { ok: false, error: err?.message || "Unknown error" },
-      { status: 500 },
-    );
+    // Inline logo if present (cid:gns-logo)
+    if (html.includes(`cid:${LOGO.cid}`)) {
+      attachments.push(await fileAsAttachment(LOGO.relPath, LOGO.filename, LOGO.cid));
     }
+
+    // Inline banner if client told us a CID banner id
+    if (bannerId) {
+      const banner = BANNERS[bannerId];
+      if (banner && html.includes(`cid:${banner.cid}`)) {
+        attachments.push(
+          await fileAsAttachment(banner.relPath, banner.filename, banner.cid)
+        );
+      }
+    }
+
+    const fromAddr =
+      process.env.MAIL_FROM ||
+      `Status Bot <status@${(process.env.SENDMAIL_DOMAIN || "example.dev")}>`;
+
+    const info = await transporter.sendMail({
+      from: fromAddr,
+      to,
+      subject,
+      html,
+      attachments,
+    });
+
+    // nodemailer will return a preview url only for Ethereal;
+    // for Resend-SMTP this is usually undefined, but keeping it here is harmless.
+    const preview =
+      // @ts-ignore - method exists on nodemailer
+      (nodemailer as any).getTestMessageUrl?.(info) || undefined;
+
+    return NextResponse.json(
+      {
+        ok: true,
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        response: info.response,
+        previewUrl: preview,
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("[/api/email] ERROR:", err);
+    return NextResponse.json(
+      { ok: false, error: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
 }
