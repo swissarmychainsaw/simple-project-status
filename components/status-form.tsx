@@ -1014,7 +1014,6 @@ const pill = (val: string) => {
 </html>`
 }
 
-{/*  buildEmailHtml BUILD EMAIL buildemailhtml */}
 
 const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   const asOf = data.asOf
@@ -1200,30 +1199,7 @@ const emailReport = async () => {
       }),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API returned ${res.status}: ${errorText}`);
-    }
-
-    toast({
-      title: "Email Sent",
-      description: `Report sent successfully to ${recipient}`,
-    });
-  } catch (error: any) {
-    toast({
-      title: "Email Failed",
-      description: `Failed to send email: ${error.message}`,
-      variant: "destructive",
-    });
-  } finally {
-    setIsEmailing(false);
-  }
-};
-
-
-
-
-
+    
 
   
 
@@ -1920,10 +1896,7 @@ const emailReport = async () => {
   background-color: #f5f5f5 !important;
 }
 
-#milestonesHtml table,
-#keyDecisionsHtml table,
-#risksHtml table,
-#resourcesHtml table { ... }
+
 
 #milestonesHtml table thead tr,
 #milestonesHtml table tr:first-of-type > th,
