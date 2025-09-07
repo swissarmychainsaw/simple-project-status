@@ -2282,6 +2282,67 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             <Card>
               <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
               <CardContent className="space-y-4">
+                {/* Banner controls */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <Label className="text-sm font-medium">Banner mode</Label>
+    <Select
+      value={designOptions.optBannerMode}
+      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cid">Embed inline (CID)</SelectItem>
+        <SelectItem value="url">Load from URL</SelectItem>
+        <SelectItem value="none">No banner</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {designOptions.optBannerMode === "cid" && (
+    <div>
+      <Label className="text-sm font-medium">Banner preset</Label>
+      <Select
+        value={designOptions.optBannerId}
+        onValueChange={(v) => updateDesignOptions("optBannerId", v)}
+      >
+        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {/* keep this list in sync with BANNERS keys */}
+          <SelectItem value="gns">GNS</SelectItem>
+          <SelectItem value="azure">Azure</SelectItem>
+          <SelectItem value="cie">CIE</SelectItem>
+          <SelectItem value="netmig">One Big Network Migration</SelectItem>
+          <SelectItem value="azlens">Azure Lens</SelectItem>
+          <SelectItem value="ipv6">IPv6 Network</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )}
+
+  {designOptions.optBannerMode === "url" && (
+    <div>
+      <Label className="text-sm font-medium">Banner URL (absolute)</Label>
+      <Input
+        placeholder="https://cdn.example.com/banners/custom.png"
+        value={designOptions.optBannerUrl}
+        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
+        className="bg-white"
+      />
+    </div>
+  )}
+
+  <div className="md:col-span-2">
+    <Label className="text-sm font-medium">Banner caption (optional)</Label>
+    <Input
+      placeholder="Program Status"
+      value={designOptions.optBannerCaption}
+      onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
+      className="bg-white"
+    />
+  </div>
+</div>
+
                 <div>
                   <Label htmlFor="optFont" className="text-sm font-medium">Font Family</Label>
                   <Select value={designOptions.optFont} onValueChange={(v) => updateDesignOptions("optFont", v)}>
