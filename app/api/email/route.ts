@@ -1,80 +1,64 @@
-// app/api/email/route.ts
-import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 import path from "path";
-import { readFileSync } from "fs";
 
-// IMPORTANT: keep this on the Node.js runtime (do NOT set runtime="edge")
-const resend = new Resend(process.env.RESEND_API_KEY);
-const MAIL_FROM = process.env.MAIL_FROM || "Status Reports <onboarding@resend.dev>";
-
-// Map banner keys → file path (under /public) and the CID you use in <img src="cid:...">
 const BANNERS = {
-  gns:   { file: "banners/gns-banner.png",   cid: "banner-gns" },
-  azure: { file: "banners/azure-banner.png", cid: "banner-azure" },
-  cie:   { file: "banners/cie-banner.png",   cid: "banner-cie" },
-  netmig:{ file: "banners/OBN-mig.png",      cid: "banner-netmig" },
-  azlens:{ file: "banners/azure-lens.png",   cid: "banner-azlens" },
-  ipv6:  { file: "banners/ipv6.png",         cid: "banner-ipv6" },
+  gns:   { cid: "banner-gns",   file: "gns-banner.png" },
+  azure: { cid: "banner-azure", file: "azure-banner.png" },
+  cie:   { cid: "banner-cie",   file: "cie-banner.png" },
+  netmig:{ cid: "banner-netmig",file: "OBN-mig.png" },
+  azlens:{ cid: "banner-azlens",file: "azure-lens.png" },
+  ipv6:  { cid: "banner-ipv6",  file: "ipv6.png" },
 } as const;
 
-function publicFile(relPath: string) {
-  const abs = path.join(process.cwd(), "public", relPath);
-  return readFileSync(abs); // throws if missing → caught below
-}
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { to, subject, html, bannerId } = await req.json();
 
     if (!to || !subject || !html) {
-      return NextResponse.json(
-        { error: "Missing required fields: to, subject, html" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing to/subject/html" }, { status: 400 });
     }
 
-    const attachments: Array<{ filename: string; content: Buffer; cid: string }> = [];
+    // Create transporter (configure your SMTP creds)
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST!,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER!,
+        pass: process.env.SMTP_PASS!,
+      },
+    });
 
-    // Inline logo if the HTML references it (src="cid:gns-logo")
-    if ((html as string).includes("cid:gns-logo")) {
+    const attachments: any[] = [];
+
+    // Always include the logo if your HTML references `cid:gns-logo`
+    attachments.push({
+      filename: "gns-logo.png",
+      path: path.join(process.cwd(), "public", "gns-logo.png"),
+      cid: "gns-logo",
+    });
+
+    // Include a banner if client told us to use a CID banner
+    if (bannerId && BANNERS[bannerId as keyof typeof BANNERS]) {
+      const banner = BANNERS[bannerId as keyof typeof BANNERS];
       attachments.push({
-        filename: "gns-logo.png",
-        content: publicFile("gns-logo.png"),
-        cid: "gns-logo",
+        filename: banner.file,
+        path: path.join(process.cwd(), "public", "banners", banner.file),
+        cid: banner.cid,
       });
     }
 
-    // Inline banner if the client asked for a CID banner
-    if (bannerId && (bannerId as keyof typeof BANNERS) in BANNERS) {
-      const { file, cid } = BANNERS[bannerId as keyof typeof BANNERS];
-      attachments.push({
-        filename: path.basename(file),
-        content: publicFile(file),
-        cid,
-      });
-    }
-
-    const { data, error } = await resend.emails.send({
-      from: MAIL_FROM,
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM || "no-reply@example.com",
       to,
       subject,
       html,
-      attachments: attachments.length ? attachments : undefined,
+      attachments,
     });
 
-    if (error) {
-      return NextResponse.json(
-        { error: "Email send failed", detail: error },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, id: data?.id ?? null });
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: "Email send failed", detail: err?.message ?? String(err) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || "Send failed" }, { status: 500 });
   }
 }
