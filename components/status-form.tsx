@@ -292,6 +292,33 @@ const OPT_FIELDS = [
   "optBannerMode","optBannerId","optBannerUrl","optBannerCaption",
 ] as const
 
+  // --- Org profiles tied to banners (stable defaults you can extend) ---
+const PROFILES: Record<
+  BannerKey,
+  Partial<FormData> & {
+    caption?: string;   // default banner caption
+    accent?: string;    // optional accent color
+  }
+> = {
+  gns: {
+    caption: "Program Status",
+    accent: "#086dd7",
+    programTitle: "The Global Network Services (GNS)",
+    programSummary:
+      "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
+    tpm: "Nick Adams",
+    engDri: "Antony Alexander",
+    bizSponsor: "Niha Mathur",
+    engSponsor: "Suchreet Dhaliwal",
+  },
+  // Stubs you can flesh out later
+  azure: { caption: "Program Status" },
+  cie:   { caption: "Program Status" },
+  netmig:{ caption: "Project Status" },
+  azlens:{ caption: "Project Status" },
+  ipv6:  { caption: "Program Status" },
+};
+
   
   const safeLocalStorageGet = (key: string): string | null => {
     try {
@@ -587,7 +614,40 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
     if (!preset) return "";
     src = `cid:${preset.cid}`;
   }
+const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
+  if (opts.optBannerMode === "none") return "";
 
+  const preset = BANNERS[opts.optBannerId];
+  const caption = opts.optBannerCaption || "Program Status";
+
+  let src = "";
+  let alt = (preset?.alt || caption);
+
+  if (opts.optBannerMode === "url") {
+    const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
+    src = forEmail ? absoluteUrl(webSrc) : webSrc;
+  } else {
+    // "cid" mode — use CID in email, web path in preview
+    if (!preset) return "";
+    src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
+  }
+
+  return `
+    <img src="${escapeHtml(src)}"
+         alt="${escapeHtml(alt)}"
+         width="700"
+         style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>
+  `;
+};
+
+
+
+
+
+  
   // IMPORTANT: omit caption in emails so nothing renders as a line of text above the table
   const captionHtml = forEmail
     ? ""
@@ -2367,6 +2427,82 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       </SelectContent>
     </Select>
   </div>
+
+
+{/* Banner & Profile */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <Label className="text-sm font-medium">Banner mode</Label>
+    <Select
+      value={designOptions.optBannerMode}
+      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cid">Embed inline (CID)</SelectItem>
+        <SelectItem value="url">Load from URL</SelectItem>
+        <SelectItem value="none">No banner</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {designOptions.optBannerMode === "url" && (
+    <div>
+      <Label className="text-sm font-medium">Banner URL</Label>
+      <Input
+        placeholder="https://…/banner.png"
+        value={designOptions.optBannerUrl}
+        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
+        className="bg-white"
+      />
+    </div>
+  )}
+
+  {designOptions.optBannerMode !== "none" && (
+    <>
+      <div>
+        <Label className="text-sm font-medium">Preset banner (profile)</Label>
+        <Select
+          value={designOptions.optBannerId}
+          onValueChange={(v) => onBannerChange(v as BannerKey)}
+        >
+          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="gns">GNS</SelectItem>
+            <SelectItem value="azure">Azure</SelectItem>
+            <SelectItem value="cie">CIE</SelectItem>
+            <SelectItem value="netmig">Network Migration</SelectItem>
+            <SelectItem value="azlens">Azure Lens</SelectItem>
+            <SelectItem value="ipv6">IPv6</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2 mt-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => applyProfile(designOptions.optBannerId as BannerKey, true)}
+          >
+            Apply defaults (overwrite)
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Banner caption</Label>
+        <Input
+          placeholder="Program Status"
+          value={designOptions.optBannerCaption}
+          onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
+          className="bg-white"
+        />
+      </div>
+    </>
+  )}
+</div>
+
+
+  
 
   {designOptions.optLogoMode === "url" && (
     <div>
