@@ -1157,7 +1157,9 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
 };
 
 
-// Replace your existing emailReport with this version
+// Email Report email report
+//
+//
 const emailReport = async () => {
   if (execOver) {
     toast({
@@ -1171,7 +1173,7 @@ const emailReport = async () => {
   const recipient = formData.emailTo.trim();
   if (!recipient) {
     toast({
-      title: "Email Required",
+      title: "Email required",
       description: "Please enter an email address first.",
       variant: "destructive",
     });
@@ -1180,18 +1182,44 @@ const emailReport = async () => {
 
   setIsEmailing(true);
   try {
-    // 👉 Use the EMAIL-SAFE HTML (contains src="cid:gns-logo")
+    // Build the email-safe HTML (uses cid:gns-logo and, if configured, cid:<banner>)
     const htmlToSend = buildEmailHtml(formData, designOptions);
+
+    // Only pass bannerId if we're actually using a CID banner
+    const usingCidBanner =
+      designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+
+    const payload: Record<string, unknown> = {
+      to: recipient,
+      subject: formData.programTitle || "Status Report",
+      html: htmlToSend,
+    };
+
+    if (usingCidBanner) {
+      payload.bannerId = designOptions.optBannerId; // e.g. "gns" | "azure" | "cie" | ...
+    }
 
     const res = await fetch("/api/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: recipient,
-        subject: formData.programTitle || "Status Report",
-        html: htmlToSend,
-      }),
+      body: JSON.stringify(payload),
     });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+
+    toast({ title: "Email sent", description: `Report sent to ${recipient}` });
+  } catch (err: any) {
+    toast({
+      title: "Email failed",
+      description: err?.message || "Unknown error",
+      variant: "destructive",
+    });
+  } finally {
+    setIsEmailing(false);
+  }
+};
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -1213,19 +1241,9 @@ const emailReport = async () => {
   }
 };
 
- const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
-const htmlToSend = buildEmailHtml(formData, designOptions);
+// const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+// const htmlToSend = buildEmailHtml(formData, designOptions);
 
-await fetch("/api/email", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    to: recipient,
-    subject: formData.programTitle || "Status Report",
-    html: htmlToSend,
-    bannerId: usingCidBanner ? designOptions.optBannerId : undefined, // 👈 only when HTML has cid:
-  }),
-});
  
   
 
