@@ -118,6 +118,131 @@ const BANNER_DEFAULTS: Partial<Record<BannerKey, {
   },
 };
 
+// --- Report types you support (add/remove as you like)
+type ReportKind =
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "program"
+  | "project"
+  | "ops"
+  | "exec"
+  | "incident";
+
+// What a defaults pack can set
+type DefaultsPack = {
+  form?: Partial<FormData>;
+  design?: Partial<DesignOptions>;
+};
+
+// Per banner: base defaults + per-report-kind defaults
+const PRESETS: Partial<
+  Record<
+    BannerKey,
+    {
+      base?: DefaultsPack;
+      kinds?: Partial<Record<ReportKind, DefaultsPack>>;
+    }
+  >
+> = {
+  gns: {
+    base: {
+      form: {
+        programTitle: "Global Network Services (GNS)",
+        programSummary:
+          "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
+        // Optional always-on people for GNS:
+        // tpm: "Nick Adams",
+        // engDri: "Antony Alexander",
+        // bizSponsor: "Niha Mathur",
+        // engSponsor: "Suchreet Dhaliwal",
+        updatesTitle: "Top Accomplishments",
+      },
+      design: {
+        optBannerCaption: "Global Network Services — Program Status",
+      },
+    },
+    kinds: {
+      weekly: {
+        form: {
+          sectionTitle: "Network Engineering",
+          milestonesTitle: "Upcoming Milestones",
+          milestonesSectionTitle: "This Quarter",
+          // You can pre-seed rich sections too:
+          // updatesHtml: `<table>...</table>`,
+          // keyDecisionsHtml: `<ul><li>…</li></ul>`,
+          // risksHtml: `<table>…</table>`,
+          // resourcesHtml: `<ul><li><a href="https://…">Runbook</a></li></ul>`,
+        },
+      },
+      exec: {
+        form: {
+          updatesTitle: "Executive Highlights",
+          keyDecisionsTitle: "Key Decisions",
+          risksTitle: "Risks & Issue Mitigation Plan",
+        },
+      },
+      program: {
+        form: {
+          milestonesTitle: "Program Milestones",
+          milestonesSectionTitle: "Quarterly Targets",
+        },
+      },
+    },
+  },
+
+  azure: {
+    base: {
+      form: {
+        programTitle: "Azure Program",
+        programSummary: "Cross-cloud enablement and migration to Azure.",
+        updatesTitle: "Azure Highlights",
+      },
+      design: { optBannerCaption: "Azure — Program Status" },
+    },
+    kinds: {
+      weekly: {
+        form: {
+          sectionTitle: "Cloud Foundations",
+          milestonesSectionTitle: "Next 30 Days",
+        },
+      },
+    },
+  },
+
+  // Example for another banner
+  ipv6: {
+    base: {
+      form: {
+        programTitle: "Enterprise IPv6 Rollout",
+        programSummary: "Dual-stack enablement across WAN/LAN and services.",
+      },
+      design: { optBannerCaption: "IPv6 Network — Project Status" },
+    },
+    kinds: {
+      project: {
+        form: {
+          updatesTitle: "Deployment Progress",
+          milestonesTitle: "Cutover Schedule",
+        },
+      },
+    },
+  },
+};
+const [designOptions, setDesignOptions] = useState<DesignOptions>({
+  optFont: "Inter, Arial, Helvetica, sans-serif",
+  optAccent: "#086dd7",
+  optDensity: "comfortable",
+  optBorders: "lines",
+  optCustomCss: "",
+  optLogoMode: "cid",
+  optLogoUrl: "",
+  optBannerMode: "url",
+  optBannerId: "gns",
+  optBannerUrl: "",
+  optBannerCaption: "Program Status",
+  optReportKind: "weekly", // NEW default
+});
 
 
 const PERSIST_PREFIX = "statusReportGenerator."
@@ -309,6 +434,7 @@ const OPT_FIELDS = [
   "optLogoMode",
   "optLogoUrl",
   "optBannerMode","optBannerId","optBannerUrl","optBannerCaption",
+    "optReportKind", // NEW
 ] as const
 
   // --- Org profiles tied to banners (stable defaults you can extend) ---
@@ -463,19 +589,29 @@ useEffect(() => {
 
   
   const updateDesignOptions = (field: keyof DesignOptions, value: string) => {
-  let processedValue = value
-  if (field === "optCustomCss") processedValue = sanitizeCss(value)
+  let processedValue = field === "optCustomCss" ? sanitizeCss(value) : value;
+  const validation = validateInput(field, processedValue);
 
-  const validation = validateInput(field, processedValue)
-  setDesignOptions((prev) => ({ ...prev, [field]: validation.sanitized }))
+  setDesignOptions((prev) => ({ ...prev, [field]: validation.sanitized }));
+  safeLocalStorageSet(PERSIST_PREFIX + field, validation.sanitized);
 
-  // always persist design options
-  safeLocalStorageSet(PERSIST_PREFIX + field, validation.sanitized)
+  // Re-apply profile defaults when banner or report kind changes
+  if (field === "optBannerId" || field === "optReportKind") {
+    const bannerId = (field === "optBannerId"
+      ? (validation.sanitized as BannerKey)
+      : designOptions.optBannerId) as BannerKey;
+
+    const kind = (field === "optReportKind"
+      ? (validation.sanitized as ReportKind)
+      : designOptions.optReportKind) as ReportKind;
+
+    applyProfile(bannerId, kind, "fill"); // use "overwrite" if you want it to hard-set
+  }
 
   if (validation.warnings.length > 0) {
-    setSecurityWarnings((prev) => [...prev, ...validation.warnings])
+    setSecurityWarnings((prev) => [...prev, ...validation.warnings]);
   }
-}
+};
 
 
   // HTML helpers
@@ -486,6 +622,40 @@ useEffect(() => {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#x27;")
+type ApplyMode = "fill" | "overwrite";
+
+const applyDefaultsPack = (pack: DefaultsPack, mode: ApplyMode = "fill") => {
+  if (!pack) return;
+  if (pack.form) {
+    for (const [k, v] of Object.entries(pack.form) as [keyof FormData, string][]) {
+      if (v == null) continue;
+      const current = (formData[k] ?? "") as string;
+      const shouldSet = mode === "overwrite" || current.trim() === "";
+      if (shouldSet) updateFormData(k, v);
+    }
+  }
+  if (pack.design) {
+    for (const [k, v] of Object.entries(pack.design) as [keyof DesignOptions, string][]) {
+      if (v == null) continue;
+      const current = (designOptions as any)[k] ?? "";
+      const shouldSet = mode === "overwrite" || String(current).trim() === "";
+      if (shouldSet) updateDesignOptions(k, v);
+    }
+  }
+};
+
+const applyProfile = (bannerId: BannerKey, kind?: ReportKind, mode: ApplyMode = "fill") => {
+  const spec = PRESETS[bannerId];
+  if (!spec) return;
+  if (spec.base) applyDefaultsPack(spec.base, mode);
+  if (kind && spec.kinds?.[kind]) applyDefaultsPack(spec.kinds[kind]!, mode);
+
+  // If caption still empty, seed from banner alt
+  const preset = BANNERS[bannerId];
+  if (!(designOptions.optBannerCaption || "").trim() && preset?.alt) {
+    updateDesignOptions("optBannerCaption", preset.alt);
+  }
+};
 
   const safeInline = (s: string) =>
     String(s || "")
@@ -1803,6 +1973,41 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     </Select>
   </div>
 
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* existing Logo controls ... */}
+
+  {/* Report Type */}
+  <div>
+    <Label className="text-sm font-medium">Report Type</Label>
+    <Select
+      value={designOptions.optReportKind}
+      onValueChange={(v) => updateDesignOptions("optReportKind", v)}
+    >
+      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="weekly">Weekly</SelectItem>
+        <SelectItem value="monthly">Monthly</SelectItem>
+        <SelectItem value="quarterly">Quarterly</SelectItem>
+        <SelectItem value="program">Program</SelectItem>
+        <SelectItem value="project">Project</SelectItem>
+        <SelectItem value="ops">Ops</SelectItem>
+        <SelectItem value="exec">Executive</SelectItem>
+        <SelectItem value="incident">Incident</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+</div>
+<Button
+  variant="outline"
+  size="sm"
+  onClick={() => applyProfile(designOptions.optBannerId, designOptions.optReportKind, "overwrite")}
+  className="mt-2"
+>
+  Apply profile defaults (overwrite)
+</Button>
+
+
+  
   {designOptions.optBannerMode === "cid" && (
     <div>
       <Label className="text-sm font-medium">Banner preset</Label>
