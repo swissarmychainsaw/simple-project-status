@@ -1,113 +1,142 @@
 // app/api/email/route.ts
-import { NextRequest, NextResponse } from "next/server";
-export const runtime = "nodejs";           // ensure Node runtime (not Edge)
-export const dynamic = "force-dynamic";    // don't cache
+import { NextResponse } from "next/server";
+export const runtime = "nodejs";          // IMPORTANT: Resend SDK & fs need Node runtime
+export const dynamic = "force-dynamic";
+
+import path from "node:path";
+import fs from "node:fs/promises";
 
 import nodemailer from "nodemailer";
-import path from "path";
+import { Resend } from "resend";
 
-const BANNERS = {
-  gns:   { cid: "banner-gns",   file: "gns-banner.png" },
-  azure: { cid: "banner-azure", file: "azure-banner.png" },
-  cie:   { cid: "banner-cie",   file: "cie-banner.png" },
-  netmig:{ cid: "banner-netmig",file: "OBN-mig.png" },
-  azlens:{ cid: "banner-azlens",file: "azure-lens.png" },
-  ipv6:  { cid: "banner-ipv6",  file: "ipv6.png" },
-} as const;
+type BannerKey = "gns" | "azure" | "cie" | "netmig" | "azlens" | "ipv6";
 
-function publicPath(...p: string[]) {
-  return path.join(process.cwd(), "public", ...p);
+const LOGO = { cid: "gns-logo", file: "gns-logo.png", contentType: "image/png" };
+const BANNERS: Record<BannerKey, { cid: string; file: string; contentType: string }> = {
+  gns:   { cid: "banner-gns",   file: "banners/gns-banner.png",   contentType: "image/png" },
+  azure: { cid: "banner-azure", file: "banners/azure-banner.png", contentType: "image/png" },
+  cie:   { cid: "banner-cie",   file: "banners/cie-banner.png",   contentType: "image/png" },
+  netmig:{ cid: "banner-netmig",file: "banners/OBN-mig.png",      contentType: "image/png" },
+  azlens:{ cid: "banner-azlens",file: "banners/azure-lens.png",   contentType: "image/png" },
+  ipv6:  { cid: "banner-ipv6",  file: "banners/ipv6.png",         contentType: "image/png" },
+};
+
+function publicPath(rel: string) {
+  return path.join(process.cwd(), "public", rel.replace(/^\/+/, ""));
 }
 
-async function makeTransporter() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-
-  if (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS) {
-    const port = Number(SMTP_PORT);
-    const secure = port === 465; // 465 = SSL/TLS
-    const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port,
-      secure,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-      logger: true, // logs to server console
-    });
-    await transporter.verify();
-    return { transporter, usingEthereal: false as const };
-  }
-
-  // Dev fallback: Ethereal (test inbox + preview URL)
-  const acct = await nodemailer.createTestAccount();
-  const transporter = nodemailer.createTransport({
-    host: acct.smtp.host,
-    port: acct.smtp.port,
-    secure: acct.smtp.secure,
-    auth: { user: acct.user, pass: acct.pass },
-    logger: true,
-  });
-  await transporter.verify();
-  return { transporter, usingEthereal: true as const };
+async function loadAttachment(fileRel: string) {
+  const abs = publicPath(fileRel);
+  const content = await fs.readFile(abs);
+  return content;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { to, subject, html, bannerId } = await req.json();
+    const { to, subject, html, bannerId } = await req.json() as {
+      to: string; subject: string; html: string; bannerId?: BannerKey;
+    };
 
     if (!to || !subject || !html) {
-      return NextResponse.json({ error: "Missing to/subject/html" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Missing to/subject/html" }, { status: 400 });
     }
 
-    const { transporter, usingEthereal } = await makeTransporter();
+    // Build inline attachments if your HTML references cid:gns-logo or cid:banner-*
+    const attachmentsForCid: Array<
+      | { filename: string; content: Buffer; contentType: string; content_id: string } // Resend shape
+      | { filename: string; content: Buffer; contentType: string; cid: string }        // Nodemailer shape
+    > = [];
 
-    const attachments: nodemailer.Attachment[] = [];
+    // Always add logo (your HTML includes cid:gns-logo if optLogoMode="cid")
+    try {
+      const logoBuf = await loadAttachment(LOGO.file);
+      attachmentsForCid.push({
+        filename: LOGO.file.split("/").pop()!,
+        content: logoBuf,
+        contentType: LOGO.contentType,
+        // Resend uses "content_id", Nodemailer uses "cid" — we add both keys below per driver.
+        // Here we temporarily store under the Resend key; we remap for Nodemailer later.
+        content_id: LOGO.cid,
+      } as any);
+    } catch { /* logo optional */ }
 
-    // Always include the logo if HTML references cid:gns-logo
-    attachments.push({
-      filename: "gns-logo.png",
-      path: publicPath("gns-logo.png"),
-      cid: "gns-logo",
+    // Optional banner (only when the client sent bannerId and the HTML uses cid:<banner-cid>)
+    if (bannerId && BANNERS[bannerId]) {
+      try {
+        const b = BANNERS[bannerId];
+        const buf = await loadAttachment(b.file);
+        attachmentsForCid.push({
+          filename: b.file.split("/").pop()!,
+          content: buf,
+          contentType: b.contentType,
+          content_id: b.cid,
+        } as any);
+      } catch { /* banner optional */ }
+    }
+
+    const hasResend = !!process.env.RESEND_API_KEY;
+    const from = process.env.RESEND_FROM || "reports@your-verified-domain.com"; // must be a verified domain in Resend
+
+    // Prefer Resend API whenever the key exists, regardless of NODE_ENV.
+    if (hasResend) {
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+
+      // Resend wants attachments like { filename, content, contentType, content_id }
+      const apiAttachments = attachmentsForCid as Array<{
+        filename: string; content: Buffer; contentType?: string; content_id?: string;
+      }>;
+
+      const resp = await resend.emails.send({
+        from,
+        to,
+        subject,
+        html,
+        attachments: apiAttachments,
+      });
+
+      if (resp.error) {
+        // Bubble up Resend’s error so you can see it in your logs/Toast
+        return NextResponse.json({ ok: false, driver: "resend", error: resp.error }, { status: 500 });
+      }
+
+      return NextResponse.json({ ok: true, driver: "resend", id: resp.data?.id ?? null });
+    }
+
+    // === Fallback: Ethereal test transport ===
+    const testAccount = await nodemailer.createTestAccount();
+    const transporter = nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: { user: testAccount.user, pass: testAccount.pass },
     });
 
-    // Optional CID banner
-    if (bannerId && (bannerId in BANNERS)) {
-      const b = BANNERS[bannerId as keyof typeof BANNERS];
-      attachments.push({
-        filename: b.file,
-        path: publicPath("banners", b.file),
-        cid: b.cid,
-      });
-    }
-
-    const fromAddr =
-      process.env.MAIL_FROM ||
-      process.env.SMTP_USER ||            // many providers require from === authenticated user
-      "no-reply@example.com";
+    // Nodemailer wants attachments with "cid" (not content_id)
+    const nodeAttachments = (attachmentsForCid as any[]).map(a => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+      cid: a.content_id, // remap for Nodemailer
+    }));
 
     const info = await transporter.sendMail({
-      from: fromAddr,
+      from: `"Status Reports" <no-reply@example.test>`,
       to,
       subject,
       html,
-      attachments,
+      attachments: nodeAttachments,
     });
 
-    // Useful details to debug deliverability
-    const payload: any = {
+    return NextResponse.json({
       ok: true,
+      driver: "ethereal",
       messageId: info.messageId,
       accepted: info.accepted,
       rejected: info.rejected,
       response: info.response,
-    };
-
-    if (usingEthereal) {
-      payload.previewUrl = nodemailer.getTestMessageUrl(info); // open to view the email
-    }
-
-    console.log("[/api/email] sendMail result:", payload);
-    return NextResponse.json(payload);
+      previewUrl: nodemailer.getTestMessageUrl(info),
+    });
   } catch (err: any) {
-    console.error("[/api/email] error:", err);
-    return NextResponse.json({ error: err?.message || "Send failed" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: err?.message || String(err) }, { status: 500 });
   }
 }
