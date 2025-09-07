@@ -1020,7 +1020,7 @@ const pill = (val: string) => {
 // buildEmailHtml Email Report email report
 //
 //
-  const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   const asOf = data.asOf
     ? (() => {
         const [y, m, d] = data.asOf.split("-").map(Number);
@@ -1032,8 +1032,8 @@ const pill = (val: string) => {
       })()
     : "";
 
-  // ---- email-safe style helpers
-  const containerWidth = 700; // fixed width container
+  // ---- email-safe style helpers (fixed-width container)
+  const containerWidth = 700;
   const outerTableStyle =
     `border-collapse:collapse;width:${containerWidth}px;max-width:${containerWidth}px;` +
     `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
@@ -1061,12 +1061,15 @@ const pill = (val: string) => {
   };
 
   const banner = getBannerHtml(true, opts);
-  const processedUpdates    = processRichHtml(data.updatesHtml);
-  const processedMilestones = processRichHtml(data.milestonesHtml);
+  const processedUpdates         = processRichHtml(data.updatesHtml);
+  const processedMilestones      = processRichHtml(data.milestonesHtml);
+  const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
+  const processedRisks           = processRichHtml(data.risksHtml);
+  const processedResources       = processRichHtml(data.resourcesHtml);
   const logoEmail = getLogoImg(true);
 
   return `
-<!-- Fixed-width banner table -->
+<!-- Fixed-width banner -->
 <table role="presentation" align="center" width="${containerWidth}" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr><td style="padding:0;">${banner}</td></tr>
 </table>
@@ -1075,7 +1078,7 @@ const pill = (val: string) => {
 <table role="presentation" align="center" width="${containerWidth}" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr>
     <td style="padding:0;">
-      <!-- Title + summary (+ optional logo on the right) -->
+      <!-- Title + Summary (+ optional logo) -->
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="${titleCell}" bgcolor="#e5e7eb" align="left" valign="middle">
@@ -1166,13 +1169,45 @@ const pill = (val: string) => {
         <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
       </table>` : ""}
 
+      ${data.keyDecisionsHtml ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+          ${escapeHtml(data.keyDecisionsTitle || "Key Decisions")}
+        </td></tr>
+        ${data.keyDecisionsSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          <strong>${escapeHtml(data.keyDecisionsSectionTitle)}</strong>
+        </td></tr>` : ""}
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedKeyDecisions}</td></tr>
+      </table>` : ""}
+
+      ${data.risksHtml ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+          ${escapeHtml(data.risksTitle || "Risks & Issue Mitigation Plan")}
+        </td></tr>
+        ${data.risksSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          <strong>${escapeHtml(data.risksSectionTitle)}</strong>
+        </td></tr>` : ""}
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedRisks}</td></tr>
+      </table>` : ""}
+
+      ${data.resourcesHtml ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+          ${escapeHtml(data.resourcesTitle || "Additional Resources")}
+        </td></tr>
+        ${data.resourcesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          <strong>${escapeHtml(data.resourcesSectionTitle)}</strong>
+        </td></tr>` : ""}
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedResources}</td></tr>
+      </table>` : ""}
+
     </td>
   </tr>
 </table>`;
 };
 
-
-const emailReport = async () => {
+  const emailReport = async () => {
   if (execOver) {
     toast({
       title: "Executive Summary is too long",
