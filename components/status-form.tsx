@@ -1020,6 +1020,157 @@ const pill = (val: string) => {
 // buildEmailHtml Email Report email report
 //
 //
+  const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
+  const asOf = data.asOf
+    ? (() => {
+        const [y, m, d] = data.asOf.split("-").map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      })()
+    : "";
+
+  // ---- email-safe style helpers
+  const containerWidth = 700; // fixed width container
+  const outerTableStyle =
+    `border-collapse:collapse;width:${containerWidth}px;max-width:${containerWidth}px;` +
+    `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
+  const innerTableStyle =
+    "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+
+  const baseFont =
+    `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
+
+  const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
+  const cellLeft   = `${cellBase}text-align:left;vertical-align:top;`;
+  const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
+  const headCell   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+  const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
+  const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
+
+  const emailPill = (s: string) => {
+    const colors = {
+      green:  { bg: "#27c08a", color: "#fff" },
+      yellow: { bg: "#f4c542", color: "#111" },
+      red:    { bg: "#e5534b", color: "#fff" },
+    } as const;
+    const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
+    return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
+  };
+
+  const banner = getBannerHtml(true, opts);
+  const processedUpdates    = processRichHtml(data.updatesHtml);
+  const processedMilestones = processRichHtml(data.milestonesHtml);
+  const logoEmail = getLogoImg(true);
+
+  return `
+<!-- Fixed-width banner table -->
+<table role="presentation" align="center" width="${containerWidth}" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+  <tr><td style="padding:0;">${banner}</td></tr>
+</table>
+
+<!-- Fixed-width outer container -->
+<table role="presentation" align="center" width="${containerWidth}" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:0;">
+      <!-- Title + summary (+ optional logo on the right) -->
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="${titleCell}" bgcolor="#e5e7eb" align="left" valign="middle">
+            ${escapeHtml(data.programTitle || "Your Program/Project Title here")}
+          </td>
+          ${
+            logoEmail
+              ? `<td rowspan="2" style="${logoCell}" bgcolor="#ffffff" align="center" valign="middle" width="${LOGO_WIDTH + 40}">
+                   ${logoEmail}
+                 </td>`
+              : ""
+          }
+        </tr>
+        <tr>
+          <td style="${cellLeft}" bgcolor="#ffffff" align="left" valign="top">
+            ${nlToParas(data.programSummary)}
+          </td>
+        </tr>
+      </table>
+
+      <!-- Status -->
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="${headCell}" bgcolor="#f5f5f5">Last Status</td>
+          <td style="${headCell}" bgcolor="#f5f5f5">Current Status</td>
+          <td style="${headCell}" bgcolor="#f5f5f5">Trending</td>
+          <td style="${headCell}" bgcolor="#f5f5f5">Date</td>
+        </tr>
+        <tr>
+          <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
+          <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.currentStatus)}</td>
+          <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.trending)}</td>
+          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(asOf)}</td>
+        </tr>
+      </table>
+
+      <!-- Team -->
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="${headCell}" bgcolor="#f5f5f5">TPM</td>
+          <td style="${headCell}" bgcolor="#f5f5f5">Engineering DRI</td>
+          <td style="${headCell}" bgcolor="#f5f5f5">Business Sponsor</td>
+          <td style="${headCell}" bgcolor="#f5f5f5">Engineering Sponsor</td>
+        </tr>
+        <tr>
+          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.tpm)}</td>
+          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.engDri)}</td>
+          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.bizSponsor)}</td>
+          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.engSponsor)}</td>
+        </tr>
+      </table>
+
+      ${data.execSummary ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Executive Summary</td></tr>
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
+        </td></tr>
+      </table>` : ""}
+
+      ${data.lowlights ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Lowlights</td></tr>
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          ${linesToList(data.lowlights)}
+        </td></tr>
+      </table>` : ""}
+
+      ${data.updatesHtml ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+          ${escapeHtml(data.updatesTitle || "Top Accomplishments")}
+        </td></tr>
+        ${data.sectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          <strong>${escapeHtml(data.sectionTitle)}</strong>
+        </td></tr>` : ""}
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
+      </table>` : ""}
+
+      ${data.milestonesHtml ? `
+      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+          ${escapeHtml(data.milestonesTitle || "Upcoming Milestones")}
+        </td></tr>
+        ${data.milestonesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+          <strong>${escapeHtml(data.milestonesSectionTitle)}</strong>
+        </td></tr>` : ""}
+        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
+      </table>` : ""}
+
+    </td>
+  </tr>
+</table>`;
+};
+
 
 const emailReport = async () => {
   if (execOver) {
