@@ -289,6 +289,7 @@ const OPT_FIELDS = [
   "optCustomCss",
   "optLogoMode",
   "optLogoUrl",
+  "optBannerMode","optBannerId","optBannerUrl","optBannerCaption",
 ] as const
 
   
@@ -1199,11 +1200,6 @@ const emailReport = async () => {
       payload.bannerId = designOptions.optBannerId; // e.g. "gns" | "azure" | "cie" | ...
     }
 
-    const res = await fetch("/api/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
 
     if (!res.ok) {
       throw new Error(await res.text());
@@ -1241,8 +1237,65 @@ const emailReport = async () => {
   }
 };
 
-// const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
-// const htmlToSend = buildEmailHtml(formData, designOptions);
+const emailReport = async () => {
+  if (execOver) {
+    toast({
+      title: "Executive Summary is too long",
+      description: `Limit is ${EXEC_SUMMARY_PLAIN_LIMIT} plain-text characters.`,
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const recipient = formData.emailTo.trim();
+  if (!recipient) {
+    toast({
+      title: "Email Required",
+      description: "Please enter an email address first.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsEmailing(true);
+  try {
+    const htmlToSend = buildEmailHtml(formData, designOptions);
+
+    // only send bannerId when using CID banners
+    const usingCidBanner =
+      designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+
+    const res = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: recipient,
+        subject: formData.programTitle || "Status Report",
+        html: htmlToSend,
+        bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`API returned ${res.status}: ${errorText}`);
+    }
+
+    toast({
+      title: "Email Sent",
+      description: `Report sent successfully to ${recipient}`,
+    });
+  } catch (error: any) {
+    toast({
+      title: "Email Failed",
+      description: `Failed to send email: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    setIsEmailing(false);
+  }
+};
+
 
  
   
