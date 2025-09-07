@@ -766,6 +766,9 @@ function updateFormData(field: keyof FormData, value: string) {
       )
     )
   )
+//
+// buildhtml section
+//
  const buildHtml = (data: FormData) => {
   const asOf = data.asOf
     ? (() => {
@@ -786,6 +789,10 @@ function updateFormData(field: keyof FormData, value: string) {
 
   const processedUpdates = processRichHtml(data.updatesHtml)
   const processedMilestones = processRichHtml(data.milestonesHtml)
+  const processedKeyDecisions = processRichHtml(data.keyDecisionsHtml)
+  const processedRisks = processRichHtml(data.risksHtml)
+  const processedResources = processRichHtml(data.resourcesHtml)
+
 
   const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
   const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
@@ -914,6 +921,29 @@ function updateFormData(field: keyof FormData, value: string) {
       <table style="width:100%;border-collapse:collapse;">
         <tr><td style="padding:16px;">${processedMilestones}</td></tr>
       </table>` : ""}
+
+
+  ${data.keyDecisionsHtml ? `
+  <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${data.keyDecisionsTitle || "Key Decisions"}</h2>
+  ${data.keyDecisionsSectionTitle ? `<h3 style="font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;">${data.keyDecisionsSectionTitle}</h3>` : ""}
+  <table style="width:100%;border-collapse:collapse;">
+    <tr><td style="padding:16px;">${processedKeyDecisions}</td></tr>
+  </table>` : ""}
+
+  ${data.risksHtml ? `
+  <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${data.risksTitle || "Risks & Issue Mitigation Plan"}</h2>
+  ${data.risksSectionTitle ? `<h3 style="font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;">${data.risksSectionTitle}</h3>` : ""}
+  <table style="width:100%;border-collapse:collapse;">
+    <tr><td style="padding:16px;">${processedRisks}</td></tr>
+  </table>` : ""}
+
+  ${data.resourcesHtml ? `
+  <h2 style="font-size:20px;font-weight:bold;color:#333;margin:24px 0 8px 0;">${data.resourcesTitle || "Additional Resources"}</h2>
+  ${data.resourcesSectionTitle ? `<h3 style="font-size:18px;font-weight:600;color:#555;margin:8px 0 16px 0;">${data.resourcesSectionTitle}</h3>` : ""}
+  <table style="width:100%;border-collapse:collapse;">
+    <tr><td style="padding:16px;">${processedResources}</td></tr>
+  </table>` : ""}
+
 
     </td></tr>
   </table>
@@ -1902,8 +1932,7 @@ const emailReport = async () => {
   </CardContent>
 </Card>
 
-// Risks & Issue Mitigation Plan
-//
+<!-- Risks & Issue Mitigation Plan -->
 <Card>
   <CardHeader>
     <CardTitle>Risks &amp; Issue Mitigation Plan</CardTitle>
@@ -2006,6 +2035,107 @@ const emailReport = async () => {
   </CardContent>
 </Card>
 
+<Card>
+  <CardHeader>
+    <CardTitle>Additional Resources</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="mb-3">
+      <Input
+        type="text"
+        value={formData.resourcesTitle}
+        onChange={(e) => updateFormData("resourcesTitle", e.target.value)}
+        placeholder="Additional Resources [Title (H2)]"
+        className="mt-1 bg-white"
+      />
+    </div>
+
+    <div className="mt-2 mb-3">
+      <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
+      <Input
+        type="text"
+        value={formData.resourcesSectionTitle}
+        onChange={(e) => updateFormData("resourcesSectionTitle", e.target.value)}
+        placeholder="Links, docs, references, owners, etc."
+        className="mt-1 bg-white"
+      />
+    </div>
+
+    <div className="flex gap-1 mb-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => wrapSelection("resourcesHtml", "b")}
+        className="h-8 px-2"
+      >
+        <Bold className="w-3 h-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => wrapSelection("resourcesHtml", "i")}
+        className="h-8 px-2"
+      >
+        <Italic className="w-3 h-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => wrapSelection("resourcesHtml", "u")}
+        className="h-8 px-2"
+      >
+        <Underline className="w-3 h-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-3 ml-2"
+        onClick={() => {
+          updateFormData("resourcesHtml", "")
+          if (resourcesRef.current) resourcesRef.current.innerHTML = ""
+        }}
+      >
+        Clear Field
+      </Button>
+    </div>
+
+    <div
+      ref={resourcesRef}
+      id="resourcesHtml"
+      contentEditable
+      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+      style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
+      onInput={handleResourcesInput}
+      onBlur={handleResourcesBlur}
+      onPaste={handleResourcesPaste}
+      data-placeholder="Paste links, tables, or add formatted notes here…"
+      suppressContentEditableWarning
+    />
+
+    <style jsx>{`
+      #resourcesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
+      #resourcesHtml table th, #resourcesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
+      #resourcesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
+      #resourcesHtml table tr > td:first-child, #resourcesHtml table tr > th:first-child { width: 30%; }
+      #resourcesHtml table tr > td:nth-child(2), #resourcesHtml table tr > th:nth-child(2) { width: 70%; }
+      #resourcesHtml table > tr:nth-of-type(odd) > td, #resourcesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
+      #resourcesHtml table > tr:nth-of-type(even) > td, #resourcesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
+
+      /* First row always gray in-editor */
+      #resourcesHtml table thead tr,
+      #resourcesHtml table tr:first-of-type > th,
+      #resourcesHtml table tr:first-of-type > td {
+        background-color: #f5f5f5 !important;
+      }
+
+      #resourcesHtml p { margin: 0; }
+    `}</style>
+  </CardContent>
+</Card>
 
 
 
