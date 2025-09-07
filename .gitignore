@@ -37,4 +37,3 @@ next-env.d.ts
 
 # keep a template in git
 !.env.example
-
