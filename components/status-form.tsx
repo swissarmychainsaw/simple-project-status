@@ -44,6 +44,19 @@ interface FormData {
   milestonesTitle: string
   milestonesSectionTitle: string
   milestonesHtml: string
+    // NEW sections
+  keyDecisionsTitle: string
+  keyDecisionsSectionTitle: string
+  keyDecisionsHtml: string
+
+  risksTitle: string
+  risksSectionTitle: string
+  risksHtml: string
+
+  resourcesTitle: string
+  resourcesSectionTitle: string
+  resourcesHtml: string
+
 }
 
 interface DesignOptions {
@@ -98,9 +111,21 @@ const SAVE_FIELDS = [
   "milestonesHtml",
   // persist updates content too
   "updatesHtml",
+    "keyDecisionsTitle",
+  "keyDecisionsSectionTitle",
+  "keyDecisionsHtml",
+  "risksTitle",
+  "risksSectionTitle",
+  "risksHtml",
+  "resourcesTitle",
+  "resourcesSectionTitle",
+  "resourcesHtml",
+
 ] as const
 
-const isLargeFieldKey = (k: string) => /(?:updatesHtml|milestonesHtml)/.test(k)
+// const isLargeFieldKey = (k: string) => /(?:updatesHtml|milestonesHtml)/.test(k)
+const isLargeFieldKey = (k: string) =>
+  /(?:updatesHtml|milestonesHtml|keyDecisionsHtml|risksHtml|resourcesHtml)/.test(k)
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 20000,
@@ -181,6 +206,19 @@ const initialFormData: FormData = {
   milestonesTitle: "Upcoming Milestones",
   milestonesSectionTitle: "",
   milestonesHtml: "",
+    // NEW sections
+  keyDecisionsTitle: "Key Decisions",
+  keyDecisionsSectionTitle: "",
+  keyDecisionsHtml: "",
+
+  risksTitle: "Risks & Issue Mitigation Plan",
+  risksSectionTitle: "",
+  risksHtml: "",
+
+  resourcesTitle: "Additional Resources",
+  resourcesSectionTitle: "",
+  resourcesHtml: "",
+
 }
 
 export default function StatusForm() {
@@ -204,6 +242,11 @@ export default function StatusForm() {
   const updatesRef = useRef<HTMLDivElement>(null)
   const milestonesRef = useRef<HTMLDivElement>(null)
   const execSummaryRef = useRef<HTMLDivElement>(null)
+  const keyDecisionsRef = useRef<HTMLDivElement>(null)
+  const risksRef = useRef<HTMLDivElement>(null)
+  const resourcesRef = useRef<HTMLDivElement>(null)
+
+
 
   const { toast } = useToast()
   const [copyRenderedLoading, setIsCopyingRendered] = useState(false)
@@ -1292,6 +1335,80 @@ const emailReport = async () => {
       updateFormData("milestonesHtml", target.innerHTML)
     }
   }
+  // --- Key Decisions handlers ---
+  const handleKeyDecisionsInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("keyDecisionsHtml", target.innerHTML)
+  }
+  const handleKeyDecisionsBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("keyDecisionsHtml", target.innerHTML)
+  }
+  const handleKeyDecisionsPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
+    document.execCommand("insertHTML", false, html)
+    const target = e.currentTarget
+    if (target) {
+      unwrapPsInCellsInPlace(target)
+      updateFormData("keyDecisionsHtml", target.innerHTML)
+    }
+  }
+
+  // --- Risks handlers ---
+  const handleRisksInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("risksHtml", target.innerHTML)
+  }
+  const handleRisksBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("risksHtml", target.innerHTML)
+  }
+  const handleRisksPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
+    document.execCommand("insertHTML", false, html)
+    const target = e.currentTarget
+    if (target) {
+      unwrapPsInCellsInPlace(target)
+      updateFormData("risksHtml", target.innerHTML)
+    }
+  }
+
+  // --- Resources handlers ---
+  const handleResourcesInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("resourcesHtml", target.innerHTML)
+  }
+  const handleResourcesBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target && target.innerHTML !== undefined) updateFormData("resourcesHtml", target.innerHTML)
+  }
+  const handleResourcesPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const rawHtml = e.clipboardData.getData("text/html")
+    const rawText = e.clipboardData.getData("text/plain")
+    let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+    html = unwrapParagraphsInTables(html)
+    html = stripInlineBackgrounds(html)
+    html = sanitizeHtml(html)
+    document.execCommand("insertHTML", false, html)
+    const target = e.currentTarget
+    if (target) {
+      unwrapPsInCellsInPlace(target)
+      updateFormData("resourcesHtml", target.innerHTML)
+    }
+  }
 
   // ---------------------
   // Executive Summary handlers
@@ -1359,6 +1476,26 @@ const emailReport = async () => {
       execSummaryRef.current.innerHTML = formData.execSummary
     }
   }, [formData.execSummary])
+
+  useEffect(() => {
+    if (keyDecisionsRef.current && keyDecisionsRef.current.innerHTML !== formData.keyDecisionsHtml) {
+      keyDecisionsRef.current.innerHTML = formData.keyDecisionsHtml
+    }
+  }, [formData.keyDecisionsHtml])
+
+  useEffect(() => {
+    if (risksRef.current && risksRef.current.innerHTML !== formData.risksHtml) {
+      risksRef.current.innerHTML = formData.risksHtml
+    }
+  }, [formData.risksHtml])
+
+  useEffect(() => {
+    if (resourcesRef.current && resourcesRef.current.innerHTML !== formData.resourcesHtml) {
+      resourcesRef.current.innerHTML = formData.resourcesHtml
+    }
+  }, [formData.resourcesHtml])
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -1619,6 +1756,11 @@ const emailReport = async () => {
   background-color: #f5f5f5 !important;
 }
 
+#milestonesHtml table,
+#keyDecisionsHtml table,
+#risksHtml table,
+#resourcesHtml table { ... }
+
 #milestonesHtml table thead tr,
 #milestonesHtml table tr:first-of-type > th,
 #milestonesHtml table tr:first-of-type > td {
@@ -1706,6 +1848,166 @@ const emailReport = async () => {
                 `}</style>
               </CardContent>
             </Card>
+<Card>
+  <CardHeader><CardTitle>Key Decisions</CardTitle></CardHeader>
+  <CardContent>
+    <div className="mb-3">
+      <Input
+        type="text"
+        value={formData.keyDecisionsTitle}
+        onChange={(e) => updateFormData("keyDecisionsTitle", e.target.value)}
+        placeholder="Key Decisions [Title (H2)]"
+        className="mt-1 bg-white"
+      />
+    </div>
+    <div className="mt-2 mb-3">
+      <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
+      <Input
+        type="text"
+        value={formData.keyDecisionsSectionTitle}
+        onChange={(e) => updateFormData("keyDecisionsSectionTitle", e.target.value)}
+        placeholder="Decision context, scope, etc."
+        className="mt-1 bg-white"
+      />
+    </div>
+    <div className="flex gap-1 mb-2">
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("keyDecisionsHtml", "b")} className="h-8 px-2"><Bold className="w-3 h-3" /></Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("keyDecisionsHtml", "i")} className="h-8 px-2"><Italic className="w-3 h-3" /></Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("keyDecisionsHtml", "u")} className="h-8 px-2"><Underline className="w-3 h-3" /></Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-3 ml-2"
+        onClick={() => {
+          updateFormData("keyDecisionsHtml", "")
+          if (keyDecisionsRef.current) keyDecisionsRef.current.innerHTML = ""
+        }}
+      >
+        Clear Field
+      </Button>
+    </div>
+    <div
+      ref={keyDecisionsRef}
+      id="keyDecisionsHtml"
+      contentEditable
+      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+      style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
+      onInput={handleKeyDecisionsInput}
+      onBlur={handleKeyDecisionsBlur}
+      onPaste={handleKeyDecisionsPaste}
+      data-placeholder="Paste tables, add formatted text, or type key decisions here..."
+      suppressContentEditableWarning
+    />
+  </CardContent>
+</Card>
+
+// Risks & Issue Mitigation Plan
+//
+<Card>
+  <CardHeader>
+    <CardTitle>Risks &amp; Issue Mitigation Plan</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="mb-3">
+      <Input
+        type="text"
+        value={formData.risksTitle}
+        onChange={(e) => updateFormData("risksTitle", e.target.value)}
+        placeholder="Risks & Issue Mitigation Plan [Title (H2)]"
+        className="mt-1 bg-white"
+      />
+    </div>
+
+    <div className="mt-2 mb-3">
+      <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
+      <Input
+        type="text"
+        value={formData.risksSectionTitle}
+        onChange={(e) => updateFormData("risksSectionTitle", e.target.value)}
+        placeholder="Mitigation owners, timelines, status, etc."
+        className="mt-1 bg-white"
+      />
+    </div>
+
+    <div className="flex gap-1 mb-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => wrapSelection("risksHtml", "b")}
+        className="h-8 px-2"
+      >
+        <Bold className="w-3 h-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => wrapSelection("risksHtml", "i")}
+        className="h-8 px-2"
+      >
+        <Italic className="w-3 h-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => wrapSelection("risksHtml", "u")}
+        className="h-8 px-2"
+      >
+        <Underline className="w-3 h-3" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-3 ml-2"
+        onClick={() => {
+          updateFormData("risksHtml", "")
+          if (risksRef.current) risksRef.current.innerHTML = ""
+        }}
+      >
+        Clear Field
+      </Button>
+    </div>
+
+    <div
+      ref={risksRef}
+      id="risksHtml"
+      contentEditable
+      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+      style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
+      onInput={handleRisksInput}
+      onBlur={handleRisksBlur}
+      onPaste={handleRisksPaste}
+      data-placeholder="Paste tables, add formatted text, or type risks & mitigations here..."
+      suppressContentEditableWarning
+    />
+
+    <style jsx>{`
+      #risksHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
+      #risksHtml table th, #risksHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
+      #risksHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
+      #risksHtml table tr > td:first-child, #risksHtml table tr > th:first-child { width: 30%; }
+      #risksHtml table tr > td:nth-child(2), #risksHtml table tr > th:nth-child(2) { width: 70%; }
+      #risksHtml table > tr:nth-of-type(odd) > td, #risksHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
+      #risksHtml table > tr:nth-of-type(even) > td, #risksHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
+
+      /* Ensure first row is always gray in-editor */
+      #risksHtml table thead tr,
+      #risksHtml table tr:first-of-type > th,
+      #risksHtml table tr:first-of-type > td {
+        background-color: #f5f5f5 !important;
+      }
+
+      #risksHtml p { margin: 0; }
+    `}</style>
+  </CardContent>
+</Card>
+
+
+
 
             {/* Design Options */}
             <Card>
