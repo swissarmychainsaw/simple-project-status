@@ -2,86 +2,75 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import path from "path";
-import { readFile } from "fs/promises";
+import { readFileSync } from "fs";
 
-export const runtime = "nodejs";
+// IMPORTANT: keep this on the Node.js runtime (do NOT set runtime="edge")
 const resend = new Resend(process.env.RESEND_API_KEY);
+const MAIL_FROM = process.env.MAIL_FROM || "Status Reports <onboarding@resend.dev>";
 
-// Whitelist of CID-embeddable banners in /public/banners/*
-const BANNERS: Record<string, { filename: string; relPath: string; contentId: string; contentType: string }> = {
-  gns:   { filename: "gns-banner.png",   relPath: "public/banners/gns-banner.png",   contentId: "banner-gns",   contentType: "image/png" },
-  azure: { filename: "azure-banner.png", relPath: "public/banners/azure-banner.png", contentId: "banner-azure", contentType: "image/png" },
-  cie:   { filename: "cie-banner.png",   relPath: "public/banners/cie-banner.png",   contentId: "banner-cie",   contentType: "image/png" },
-  netmig:{ filename: "network-mig.png",  relPath: "public/banners/network-mig.png",  contentId: "banner-netmig",contentType: "image/png" },
-  azlens:{ filename: "azure-lens.png",   relPath: "public/banners/azure-lens.png",   contentId: "banner-azlens",contentType: "image/png" },
-  ipv6:  { filename: "ipv6.png",         relPath: "public/banners/ipv6.png",         contentId: "banner-ipv6", contentType: "image/png" },
-};
+// Map banner keys → file path (under /public) and the CID you use in <img src="cid:...">
+const BANNERS = {
+  gns:   { file: "banners/gns-banner.png",   cid: "banner-gns" },
+  azure: { file: "banners/azure-banner.png", cid: "banner-azure" },
+  cie:   { file: "banners/cie-banner.png",   cid: "banner-cie" },
+  netmig:{ file: "banners/OBN-mig.png",      cid: "banner-netmig" },
+  azlens:{ file: "banners/azure-lens.png",   cid: "banner-azlens" },
+  ipv6:  { file: "banners/ipv6.png",         cid: "banner-ipv6" },
+} as const;
 
-// Inline logo used in HTML as <img src="cid:gns-logo" .../>
-const LOGO = { filename: "gns-logo.png", relPath: "public/gns-logo.png", contentId: "gns-logo", contentType: "image/png" };
+function publicFile(relPath: string) {
+  const abs = path.join(process.cwd(), "public", relPath);
+  return readFileSync(abs); // throws if missing → caught below
+}
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ error: "RESEND_API_KEY is not set" }, { status: 500 });
+    const { to, subject, html, bannerId } = await req.json();
+
+    if (!to || !subject || !html) {
+      return NextResponse.json(
+        { error: "Missing required fields: to, subject, html" },
+        { status: 400 }
+      );
     }
 
-    const body = await req.json();
-    const { to, subject, html, bannerId, embedLogo = true } = body as {
-      to: string | string[];
-      subject?: string;
-      html: string;
-      bannerId?: string;     // one of BANNERS keys if using CID banner
-      embedLogo?: boolean;   // default true; keeps your inline logo working
-    };
+    const attachments: Array<{ filename: string; content: Buffer; cid: string }> = [];
 
-    if (!to || !html) {
-      return NextResponse.json({ error: "Missing 'to' or 'html'." }, { status: 400 });
+    // Inline logo if the HTML references it (src="cid:gns-logo")
+    if ((html as string).includes("cid:gns-logo")) {
+      attachments.push({
+        filename: "gns-logo.png",
+        content: publicFile("gns-logo.png"),
+        cid: "gns-logo",
+      });
     }
 
-    const attachments: Array<{ filename: string; content: Buffer; contentType?: string; contentId?: string }> = [];
-
-    // Attach logo for cid:gns-logo
-    if (embedLogo) {
-      try {
-        const logoBuf = await readFile(path.join(process.cwd(), LOGO.relPath));
-        attachments.push({
-          filename: LOGO.filename,
-          content: logoBuf,
-          contentType: LOGO.contentType,
-          contentId: LOGO.contentId,
-        });
-      } catch (e) {
-        console.warn("Logo not found; skipping inline logo:", e);
-      }
-    }
-
-    // Attach banner for cid:banner-*
-    if (bannerId && BANNERS[bannerId]) {
-      try {
-        const b = BANNERS[bannerId];
-        const buf = await readFile(path.join(process.cwd(), b.relPath));
-        attachments.push({
-          filename: b.filename,
-          content: buf,
-          contentType: b.contentType,
-          contentId: b.contentId,
-        });
-      } catch (e) {
-        console.warn(`Banner '${bannerId}' not found; skipping inline banner:`, e);
-      }
+    // Inline banner if the client asked for a CID banner
+    if (bannerId && (bannerId as keyof typeof BANNERS) in BANNERS) {
+      const { file, cid } = BANNERS[bannerId as keyof typeof BANNERS];
+      attachments.push({
+        filename: path.basename(file),
+        content: publicFile(file),
+        cid,
+      });
     }
 
     const { data, error } = await resend.emails.send({
-      from: process.env.MAIL_FROM ?? "Status Reports <status@yourdomain.com>",
-      to: Array.isArray(to) ? to : [to],
-      subject: subject || "Status Report",
+      from: MAIL_FROM,
+      to,
+      subject,
       html,
-      attachments,
+      attachments: attachments.length ? attachments : undefined,
     });
 
-    if (error) return NextResponse.json({ error }, { status: 500 });
-    return NextResponse.json({ success: true, id: data?.id });
+    if (error) {
+      return NextResponse.json(
+        { error: "Email send failed", detail: error },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ ok: true, id: data?.id ?? null });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Email send failed", detail: err?.message ?? String(err) },
