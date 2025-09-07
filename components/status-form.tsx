@@ -1213,7 +1213,20 @@ const emailReport = async () => {
   }
 };
 
-  
+ const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+const htmlToSend = buildEmailHtml(formData, designOptions);
+
+await fetch("/api/email", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    to: recipient,
+    subject: formData.programTitle || "Status Report",
+    html: htmlToSend,
+    bannerId: usingCidBanner ? designOptions.optBannerId : undefined, // 👈 only when HTML has cid:
+  }),
+});
+ 
   
 
   const generate = async () => {
