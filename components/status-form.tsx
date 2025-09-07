@@ -1160,6 +1160,7 @@ const banner = getBannerHtml(true,  opts);             // in buildEmailHtml(...)
 // Email Report email report
 //
 //
+
 const emailReport = async () => {
   if (execOver) {
     toast({
@@ -1172,11 +1173,7 @@ const emailReport = async () => {
 
   const recipient = formData.emailTo.trim();
   if (!recipient) {
-    toast({
-      title: "Email Required",
-      description: "Please enter an email address first.",
-      variant: "destructive",
-    });
+    toast({ title: "Email required", description: "Please enter an email address first.", variant: "destructive" });
     return;
   }
 
@@ -1184,9 +1181,7 @@ const emailReport = async () => {
   try {
     const htmlToSend = buildEmailHtml(formData, designOptions);
 
-    // only send bannerId when using CID banners
-    const usingCidBanner =
-      designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+    const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
 
     const res = await fetch("/api/email", {
       method: "POST",
@@ -1195,29 +1190,19 @@ const emailReport = async () => {
         to: recipient,
         subject: formData.programTitle || "Status Report",
         html: htmlToSend,
+        // only send when CID is selected – lets the server attach the right file
         bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
       }),
     });
-
-    
-
-  
 
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`API returned ${res.status}: ${errorText}`);
     }
 
-    toast({
-      title: "Email Sent",
-      description: `Report sent successfully to ${recipient}`,
-    });
+    toast({ title: "Email Sent", description: `Report sent successfully to ${recipient}` });
   } catch (error: any) {
-    toast({
-      title: "Email Failed",
-      description: `Failed to send email: ${error.message}`,
-      variant: "destructive",
-    });
+    toast({ title: "Email Failed", description: error?.message || "Unknown error", variant: "destructive" });
   } finally {
     setIsEmailing(false);
   }
