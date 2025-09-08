@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
+import { BANNER_LABELS, BannerKey, normalizeBannerKey } from "@/projectProfiles";
+
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,6 +23,16 @@ export function ReportHeader() {
 }
 
 type ApplyMode = "fill" | "overwrite";
+
+
+const currentProjectKey = normalizeBannerKey(
+  (designOptions.optBannerId as BannerKey) || ""
+);
+const currentProjectLabel =
+  (currentProjectKey && BANNER_LABELS[currentProjectKey]) || "—";
+
+
+
 
 interface FormData {
   programTitle: string
@@ -1931,7 +1943,64 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             </div>
           </div>
         )}
- {/* Design Options */}
+{/* Current Project indicator & preview */}
+<div className="mb-6">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
+        style={{ borderColor: designOptions.optAccent || "#e5e7eb" }}
+      >
+        Project
+      </span>
+      <span className="text-sm font-medium text-gray-800">
+        {currentProjectLabel}
+      </span>
+    </div>
+
+    {/* Optional tiny logo preview (if you’re using a logo URL) */}
+    {designOptions.optLogoMode === "url" && designOptions.optLogoUrl ? (
+      <img
+        src={designOptions.optLogoUrl}
+        alt="Logo preview"
+        className="h-8 w-auto rounded bg-white border"
+      />
+    ) : null}
+  </div>
+
+  {/* Banner preview */}
+  {designOptions.optBannerMode === "url" && designOptions.optBannerUrl ? (
+    <div className="mt-3 overflow-hidden rounded-lg border bg-white">
+      <img
+        src={designOptions.optBannerUrl}
+        alt={`${currentProjectLabel} banner`}
+        className="w-full h-32 object-cover"
+      />
+      {designOptions.optBannerCaption ? (
+        <div className="px-3 py-2 text-sm text-gray-700">
+          {designOptions.optBannerCaption}
+        </div>
+      ) : null}
+    </div>
+  ) : designOptions.optBannerMode !== "none" ? (
+    // Lightweight visual when using CID banners (no external URL to show)
+    <div className="mt-3 rounded-lg border bg-gradient-to-r from-gray-50 to-white p-4">
+      <div className="text-xs text-gray-500 mb-1">Banner preview</div>
+      <div className="text-lg font-semibold leading-tight">
+        {currentProjectLabel}
+      </div>
+      {designOptions.optBannerCaption ? (
+        <div className="text-sm text-gray-600 mt-0.5">
+          {designOptions.optBannerCaption}
+        </div>
+      ) : null}
+    </div>
+  ) : null}
+</div>
+
+        
+        
+        {/* Design Options */}
             <Card>
               <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
               <CardContent className="space-y-4">
