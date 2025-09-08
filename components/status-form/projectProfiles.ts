@@ -1,6 +1,7 @@
 // projectProfiles.ts
 // Central source of truth for per-project presets (design + form defaults)
 // No ReportKind required. Keys are the same ones you show in the Banner picker.
+export const DEFAULT_EMAIL = "swissarmychainsaw@gmail.com";
 
 // Lightweight banner assets used for preview/email CID mapping.
 // PNGs live in /public/banners/*.png
@@ -113,7 +114,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
     engDri: "Antony Alexander",
     bizSponsor: "Niha Mathur",
     engSponsor: "Suchreet Dhaliwal",
-      emailTo: "gns-leads@example.com",
+      emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
       keyDecisionsTitle: "Key Decisions",
@@ -156,7 +157,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       engDri: "Priya Nair",
       bizSponsor: "Chris Walker",
       engSponsor: "Riley Gupta",
-      emailTo: "azure-program@example.com",
+      emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
       keyDecisionsTitle: "Key Decisions",
@@ -183,7 +184,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       engDri: "Noah Singh",
       bizSponsor: "Jamie Li",
       engSponsor: "Alex Romero",
-      emailTo: "cie-stakeholders@example.com",
+      emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
       keyDecisionsTitle: "Key Decisions",
@@ -211,7 +212,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       engDri: "Dev Gupta",
       bizSponsor: "Patricia Brooks",
       engSponsor: "Ethan Cole",
-      emailTo: "obn-core@example.com",
+      emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
       keyDecisionsTitle: "Key Decisions",
@@ -238,7 +239,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       engDri: "Sophia Zhang",
       bizSponsor: "Marcus Lee",
       engSponsor: "Olivia Park",
-      emailTo: "azlens-team@example.com",
+      emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
       keyDecisionsTitle: "Key Decisions",
@@ -265,7 +266,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       engDri: "Hiro Tanaka",
       bizSponsor: "Zoe Martinez",
       engSponsor: "Leo Bennett",
-      emailTo: "ipv6-rollout@example.com",
+      emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
       keyDecisionsTitle: "Key Decisions",
