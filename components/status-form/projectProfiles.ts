@@ -97,10 +97,11 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       programTitle: "Global Network Services",
       programSummary:
         "Operating and evolving the global network platform for scale, reliability, and security.",
-      tpm: "Taylor Reed",
-      engDri: "Jordan Kim",
-      bizSponsor: "Avery Chen",
-      engSponsor: "Samir Patel",
+    // Optional: prefill people if you want
+    tpm: "Nick Adams",
+    engDri: "Antony Alexander",
+    bizSponsor: "Niha Mathur",
+    engSponsor: "Suchreet Dhaliwal",
       emailTo: "gns-leads@example.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
@@ -109,6 +110,22 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       resourcesTitle: "Additional Resources",
     },
   },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
 
   azure: {
     label: BANNER_LABELS.azure,
