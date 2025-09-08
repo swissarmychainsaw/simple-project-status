@@ -1,0 +1,80 @@
+/* Shared editor table styles */
+#updatesHtml table,
+#milestonesHtml table,
+#risksHtml table,
+#resourcesHtml table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+#updatesHtml table th, #updatesHtml table td,
+#milestonesHtml table th, #milestonesHtml table td,
+#risksHtml table th, #risksHtml table td,
+#resourcesHtml table th, #resourcesHtml table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* First row (headers) always gray */
+#updatesHtml table thead tr,
+#updatesHtml table tr:first-of-type > th,
+#updatesHtml table tr:first-of-type > td,
+#milestonesHtml table thead tr,
+#milestonesHtml table tr:first-of-type > th,
+#milestonesHtml table tr:first-of-type > td,
+#risksHtml table thead tr,
+#risksHtml table tr:first-of-type > th,
+#risksHtml table tr:first-of-type > td,
+#resourcesHtml table thead tr,
+#resourcesHtml table tr:first-of-type > th,
+#resourcesHtml table tr:first-of-type > td {
+  background-color: #f5f5f5 !important;
+}
+
+/* Column widths: 30% / 70% for 2-col rows */
+#updatesHtml table tr > td:first-child,
+#updatesHtml table tr > th:first-child,
+#milestonesHtml table tr > td:first-child,
+#milestonesHtml table tr > th:first-child,
+#risksHtml table tr > td:first-child,
+#risksHtml table tr > th:first-child,
+#resourcesHtml table tr > td:first-child,
+#resourcesHtml table tr > th:first-child {
+  width: 30%;
+}
+#updatesHtml table tr > td:nth-child(2),
+#updatesHtml table tr > th:nth-child(2),
+#milestonesHtml table tr > td:nth-child(2),
+#milestonesHtml table tr > th:nth-child(2),
+#risksHtml table tr > td:nth-child(2),
+#risksHtml table tr > th:nth-child(2),
+#resourcesHtml table tr > td:nth-child(2),
+#resourcesHtml table tr > th:nth-child(2) {
+  width: 70%;
+}
+
+/* Row striping (body rows) */
+#updatesHtml table > tbody > tr:nth-of-type(odd) > td,
+#milestonesHtml table > tbody > tr:nth-of-type(odd) > td,
+#risksHtml table > tbody > tr:nth-of-type(odd) > td,
+#resourcesHtml table > tbody > tr:nth-of-type(odd) > td {
+  background-color: #ffffff;
+}
+#updatesHtml table > tbody > tr:nth-of-type(even) > td,
+#milestonesHtml table > tbody > tr:nth-of-type(even) > td,
+#risksHtml table > tbody > tr:nth-of-type(even) > td,
+#resourcesHtml table > tbody > tr:nth-of-type(even) > td {
+  background-color: #f9f9f9;
+}
+
+/* Paragraphs inside editors shouldn’t add extra spacing */
+#updatesHtml p,
+#milestonesHtml p,
+#risksHtml p,
+#resourcesHtml p {
+  margin: 0;
+}
