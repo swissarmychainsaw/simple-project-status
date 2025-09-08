@@ -113,11 +113,12 @@ const BANNERS = {
   gns:   { web: "/banners/gns-banner.png",   cid: "banner-gns",   alt: "GNS — Global Network Services" },
   azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure — Program Status" },
   cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
-  netmig:{ web: "/banners/OBN-mig.png",  cid: "banner-netmig",alt: "One Big Network Migration — Project Status" },
+  obn:   { web: "/banners/OBN-mig.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
   azlens:{ web: "/banners/azure-lens.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
   ipv6:  { web: "/banners/ipv6.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
 } as const;
-type BannerKey = keyof typeof BANNERS;
+
+
 
 
 const BANNER_DEFAULTS: Partial<Record<BannerKey, {
@@ -471,7 +472,7 @@ const PROFILES: Record<
   // Stubs you can flesh out later
   azure: { caption: "Program Status" },
   cie:   { caption: "Program Status" },
-  netmig:{ caption: "Project Status" },
+  obn:{ caption: "Project Status" },
   azlens:{ caption: "Project Status" },
   ipv6:  { caption: "Program Status" },
 };
@@ -1901,7 +1902,13 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     }
   }, [formData.resourcesHtml])
 
-
+  // --- derived project label for the header preview ---
+  const currentProjectKey = useMemo(
+    () => normalizeBannerKey(String(designOptions.optBannerId || "")),
+    [designOptions.optBannerId]
+  )
+  const currentProjectLabel =
+    currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -2064,7 +2071,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
           <SelectItem value="gns">GNS</SelectItem>
           <SelectItem value="azure">Azure</SelectItem>
           <SelectItem value="cie">CIE</SelectItem>
-          <SelectItem value="netmig">One Big Network Migration</SelectItem>
+          <SelectItem value="obn">One Big Network Migration</SelectItem>
           <SelectItem value="azlens">Azure Lens</SelectItem>
           <SelectItem value="ipv6">IPv6 Network</SelectItem>
         </SelectContent>
@@ -2169,7 +2176,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             <SelectItem value="gns">GNS</SelectItem>
             <SelectItem value="azure">Azure</SelectItem>
             <SelectItem value="cie">CIE</SelectItem>
-            <SelectItem value="netmig">Network Migration</SelectItem>
+            <SelectItem value="obn">Network Migration</SelectItem>
             <SelectItem value="azlens">Azure Lens</SelectItem>
             <SelectItem value="ipv6">IPv6</SelectItem>
           </SelectContent>
