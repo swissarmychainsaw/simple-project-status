@@ -12,7 +12,12 @@ import {
   getMergedProfileChanges,
   type BannerKey,
   type DesignOptionsProfile,
+  type BannerMode,
+  type LogoMode,
+  type Density,
+  type Borders,
 } from "@/components/status-form/projectProfiles";
+
 
 
 
@@ -91,17 +96,18 @@ import {
 interface DesignOptions {
   optFont: string
   optAccent: string
-  optDensity: string
-  optBorders: string
+  optDensity: Density
+  optBorders: Borders
   optCustomCss: string
-  optLogoMode: "cid" | "url" | "none"   
-  optLogoUrl: string                  
-  optBannerMode: "url" | "cid" | "none"
+  optLogoMode: LogoMode
+  optLogoUrl: string
+  optBannerMode: BannerMode
   optBannerId: BannerKey
-  optBannerUrl: string        // optional override when mode = "url"
-  optBannerCaption: string    // e.g. "Program Status"
-  optReportKind: ReportKind  
+  optBannerUrl: string
+  optBannerCaption: string
+  optReportKind: ReportKind
 }
+
 
 const statusOptions = ["Green", "Yellow", "Red"]
 const fontOptions = [
@@ -1921,12 +1927,11 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   }, [formData.resourcesHtml])
 
   // --- derived project label for the header preview ---
-  const currentProjectKey = useMemo(
-    () => normalizeBannerKey(String(designOptions.optBannerId || "")),
+    const currentProjectKey = useMemo<BannerKey | undefined>(
+    () => (designOptions.optBannerId as BannerKey) || undefined,
     [designOptions.optBannerId]
   )
-  const currentProjectLabel =
-    currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
+  const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -2522,12 +2527,11 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   </div>
 
   <RichHtmlEditor
-    id="updatesHtml"
     html={formData.updatesHtml}
     onChange={(v) => updateFormData("updatesHtml", v)}
     placeholder="Paste tables, add formatted text, or type updates here..."
   />
-</div>
+
 
 
                 
