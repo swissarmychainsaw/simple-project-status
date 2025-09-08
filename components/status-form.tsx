@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import "./status-form.css";
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -2405,32 +2406,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                     data-placeholder="Paste tables, add formatted text, or type updates here..."
                     suppressContentEditableWarning
                   />
-                  <style jsx>{`
-                    #updatesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
-                    #updatesHtml table th, #updatesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
-                    #updatesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
-                    #updatesHtml table tr > td:first-child, #updatesHtml table tr > th:first-child { width: 30%; }
-                    #updatesHtml table tr > td:nth-child(2), #updatesHtml table tr > th:nth-child(2) { width: 70%; }
-                    #updatesHtml table > tr:nth-of-type(odd) > td, #updatesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
-                    #updatesHtml table > tr:nth-of-type(even) > td, #updatesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
-                    #updatesHtml p { margin: 0; }
-                    #milestonesHtml p { margin: 0; }
-                    /* First row should always be gray in the editor */
-                    #updatesHtml table thead tr,
-#updatesHtml table tr:first-of-type > th,
-#updatesHtml table tr:first-of-type > td {
-  background-color: #f5f5f5 !important;
-}
-
-
-
-#milestonesHtml table thead tr,
-#milestonesHtml table tr:first-of-type > th,
-#milestonesHtml table tr:first-of-type > td {
-  background-color: #f5f5f5 !important;
-}
-
-                  `}</style>
+                  
                 </div>
               </CardContent>
             </Card>
@@ -2487,29 +2463,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                   data-placeholder="Paste tables, add formatted text, or type milestones here..."
                   suppressContentEditableWarning
                 />
-                <style jsx>{`
-                  #milestonesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
-                  #milestonesHtml table th, #milestonesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
-                  #milestonesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
-                  #milestonesHtml table tr > td:first-child, #milestonesHtml table tr > th:first-child { width: 30%; }
-                  #milestonesHtml table tr > td:nth-child(2), #milestonesHtml table tr > th:nth-child(2) { width: 70%; }
-                  #milestonesHtml table > tr:nth-of-type(odd) > td, #milestonesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
-                  #milestonesHtml table > tr:nth-of-type(even) > td, #milestonesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
-                  /* First row should always be gray in the editor */
-                  #updatesHtml table thead tr,
-                  #updatesHtml table tr:first-of-type > th,
-                  #updatesHtml table tr:first-of-type > td {
-                  background-color: #f5f5f5 !important;
-                  }
-
-                  #milestonesHtml table thead tr,
-                  #milestonesHtml table tr:first-of-type > th,
-#milestonesHtml table tr:first-of-type > td {
-  background-color: #f5f5f5 !important;
-}
-
-                `}</style>
-              </CardContent>
+                 </CardContent>
             </Card>
 <Card>
   <CardHeader><CardTitle>Key Decisions</CardTitle></CardHeader>
@@ -2648,24 +2602,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       suppressContentEditableWarning
     />
 
-    <style jsx>{`
-      #risksHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
-      #risksHtml table th, #risksHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
-      #risksHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
-      #risksHtml table tr > td:first-child, #risksHtml table tr > th:first-child { width: 30%; }
-      #risksHtml table tr > td:nth-child(2), #risksHtml table tr > th:nth-child(2) { width: 70%; }
-      #risksHtml table > tr:nth-of-type(odd) > td, #risksHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
-      #risksHtml table > tr:nth-of-type(even) > td, #risksHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
-
-      /* Ensure first row is always gray in-editor */
-      #risksHtml table thead tr,
-      #risksHtml table tr:first-of-type > th,
-      #risksHtml table tr:first-of-type > td {
-        background-color: #f5f5f5 !important;
-      }
-
-      #risksHtml p { margin: 0; }
-    `}</style>
+   
   </CardContent>
 </Card>
 
@@ -2750,25 +2687,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       suppressContentEditableWarning
     />
 
-    <style jsx>{`
-      #resourcesHtml table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
-      #resourcesHtml table th, #resourcesHtml table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; vertical-align: top; }
-      #resourcesHtml table thead tr { background-color: #f5f5f5; font-weight: bold; }
-      #resourcesHtml table tr > td:first-child, #resourcesHtml table tr > th:first-child { width: 30%; }
-      #resourcesHtml table tr > td:nth-child(2), #resourcesHtml table tr > th:nth-child(2) { width: 70%; }
-      #resourcesHtml table > tr:nth-of-type(odd) > td, #resourcesHtml table > tbody > tr:nth-of-type(odd) > td { background-color: #ffffff; }
-      #resourcesHtml table > tr:nth-of-type(even) > td, #resourcesHtml table > tbody > tr:nth-of-type(even) > td { background-color: #f9f9f9; }
-
-      /* First row always gray in-editor */
-      #resourcesHtml table thead tr,
-      #resourcesHtml table tr:first-of-type > th,
-      #resourcesHtml table tr:first-of-type > td {
-        background-color: #f5f5f5 !important;
-      }
-
-      #resourcesHtml p { margin: 0; }
-    `}</style>
-  </CardContent>
+      </CardContent>
 </Card>
  {/* Actions */}
             <Card>
