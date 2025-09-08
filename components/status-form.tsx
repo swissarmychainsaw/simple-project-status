@@ -1508,11 +1508,17 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     }
   }
 
-  const formatHtml = (html: string) =>
-    html.replace(/></g, ">\n<").replace(/(<\/?)(\w+)([^>]*>)/g, (m, p1, p2, p3) => {
-      if (["table", "tr", "th", "td", "h1", "h2", "p", "ul", "li"].includes(p2)) return `${p1}${p2}${p3}`
-      return m
-    })
+ const formatHtml = (html: string) => {
+  const r1 = new RegExp("><", "g");
+  const r2 = new RegExp("(</?)(\\w+)([^>]*>)", "g");
+  return html.replace(r1, ">\n<").replace(r2, (m, p1, p2, p3) => {
+    if (["table", "tr", "th", "td", "h1", "h2", "p", "ul", "li"].includes(p2)) {
+      return `${p1}${p2}${p3}`;
+    }
+    return m;
+  });
+};
+
 
   const copyHtml = async () => {
     if (!generatedHtml) await generate()
