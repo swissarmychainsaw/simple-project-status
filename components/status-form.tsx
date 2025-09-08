@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Bold, Italic, Underline, Copy, Download, RotateCcw, Eye, Code,
+  Bold, Italic, Underline, Copy, Download, RotateCcw, Eye,
   CheckCircle, Shield, Loader2, AlertTriangle, Mail,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -404,9 +404,7 @@ export default function StatusForm() {
   const keyDecisionsRef = useRef<HTMLDivElement>(null)
   const risksRef = useRef<HTMLDivElement>(null)
   const resourcesRef = useRef<HTMLDivElement>(null)
-import { Bold, Italic, Underline, Copy, Download, RotateCcw, Eye,
-  CheckCircle, Shield, Loader2, AlertTriangle, Mail } from "lucide-react"
-
+  
 
 
   const { toast } = useToast()
