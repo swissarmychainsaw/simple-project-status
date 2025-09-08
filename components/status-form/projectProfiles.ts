@@ -2,6 +2,19 @@
 // Central source of truth for per-project presets (design + form defaults)
 // No ReportKind required. Keys are the same ones you show in the Banner picker.
 
+// Lightweight banner assets used for preview/email CID mapping.
+// PNGs live in /public/banners/*.png
+export const BANNERS = {
+  gns:   { web: "/banners/gns-banner.png",   cid: "banner-gns",   alt: "GNS — Global Network Services" },
+  azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure — Program Status" },
+  cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
+  obn:   { web: "/banners/OBN-mig.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
+  azlens:{ web: "/banners/azure-lens.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
+  ipv6:  { web: "/banners/ipv6.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
+} as const;
+
+export type BannerKey = keyof typeof BANNERS;
+
 export type BannerKey = "gns" | "azure" | "cie" | "obn" | "azlens" | "ipv6";
 
 export type BannerMode = "cid" | "url" | "none";
