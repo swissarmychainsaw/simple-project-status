@@ -2028,7 +2028,9 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       className="bg-white"
     />
   </div>
-</div>
+</CardContent>
+</Card>
+
 
                 <div>
                   <Label htmlFor="optFont" className="text-sm font-medium">Font Family</Label>
@@ -2195,6 +2197,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                     className="resize-none bg-white font-mono text-xs"
                   />
                 </div>
+              </div>
               </CardContent>
             </Card>
 
