@@ -2200,9 +2200,6 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
               </div>
 
 
-    )}      // ← add 1 of these
-    )}      // ← add 1 of these
-
               </CardContent>
             </Card>
 
@@ -2738,4 +2735,5 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     </div>         {/* closes page wrapper */}
   )
 }
+
 
