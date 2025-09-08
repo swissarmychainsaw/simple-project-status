@@ -2198,6 +2198,9 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                   />
                 </div>
               </div>
+
+
+    )}      // ← add 1 of these
               </CardContent>
             </Card>
 
