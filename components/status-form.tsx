@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
-import { BANNER_LABELS, BannerKey, normalizeBannerKey } from "@/projectProfiles";
+import { BANNER_LABELS, BannerKey, normalizeBannerKey } from "@/components/status-form/projectProfiles";
+
 
 
 import { Button } from "@/components/ui/button"
