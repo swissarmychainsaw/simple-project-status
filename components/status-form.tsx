@@ -2028,8 +2028,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       className="bg-white"
     />
   </div>
-</CardContent>
-</Card>
+
 
 
                 <div>
@@ -2156,7 +2155,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       />
     </div>
   )}
-</div>
+
 
                 <div>
                   <Label htmlFor="optAccent" className="text-sm font-medium">Accent Color</Label>
