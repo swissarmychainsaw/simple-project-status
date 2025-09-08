@@ -21,6 +21,7 @@ export function ReportHeader() {
   return <Image src="/gns-logo.png" alt="GNS logo" width={120} height={40} priority />
 }
 
+type ApplyMode = "fill" | "overwrite";
 
 interface FormData {
   programTitle: string
@@ -780,10 +781,9 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
 
   const preset = BANNERS[opts.optBannerId];
   const caption = opts.optBannerCaption || "Program Status";
-
-  let src = "";
   const alt = preset?.alt || caption;
 
+  let src = "";
   if (opts.optBannerMode === "url") {
     const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
     src = forEmail ? absoluteUrl(webSrc) : webSrc;
@@ -799,6 +799,16 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
          width="700"
          style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
+
+  // Only show the caption in on-page preview, not in the email
+  return forEmail
+    ? img
+    : `${img}
+        <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+          ${escapeHtml(caption)}
+        </div>`;
+};
+
 
   // Only show the caption in the on-page preview, not in the email
   if (forEmail) return img;
@@ -1102,6 +1112,7 @@ const pill = (val: string) => {
   <title>Status Report</title>
 </head>
 <body style="margin:0;padding:0;">
+  ${getBannerHtml(false, designOptions)}
   <table style="width:700px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
