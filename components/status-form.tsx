@@ -2360,7 +2360,6 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                     maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
                     className="resize-none bg-white"
                   />
-                </div>
 
                 {/* Updates Section */}
                 <div>
