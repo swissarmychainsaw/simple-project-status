@@ -2197,7 +2197,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                     className="resize-none bg-white font-mono text-xs"
                   />
                 </div>
-              </div>
+            
 
 
               </CardContent>
@@ -2360,7 +2360,8 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                     maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
                     className="resize-none bg-white"
                   />
-
+</div> 
+                
                 {/* Updates Section */}
                 <div>
                   <div className="mb-3">
