@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
-import { BANNER_LABELS, BannerKey, normalizeBannerKey } from "@/components/status-form/projectProfiles";
+import { BANNER_LABELS, BannerKey, normalizeBannerKey, getMergedProfileChanges } from "@/components/status-form/projectProfiles";
 
 
 
@@ -660,7 +660,33 @@ const applyProfile = (bannerId: BannerKey, kind?: ReportKind, mode: ApplyMode = 
     updateDesignOptions("optBannerCaption", preset.alt);
   }
 };
+// === Project selector derived labels ===
+const currentProjectKey = useMemo<BannerKey | "">(() => {
+  return normalizeBannerKey((designOptions.optBannerId as BannerKey) || "");
+}, [designOptions.optBannerId]);
 
+const currentProjectLabel = useMemo(() => {
+  return (currentProjectKey && BANNER_LABELS[currentProjectKey]) || "—";
+}, [currentProjectKey]);
+
+// === Apply a project profile into state (without triggering old applyProfile side-effects) ===
+const applyProjectProfile = (key: BannerKey, mode: "fill" | "overwrite" = "overwrite") => {
+  const { design, form } = getMergedProfileChanges(key, mode, designOptions, formData);
+
+  // Merge design options directly, then persist
+  setDesignOptions((prev) => ({ ...prev, ...(design as any) }));
+  Object.entries(design).forEach(([k, v]) => {
+    if (typeof v === "string") safeLocalStorageSet(PERSIST_PREFIX + k, v);
+  });
+
+  // Merge form data, then persist
+  setFormData((prev) => ({ ...prev, ...(form as any) }));
+  Object.entries(form).forEach(([k, v]) => {
+    if (typeof v === "string") persistField(k, v);
+  });
+};
+
+  
   const safeInline = (s: string) =>
     String(s || "")
       .replace(/&/g, "&amp;")
@@ -1997,6 +2023,32 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             <Card>
               <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
               <CardContent className="space-y-4">
+                {/* Project selector */}
+<div>
+  <Label className="text-sm font-medium">Project</Label>
+  <Select
+    value={designOptions.optBannerId as string}
+    onValueChange={(v) => {
+      // Set bannerId, then apply the profile (overwrite to fully populate)
+      setDesignOptions((prev) => ({ ...prev, optBannerId: v as BannerKey }));
+      applyProjectProfile(v as BannerKey, "overwrite");
+    }}
+  >
+    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+    <SelectContent>
+      {PROJECT_KEYS.map((k) => (
+        <SelectItem key={k} value={k}>
+          {BANNER_LABELS[k]}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+  {/* Small helper text */}
+  <p className="text-xs text-gray-500 mt-1">
+    Choosing a project will pre-fill the form with that project&rsquo;s defaults.
+  </p>
+</div>
+
                 {/* Banner controls */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
