@@ -2177,38 +2177,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
               </CardContent>
             </Card>
 
-            {/* Actions */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={generate} disabled={isGenerating || execOver} className="flex-1 min-w-[120px]">
-                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
-                    Generate
-                  </Button>
-                  <Button onClick={copyHtml} disabled={isCopying} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
-                    {isCopying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
-                    Copy HTML
-                  </Button>
-                  <Button onClick={copyRenderedContent} disabled={copyRenderedLoading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
-                    {copyRenderedLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-                    {copyRenderedFeedback || "Copy for Email"}
-                  </Button>
-                  <Button onClick={downloadHtml} disabled={isDownloading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
-                    {isDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                    Download
-                  </Button>
-                  <Button onClick={emailReport} disabled={isEmailing || execOver} variant="default" className="flex-1 min-w-[120px]">
-                    {isEmailing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-                    {isEmailing ? "Sending..." : "Email me this report"}
-                  </Button>
-                  <Button onClick={resetSaved} variant="outline" size="sm">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reset
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+           
 
           {/* Right Column - Preview */}
           <div className="space-y-6">
@@ -2816,7 +2785,38 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     `}</style>
   </CardContent>
 </Card>
-
+ {/* Actions */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={generate} disabled={isGenerating || execOver} className="flex-1 min-w-[120px]">
+                    {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+                    Generate
+                  </Button>
+                  <Button onClick={copyHtml} disabled={isCopying} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
+                    {isCopying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
+                    Copy HTML
+                  </Button>
+                  <Button onClick={copyRenderedContent} disabled={copyRenderedLoading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
+                    {copyRenderedLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                    {copyRenderedFeedback || "Copy for Email"}
+                  </Button>
+                  <Button onClick={downloadHtml} disabled={isDownloading} variant="outline" className="flex-1 min-w-[120px] bg-transparent">
+                    {isDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    Download
+                  </Button>
+                  <Button onClick={emailReport} disabled={isEmailing || execOver} variant="default" className="flex-1 min-w-[120px]">
+                    {isEmailing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                    {isEmailing ? "Sending..." : "Email me this report"}
+                  </Button>
+                  <Button onClick={resetSaved} variant="outline" size="sm">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
 
            
