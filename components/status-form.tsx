@@ -2179,41 +2179,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
            
 
-          {/* Right Column - Preview */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Preview</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant={previewMode === "preview" ? "default" : "outline"} size="sm" onClick={() => setPreviewMode("preview")}>
-                      <Eye className="w-4 h-4 mr-1" />
-                      Preview
-                    </Button>
-                    <Button variant={previewMode === "code" ? "default" : "outline"} size="sm" onClick={() => setPreviewMode("code")}>
-                      <Code className="w-4 h-4 mr-1" />
-                      Code
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {previewMode === "preview" ? (
-                  <div
-                    className="border rounded-lg p-4 bg-white min-h-[400px] overflow-auto"
-                    dangerouslySetInnerHTML={{
-                      __html: generatedHtml || "<p class='text-gray-500'>Click Generate to see preview</p>",
-                    }}
-                  />
-                ) : (
-                  <Textarea
-                    value={generatedHtml || "// Click Generate to see HTML code"}
-                    readOnly
-                    className="font-mono text-xs min-h-[400px] bg-gray-50"
-                  />
-                )}
-              </CardContent>
-            </Card>
+ 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Form */}
           <div className="space-y-6">
