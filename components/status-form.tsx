@@ -2072,7 +2072,8 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       </SelectContent>
     </Select>
   </div>
-
+  </div>
+  
   {designOptions.optBannerMode === "url" && (
     <div>
       <Label className="text-sm font-medium">Banner URL</Label>
