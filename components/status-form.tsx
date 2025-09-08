@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
-import { BANNER_LABELS, BannerKey, normalizeBannerKey, getMergedProfileChanges } from "@/components/status-form/projectProfiles";
+import { BANNER_LABELS, BannerKey, normalizeBannerKey, PROJECT_KEYS, DesignOptionsProfile } from "@/components/status-form/projectProfiles";
+
 
 
 
