@@ -2733,5 +2733,3 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     </div>
   )
 }
-
-
