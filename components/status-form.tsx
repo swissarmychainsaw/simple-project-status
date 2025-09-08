@@ -2722,7 +2722,6 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             </Card>
           </div>
 
-`
            
           </div>
         </div>
