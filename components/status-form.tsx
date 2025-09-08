@@ -55,6 +55,20 @@ interface FormData {
   resourcesHtml: string
 
 }
+import {
+  AlertTriangle,
+  Bold,
+  CheckCircle,
+  Copy,
+  Download,
+  Eye,
+  Italic,
+  Loader2,
+  Mail,
+  RotateCcw,
+  Shield,
+  Underline,
+} from "lucide-react";
 
 interface DesignOptions {
   optFont: string
@@ -330,7 +344,9 @@ const SECURITY_CONFIG = {
   },
   DANGEROUS_PROTOCOLS: /^(javascript:|data:|vbscript:|file:|about:)/i,
   CSS_INJECTION_PATTERNS: /(expression|javascript|@import|behavior|binding)/i,
-  HTML_INJECTION_PATTERNS: /<script|<iframe|<object|<embed|<link|<meta|<base/i,
+  // safer in TSX:
+  HTML_INJECTION_PATTERNS: new RegExp("<(?:script|iframe|object|embed|link|meta|base)", "i"),
+
 }
 
 const initialFormData: FormData = {
