@@ -1935,22 +1935,22 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
               <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {/* Banner controls */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <Label className="text-sm font-medium">Banner mode</Label>
-    <Select
-      value={designOptions.optBannerMode}
-      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cid">Embed inline (CID)</SelectItem>
-        <SelectItem value="url">Load from URL</SelectItem>
-        <SelectItem value="none">No banner</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Banner mode</Label>
+                  <Select
+                  value={designOptions.optBannerMode}
+                  onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+                  >
+                  <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                  <SelectItem value="cid">Embed inline (CID)</SelectItem>
+                  <SelectItem value="url">Load from URL</SelectItem>
+                  <SelectItem value="none">No banner</SelectItem>
+                  </SelectContent>
+                  </Select>
+                  </div>
+                  </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   {/* existing Logo controls ... */}
 
