@@ -8,6 +8,7 @@ import { BANNER_LABELS, BannerKey, normalizeBannerKey } from "@/components/statu
 
 
 
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -107,16 +108,6 @@ const LOGO_WIDTH = 120;               // px
 const LOGO_SRC_WEB = "/gns-logo.png"; // put the PNG in /public
 const LOGO_CID = "gns-logo";          // used for inline-embedded email images
 
-// --- Banners ---
-// Put the PNGs in /public/banners/*.png (recommended size ~1400×280 for good retina; we render width=700)
-const BANNERS = {
-  gns:   { web: "/banners/gns-banner.png",   cid: "banner-gns",   alt: "GNS — Global Network Services" },
-  azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure — Program Status" },
-  cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
-  obn:   { web: "/banners/OBN-mig.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
-  azlens:{ web: "/banners/azure-lens.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
-  ipv6:  { web: "/banners/ipv6.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
-} as const;
 
 
 
