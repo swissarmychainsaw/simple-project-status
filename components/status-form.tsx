@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
@@ -25,12 +25,6 @@ export function ReportHeader() {
 
 type ApplyMode = "fill" | "overwrite";
 
-
-const currentProjectKey = normalizeBannerKey(
-  (designOptions.optBannerId as BannerKey) || ""
-);
-const currentProjectLabel =
-  (currentProjectKey && BANNER_LABELS[currentProjectKey]) || "—";
 
 
 
