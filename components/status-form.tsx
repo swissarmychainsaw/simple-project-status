@@ -787,8 +787,10 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
   let src = "";
   if (opts.optBannerMode === "url") {
     const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
+    // emails need absolute URLs
     src = forEmail ? absoluteUrl(webSrc) : webSrc;
   } else {
+    // "cid" mode
     if (!preset) return "";
     src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
   }
@@ -800,46 +802,13 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
          style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 
-  return forEmail
-    ? img
-    : `${img}
-        <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-          ${escapeHtml(caption)}
-        </div>`;
-};
-
-
   // Only show the caption in on-page preview, not in the email
-  return forEmail
-    ? img
-    : `${img}
-        <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-          ${escapeHtml(caption)}
-        </div>`;
-};
+  if (forEmail) return img;
 
-
-  
-
-
-
-
-
-  
-  // IMPORTANT: omit caption in emails so nothing renders as a line of text above the table
-  const captionHtml = forEmail
-    ? ""
-    : `<div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-         ${escapeHtml(caption)}
-       </div>`;
-
-  return `
-    <img src="${escapeHtml(src)}"
-         alt="${escapeHtml(alt)}"
-         width="700"
-         style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-    ${captionHtml}
-  `;
+  return `${img}
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>`;
 };
 
 
