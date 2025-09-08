@@ -15,8 +15,6 @@ export const BANNERS = {
 
 export type BannerKey = keyof typeof BANNERS;
 
-export type BannerKey = "gns" | "azure" | "cie" | "obn" | "azlens" | "ipv6";
-
 export type BannerMode = "cid" | "url" | "none";
 export type LogoMode = "cid" | "url" | "none";
 export type Density = "comfortable" | "compact";
