@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import "./status-form.css";
+import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -2360,58 +2361,60 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                     className="resize-none bg-white"
                   />
 </div> 
+       {/* Updates Section */}
+<div>
+  <div className="mb-3">
+    <Input
+      type="text"
+      value={formData.updatesTitle}
+      onChange={(e) => updateFormData("updatesTitle", e.target.value)}
+      placeholder="Top Accomplishments [Title (H2)]"
+      className="mt-1 bg-white"
+    />
+  </div>
+
+  <div className="mt-2 mb-3">
+    <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
+    <Input
+      type="text"
+      value={formData.sectionTitle}
+      onChange={(e) => updateFormData("sectionTitle", e.target.value)}
+      placeholder="Security, Automation, Project Track Name, etc."
+      className="mt-1 bg-white"
+    />
+  </div>
+
+  <div className="flex gap-1 mb-2">
+    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "b")} className="h-8 px-2">
+      <Bold className="w-3 h-3" />
+    </Button>
+    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "i")} className="h-8 px-2">
+      <Italic className="w-3 h-3" />
+    </Button>
+    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "u")} className="h-8 px-2">
+      <Underline className="w-3 h-3" />
+    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-8 px-3 ml-2"
+      onClick={() => { updateFormData("updatesHtml", ""); }}
+    >
+      Clear Field
+    </Button>
+  </div>
+
+  <RichHtmlEditor
+    id="updatesHtml"
+    html={formData.updatesHtml}
+    onChange={(v) => updateFormData("updatesHtml", v)}
+    placeholder="Paste tables, add formatted text, or type updates here..."
+  />
+</div>
+
+
                 
-                {/* Updates Section */}
-                <div>
-                  <div className="mb-3">
-                    <Input
-                      type="text"
-                      value={formData.updatesTitle}
-                      onChange={(e) => updateFormData("updatesTitle", e.target.value)}
-                      placeholder="Top Accomplishments [Title (H2)]"
-                      className="mt-1 bg-white"
-                    />
-                  </div>
-                  <div className="mt-2 mb-3">
-                    <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
-                    <Input
-                      type="text"
-                      value={formData.sectionTitle}
-                      onChange={(e) => updateFormData("sectionTitle", e.target.value)}
-                      placeholder="Security, Automation, Project Track Name, etc."
-                      className="mt-1 bg-white"
-                    />
-                  </div>
-                  <div className="flex gap-1 mb-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "b")} className="h-8 px-2"><Bold className="w-3 h-3" /></Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "i")} className="h-8 px-2"><Italic className="w-3 h-3" /></Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "u")} className="h-8 px-2"><Underline className="w-3 h-3" /></Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      
-onClick={() => { updateFormData("updatesHtml", ""); }}
-
-                      Clear Field
-                    </Button>
-                  </div>
-
-
-import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
-// (place this import near the top with your others)
-
-<RichHtmlEditor
-  html={formData.updatesHtml}
-  onChange={(v) => updateFormData("updatesHtml", v)}
-  placeholder="Paste tables, add formatted text, or type updates here..."
-/>
-
-
-
-
-                  
-                </div>
               </CardContent>
             </Card>
 
