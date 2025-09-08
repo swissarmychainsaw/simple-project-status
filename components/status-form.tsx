@@ -4,8 +4,16 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
-import { BANNER_LABELS, BannerKey, normalizeBannerKey, PROJECT_KEYS, DesignOptionsProfile } from "@/components/status-form/projectProfiles";
 
+import {
+  BANNERS,
+  BANNER_LABELS,
+  BannerKey,
+  normalizeBannerKey,
+  PROJECT_KEYS,
+  DesignOptionsProfile,
+  // FormDefaultsProfile   // include if you need it for typing casts
+} from "@/components/status-form/projectProfiles";
 
 
 
