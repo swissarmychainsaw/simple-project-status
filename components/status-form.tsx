@@ -70,6 +70,7 @@ interface DesignOptions {
   optBannerId: BannerKey
   optBannerUrl: string        // optional override when mode = "url"
   optBannerCaption: string    // e.g. "Program Status"
+  optReportKind: ReportKind  
 }
 
 const statusOptions = ["Green", "Yellow", "Red"]
@@ -229,20 +230,7 @@ const PRESETS: Partial<
     },
   },
 };
-const [designOptions, setDesignOptions] = useState<DesignOptions>({
-  optFont: "Inter, Arial, Helvetica, sans-serif",
-  optAccent: "#086dd7",
-  optDensity: "comfortable",
-  optBorders: "lines",
-  optCustomCss: "",
-  optLogoMode: "cid",
-  optLogoUrl: "",
-  optBannerMode: "url",
-  optBannerId: "gns",
-  optBannerUrl: "",
-  optBannerCaption: "Program Status",
-  optReportKind: "weekly", // NEW default
-});
+
 
 
 const PERSIST_PREFIX = "statusReportGenerator."
@@ -616,13 +604,13 @@ useEffect(() => {
 
   // HTML helpers
   const escapeHtml = (s: string) =>
-    String(s || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#x27;")
-type ApplyMode = "fill" | "overwrite";
+  String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+
 
 const applyDefaultsPack = (pack: DefaultsPack, mode: ApplyMode = "fill") => {
   if (!pack) return;
@@ -800,37 +788,27 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
     const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
     src = forEmail ? absoluteUrl(webSrc) : webSrc;
   } else {
-    if (!preset) return "";
-    src = `cid:${preset.cid}`;
-  }
-const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
-  if (opts.optBannerMode === "none") return "";
-
-  const preset = BANNERS[opts.optBannerId];
-  const caption = opts.optBannerCaption || "Program Status";
-
-  let src = "";
-  let alt = (preset?.alt || caption);
-
-  if (opts.optBannerMode === "url") {
-    const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
-    src = forEmail ? absoluteUrl(webSrc) : webSrc;
-  } else {
     // "cid" mode — use CID in email, web path in preview
     if (!preset) return "";
     src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
   }
 
-  return `
+  const img = `
     <img src="${escapeHtml(src)}"
          alt="${escapeHtml(alt)}"
          width="700"
          style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  `;
+
+  // Only show the caption in the on-page preview, not in the email
+  if (forEmail) return img;
+
+  return `${img}
     <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
       ${escapeHtml(caption)}
-    </div>
-  `;
+    </div>`;
 };
+
 
 
 
@@ -2112,9 +2090,13 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       <div>
         <Label className="text-sm font-medium">Preset banner (profile)</Label>
         <Select
-          value={designOptions.optBannerId}
-          onValueChange={(v) => onBannerChange(v as BannerKey)}
-        >
+  value={designOptions.optBannerId}
+  onValueChange={(v) => {
+    updateDesignOptions("optBannerId", v);
+    applyProfile(v as BannerKey, designOptions.optReportKind, "fill"); // optional
+  }}
+>
+
           <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="gns">GNS</SelectItem>
@@ -2130,8 +2112,14 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => applyProfile(designOptions.optBannerId as BannerKey, true)}
-          >
+          onClick={() =>
+            applyProfile(
+              designOptions.optBannerId as BannerKey,
+              designOptions.optReportKind,
+              "overwrite"
+  )
+}
+
             Apply defaults (overwrite)
           </Button>
         </div>
