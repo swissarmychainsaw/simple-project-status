@@ -396,7 +396,7 @@ export default function StatusForm() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [previewMode, setPreviewMode] = useState<"preview" | "code">("preview")
+  // const [previewMode, setPreviewMode] = useState<"preview" | "code">("preview")
   const [securityWarnings, setSecurityWarnings] = useState<string[]>([])
   const updatesRef = useRef<HTMLDivElement>(null)
   const milestonesRef = useRef<HTMLDivElement>(null)
@@ -404,6 +404,8 @@ export default function StatusForm() {
   const keyDecisionsRef = useRef<HTMLDivElement>(null)
   const risksRef = useRef<HTMLDivElement>(null)
   const resourcesRef = useRef<HTMLDivElement>(null)
+import { Bold, Italic, Underline, Copy, Download, RotateCcw, Eye,
+  CheckCircle, Shield, Loader2, AlertTriangle, Mail } from "lucide-react"
 
 
 
@@ -2180,7 +2182,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
            
 
  
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div className="grid grid-cols-1 gap-8">
           {/* Left Column - Form */}
           <div className="space-y-6">
             <Card>
