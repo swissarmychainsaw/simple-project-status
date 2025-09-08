@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
@@ -660,14 +660,7 @@ const applyProfile = (bannerId: BannerKey, kind?: ReportKind, mode: ApplyMode = 
     updateDesignOptions("optBannerCaption", preset.alt);
   }
 };
-// === Project selector derived labels ===
-const currentProjectKey = useMemo<BannerKey | "">(() => {
-  return normalizeBannerKey((designOptions.optBannerId as BannerKey) || "");
-}, [designOptions.optBannerId]);
 
-const currentProjectLabel = useMemo(() => {
-  return (currentProjectKey && BANNER_LABELS[currentProjectKey]) || "—";
-}, [currentProjectKey]);
 
 // === Apply a project profile into state (without triggering old applyProfile side-effects) ===
 const applyProjectProfile = (key: BannerKey, mode: "fill" | "overwrite" = "overwrite") => {
