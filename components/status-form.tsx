@@ -9,10 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Bold, Italic, Underline, Copy, Download, RotateCcw, Eye,
-  CheckCircle, Shield, Loader2, AlertTriangle, Mail,
-} from "lucide-react"
+
 import { useToast } from "@/hooks/use-toast"
 
 // Optional helper used inside your page, NOT default-exported:
