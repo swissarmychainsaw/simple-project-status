@@ -2093,7 +2093,8 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 <Button
   variant="outline"
   size="sm"
-  onClick={() => applyProfile(designOptions.optBannerId, designOptions.optReportKind, "overwrite")}
+  onClick={() => applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")}
+
   className="mt-2"
 >
   Apply profile defaults (overwrite)
