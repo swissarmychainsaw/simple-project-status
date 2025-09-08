@@ -2390,27 +2390,26 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        updateFormData("updatesHtml", "")
-                        if (updatesRef.current) updatesRef.current.innerHTML = ""
-                      }}
-                      className="h-8 px-3 ml-2"
-                    >
+                      
+onClick={() => { updateFormData("updatesHtml", ""); }}
+
                       Clear Field
                     </Button>
                   </div>
-                  <div
-                    ref={updatesRef}
-                    id="updatesHtml"
-                    contentEditable
-                    className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
-                    style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
-                    onInput={handleUpdatesInput}
-                    onBlur={handleUpdatesBlur}
-                    onPaste={handleUpdatesPaste}
-                    data-placeholder="Paste tables, add formatted text, or type updates here..."
-                    suppressContentEditableWarning
-                  />
+
+
+import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
+// (place this import near the top with your others)
+
+<RichHtmlEditor
+  html={formData.updatesHtml}
+  onChange={(v) => updateFormData("updatesHtml", v)}
+  placeholder="Paste tables, add formatted text, or type updates here..."
+/>
+
+
+
+
                   
                 </div>
               </CardContent>
