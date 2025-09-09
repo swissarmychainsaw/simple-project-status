@@ -2023,13 +2023,32 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     </div>
   ) : null}
 </div>
-
-        
- 
-      <Card>
-  
-  <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
+<Card>
+  <CardHeader>
+    <CardTitle>Design Options</CardTitle>
+  </CardHeader>
   <CardContent className="space-y-4">
+    {/* Project selector */}
+    <div>
+      <Label className="text-sm font-medium">Project</Label>
+      <Select
+        value={designOptions.optBannerId}
+        onValueChange={(v) => {
+          updateDesignOptions("optBannerId", v);
+          applyProjectProfile(v as BannerKey, "overwrite");
+        }}
+      >
+        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {PROJECT_KEYS.map((k) => (
+            <SelectItem key={k} value={k}>
+              {BANNER_LABELS[k]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
     {/* Banner mode */}
     <div>
       <Label className="text-sm font-medium">Banner mode</Label>
@@ -2059,9 +2078,10 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       </div>
     )}
 
-    {/* Apply defaults */}
-    <div className="flex md:justify-end">
+    {/* Apply defaults + explainer */}
+    <div className="flex items-start gap-3">
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={() =>
@@ -2070,227 +2090,34 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       >
         Apply profile defaults (overwrite)
       </Button>
+      <p className="text-xs text-gray-600 leading-5">
+        When you click <em>Apply profile defaults (overwrite)</em> we look up the currently
+        selected project’s profile (GNS, OBN, etc.) and overwrite your form fields (title,
+        summary, people, etc.) and design options (banner mode/id/url, accent, etc.) with that
+        project’s saved defaults. It’s the “reset to this project’s baseline” button.
+      </p>
     </div>
   </CardContent>
 </Card>
 
-
-
-           
-
+        
  
-<div className="grid grid-cols-1 gap-8">
-          {/* Left Column - Form */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Content</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Program Title */}
-                <div>
-                  <Label htmlFor="programTitle" className="text-sm font-medium">Program Title</Label>
-                  <Input
-                    id="programTitle"
-                    placeholder="Your Program/Project Title here"
-                    value={formData.programTitle}
-                    onChange={(e) => updateFormData("programTitle", e.target.value)}
-                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                    className="bg-white"
-                  />
-                </div>
-
-                {/* Program Summary */}
-                <div>
-                  <Label htmlFor="programSummary" className="text-sm font-medium">Program Summary</Label>
-                  <Textarea
-                    id="programSummary"
-                    placeholder="Brief description of the program or project…"
-                    value={formData.programSummary}
-                    onChange={(e) => updateFormData("programSummary", e.target.value)}
-                    rows={3}
-                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                    className="resize-none bg-white"
-                  />
-                </div>
-
-                {/* Status Fields */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="lastStatus" className="text-sm font-medium">Last Status</Label>
-                    <Select value={formData.lastStatus} onValueChange={(v) => updateFormData("lastStatus", v)}>
-                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="currentStatus" className="text-sm font-medium">Current Status</Label>
-                    <Select value={formData.currentStatus} onValueChange={(v) => updateFormData("currentStatus", v)}>
-                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="trending" className="text-sm font-medium">Trending</Label>
-                    <Select value={formData.trending} onValueChange={(v) => updateFormData("trending", v)}>
-                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="asOf" className="text-sm font-medium">As of Date</Label>
-                    <Input id="asOf" type="date" value={formData.asOf} onChange={(e) => updateFormData("asOf", e.target.value)} className="bg-white" />
-                  </div>
-                </div>
-
-                {/* Team Fields */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="tpm" className="text-sm font-medium">TPM</Label>
-                    <Input id="tpm" placeholder="Technical Program Manager" value={formData.tpm} onChange={(e) => updateFormData("tpm", e.target.value)} maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH} className="bg-white" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="engDri" className="text-sm font-medium">Engineering DRI</Label>
-                    <Input id="engDri" placeholder="Engineering Lead" value={formData.engDri} onChange={(e) => updateFormData("engDri", e.target.value)} maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH} className="bg-white" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="bizSponsor" className="text-sm font-medium">Business Sponsor</Label>
-                    <Input id="bizSponsor" placeholder="Business Stakeholder" value={formData.bizSponsor} onChange={(e) => updateFormData("bizSponsor", e.target.value)} maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH} className="bg-white" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="engSponsor" className="text-sm font-medium">Engineering Sponsor</Label>
-                    <Input id="engSponsor" placeholder="Engineering Stakeholder" value={formData.engSponsor} onChange={(e) => updateFormData("engSponsor", e.target.value)} maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH} className="bg-white" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="emailTo" className="text-sm font-medium">Email To</Label>
-                    <Input id="emailTo" type="email" placeholder="recipient@example.com" value={formData.emailTo} onChange={(e) => updateFormData("emailTo", e.target.value)} maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH} className="bg-white" />
-                  </div>
-                </div>
-
-                {/* Executive Summary */}
-                <div>
-                  <Label htmlFor="execSummary" className="text-sm font-medium">
-                    Executive Summary
-                    <span style={{ marginLeft: 8, fontWeight: 400, fontSize: 12, color: execOver ? "#b91c1c" : "#6b7280" }}>
-                      ({execLen}/{EXEC_SUMMARY_PLAIN_LIMIT})
-                    </span>
-                  </Label>
-                  <div className="flex gap-1 mt-1.5 mb-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "b")} className="h-8 px-2"><Bold className="w-3 h-3" /></Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "i")} className="h-8 px-2"><Italic className="w-3 h-3" /></Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "u")} className="h-8 px-2"><Underline className="w-3 h-3" /></Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        updateFormData("execSummary", "")
-                        if (execSummaryRef.current) execSummaryRef.current.innerHTML = ""
-                        setExecLen(0)
-                        setExecOver(false)
-                      }}
-                      className="h-8 px-3 ml-2"
-                    >
-                      Clear Field
-                    </Button>
-                  </div>
-                  <div
-                    ref={execSummaryRef}
-                    id="execSummary"
-                    contentEditable
-                    className="min-h-[80px] p-3 border rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
-                    style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%", borderColor: execOver ? "#ef4444" : undefined }}
-                    onInput={handleExecSummaryInput}
-                    onBlur={handleExecSummaryBlur}
-                    onPaste={handleExecSummaryPaste}
-                    data-placeholder="Key outcomes and results…"
-                    suppressContentEditableWarning
-                  />
-                </div>
-
-                {/* Lowlights */}
-                <div>
-                  <Label htmlFor="lowlights" className="text-sm font-medium">Lowlights (one per line)</Label>
-                  <Textarea
-                    id="lowlights"
-                    placeholder="Example: OBN paused for 3 weeks"
-                    value={formData.lowlights}
-                    onChange={(e) => updateFormData("lowlights", e.target.value)}
-                    rows={3}
-                    maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-                    className="resize-none bg-white"
-                  />
-</div> 
-       {/* Updates Section */}
-<div>
-  <div className="mb-3">
-    <Input
-      type="text"
-      value={formData.updatesTitle}
-      onChange={(e) => updateFormData("updatesTitle", e.target.value)}
-      placeholder="Top Accomplishments [Title (H2)]"
-      className="mt-1 bg-white"
-    />
-  </div>
-
-  <div className="mt-2 mb-3">
-    <Label className="text-xs text-gray-600">Section Title (H3, optional)</Label>
-    <Input
-      type="text"
-      value={formData.sectionTitle}
-      onChange={(e) => updateFormData("sectionTitle", e.target.value)}
-      placeholder="Security, Automation, Project Track Name, etc."
-      className="mt-1 bg-white"
-    />
-  </div>
-
-  <div className="flex gap-1 mb-2">
-    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "b")} className="h-8 px-2">
-      <Bold className="w-3 h-3" />
-    </Button>
-    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "i")} className="h-8 px-2">
-      <Italic className="w-3 h-3" />
-    </Button>
-    <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("updatesHtml", "u")} className="h-8 px-2">
-      <Underline className="w-3 h-3" />
-    </Button>
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      className="h-8 px-3 ml-2"
-      onClick={() => { updateFormData("updatesHtml", ""); }}
-    >
-      Clear Field
-    </Button>
-  </div>
-
-  <RichHtmlEditor
-    html={formData.updatesHtml}
-    onChange={(v) => updateFormData("updatesHtml", v)}
-    placeholder="Paste tables, add formatted text, or type updates here..."
-  />
-  </div>
-</div>
 
 
-                
-              </CardContent>
-            </Card>
 
+
+
+
+
+
+
+
+
+
+
+
+
+        
             {/* Milestones Section */}
             <Card>
               <CardHeader><CardTitle>Milestones</CardTitle></CardHeader>
