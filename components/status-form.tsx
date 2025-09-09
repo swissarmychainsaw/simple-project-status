@@ -819,8 +819,42 @@ const absoluteUrl = (p: string) => {
   catch { return p; }
 };
 
-const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
+const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = 700): string => {
   if (opts.optBannerMode === "none") return "";
+
+  // avoid TS error when optBannerId is undefined
+  const preset = opts.optBannerId ? BANNERS[opts.optBannerId as BannerKey] : undefined;
+
+  const caption = opts.optBannerCaption || "Program Status";
+  const alt = preset?.alt || caption;
+
+  let src = "";
+  if (opts.optBannerMode === "url") {
+    const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
+    // emails need absolute URLs
+    src = forEmail ? absoluteUrl(webSrc) : webSrc;
+  } else {
+    // "cid" mode
+    if (!preset) return "";
+    src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
+  }
+
+  const img = `
+    <img src="${escapeHtml(src)}"
+         alt="${escapeHtml(alt)}"
+         width="${maxWidth}"
+         style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  `;
+
+  // Only show caption on on-page preview, not in the email
+  if (forEmail) return img;
+
+  return `${img}
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>`;
+};
+
 
 
   const preset = opts.optBannerId ? BANNERS[opts.optBannerId as BannerKey] : undefined;
@@ -1350,8 +1384,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 const outerTableStyle =
   `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
   `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
-  const innerTableStyle =
-  "border-collapse:collapse;width:100%;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+
 
 
   const baseFont =
