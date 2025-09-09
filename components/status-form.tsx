@@ -801,6 +801,7 @@ const getLogoImg = (forEmail: boolean): string => {
     // "cid" mode: email uses CID, preview uses web path
     src = forEmail ? `cid:${LOGO_CID}` : LOGO_SRC_WEB
   }
+const EMAIL_MAX_WIDTH = 760; // good for desktop, scales on mobile
 
   // very light sanity check: only allow http/https/cid in src
   const ok = /^(cid:|https?:\/\/|\/)/i.test(src)
@@ -819,22 +820,18 @@ const absoluteUrl = (p: string) => {
   catch { return p; }
 };
 
-const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = 700): string => {
+const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = EMAIL_MAX_WIDTH): string => {
   if (opts.optBannerMode === "none") return "";
 
-  // avoid TS error when optBannerId is undefined
   const preset = opts.optBannerId ? BANNERS[opts.optBannerId as BannerKey] : undefined;
-
   const caption = opts.optBannerCaption || "Program Status";
   const alt = preset?.alt || caption;
 
   let src = "";
   if (opts.optBannerMode === "url") {
-    const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
-    // emails need absolute URLs
-    src = forEmail ? absoluteUrl(webSrc) : webSrc;
+    const webSrc = (opts.optBannerUrl || preset?.web || "").trim();
+    src = forEmail ? absoluteUrl(webSrc) : webSrc; // emails must be absolute
   } else {
-    // "cid" mode
     if (!preset) return "";
     src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
   }
@@ -846,6 +843,14 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = 700): 
          style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 
+  // Only caption in on-page preview
+  if (forEmail) return img;
+
+  return `${img}
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>`;
+};
   // Only show caption on on-page preview, not in the email
   if (forEmail) return img;
 
@@ -876,8 +881,8 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = 700): 
   const img = `
     <img src="${escapeHtml(src)}"
          alt="${escapeHtml(alt)}"
-         width="700"
-         style="display:block;width:100%;max-width:700px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+         width="${EMAIL_MAX_WIDTH}"
+         style="display:block;width:100%;max-width:${EMAIL_MAX_WIDTH};height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 
   // Only show the caption in on-page preview, not in the email
@@ -1221,8 +1226,10 @@ const pill = (val: string) => {
   <title>Status Report</title>
 </head>
 <body style="margin:0;padding:0;">
-  ${getBannerHtml(false, designOptions)}
-  <table style="width:700px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
+  ${getBannerHtml(false, designOptions, EMAIL_MAX_WIDTH)}
+
+  <table style="width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
+
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
@@ -1380,8 +1387,13 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     : "";
 
   // ---- email-safe style helpers (fixed-width container)
-  const containerWidth = 900;
-const outerTableStyle =
+const containerWidth = EMAIL_MAX_WIDTH;
+
+
+
+
+
+  const outerTableStyle =
   `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
   `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
 
@@ -1408,6 +1420,7 @@ const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:bre
   };
 
 const banner = getBannerHtml(true, opts, containerWidth);
+  
   const processedUpdates         = processRichHtml(data.updatesHtml);
   const processedMilestones      = processRichHtml(data.milestonesHtml);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
