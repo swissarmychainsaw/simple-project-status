@@ -11,7 +11,7 @@ export const BANNERS = {
   cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
   obn:   { web: "/banners/obn-banner.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
   azlens:{ web: "/banners/azure-lens.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
-  ipv6:  { web: "/banners/ipv6.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
+  ipv6:  { web: "/banners/ipv6-banner.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
 } as const;
 
 export type BannerKey = keyof typeof BANNERS;
@@ -258,10 +258,10 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       optDensity: "compact",
     },
     defaults: {
-      programTitle: "IPv6 Network Enablement",
+      programTitle: "Azure IPv6 Network Enablement",
       programSummary:
-        "Rolling out IPv6 dual-stack capabilities to services, endpoints, and networks.",
-      tpm: "Ariana Fox",
+        "Azure IPv6 Network enables dual-stack IPv4/IPv6 networking in Azure to support long-term scalability, mitigate IPv4 exhaustion, and prepare LinkedIn’s Azure infrastructure for full IPv6 adoption. It involves cross-functional collaboration between FAST, GNS, Euclid, Compute, and Cloud teams. Core efforts include Azure VNet provisioning, Euclid integration, NSG/NACL updates, and firewall readiness to support IPv6 across development and production networks.",
+      tpm: "Nick Adams",
       engDri: "Antony Alexander Christie ",
       bizSponsor: "Niha Mathur",
       engSponsor: "Suchreet Dhaliwal",
