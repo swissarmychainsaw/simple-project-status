@@ -101,10 +101,10 @@ interface DesignOptions {
   optCustomCss: string
   optLogoMode: LogoMode
   optLogoUrl: string
-  optBannerMode: BannerMode
-  optBannerId: BannerKey
-  optBannerUrl: string
-  optBannerCaption: string
+  optMode: Mode
+  optId: Key
+  optUrl: string
+  optCaption: string
   optReportKind: ReportKind
 }
 
@@ -2025,304 +2025,112 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
         
         
-        {/* Design Options */}
-            <Card>
-              <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {/* Project selector */}
-<div>
-  <Label className="text-sm font-medium">Project</Label>
-  <Select
-    value={designOptions.optBannerId as string}
-    onValueChange={(v) => {
-      // Set bannerId, then apply the profile (overwrite to fully populate)
-      setDesignOptions((prev) => ({ ...prev, optBannerId: v as BannerKey }));
-      applyProjectProfile(v as BannerKey, "overwrite");
-    }}
-  >
-    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-    <SelectContent>
-      {PROJECT_KEYS.map((k) => (
-        <SelectItem key={k} value={k}>
-          {BANNER_LABELS[k]}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-  {/* Small helper text */}
-  <p className="text-xs text-gray-500 mt-1">
-    Choosing a project will pre-fill the form with that project&rsquo;s defaults.
-  </p>
-</div>
-
-                {/* Banner controls */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Banner mode</Label>
-                  <Select
-                  value={designOptions.optBannerMode}
-                  onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
-                  >
-                  <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                  <SelectItem value="cid">Embed inline (CID)</SelectItem>
-                  <SelectItem value="url">Load from URL</SelectItem>
-                  <SelectItem value="none">No banner</SelectItem>
-                  </SelectContent>
-                  </Select>
-                  </div>
-                  </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {/* existing Logo controls ... */}
-
-  {/* Report Type */}
-  <div>
-    <Label className="text-sm font-medium">Report Type</Label>
-    <Select
-      value={designOptions.optReportKind}
-      onValueChange={(v) => updateDesignOptions("optReportKind", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="weekly">Weekly</SelectItem>
-        <SelectItem value="monthly">Monthly</SelectItem>
-        <SelectItem value="quarterly">Quarterly</SelectItem>
-        <SelectItem value="program">Program</SelectItem>
-        <SelectItem value="project">Project</SelectItem>
-        <SelectItem value="ops">Ops</SelectItem>
-        <SelectItem value="exec">Executive</SelectItem>
-        <SelectItem value="incident">Incident</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-</div>
-<Button
-  variant="outline"
-  size="sm"
-  onClick={() => applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")}
-
-  className="mt-2"
->
-  Apply profile defaults (overwrite)
-</Button>
-
-
-  
-  {designOptions.optBannerMode === "cid" && (
-    <div>
-      <Label className="text-sm font-medium">Banner preset</Label>
-      <Select
-        value={designOptions.optBannerId}
-        onValueChange={(v) => updateDesignOptions("optBannerId", v)}
-      >
-        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {/* keep this list in sync with BANNERS keys */}
-          <SelectItem value="gns">GNS</SelectItem>
-          <SelectItem value="azure">Azure</SelectItem>
-          <SelectItem value="cie">CIE</SelectItem>
-          <SelectItem value="obn">One Big Network Migration</SelectItem>
-          <SelectItem value="azlens">Azure Lens</SelectItem>
-          <SelectItem value="ipv6">IPv6 Network</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  )}
-
-  {designOptions.optBannerMode === "url" && (
-    <div>
-      <Label className="text-sm font-medium">Banner URL (absolute)</Label>
-      <Input
-        placeholder="https://cdn.example.com/banners/custom.png"
-        value={designOptions.optBannerUrl}
-        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
-        className="bg-white"
-      />
-    </div>
-  )}
-
-  <div className="md:col-span-2">
-    <Label className="text-sm font-medium">Banner caption (optional)</Label>
-    <Input
-      placeholder="Program Status"
-      value={designOptions.optBannerCaption}
-      onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
-      className="bg-white"
-    />
-  </div>
-
-
-
-                <div>
-                  <Label htmlFor="optFont" className="text-sm font-medium">Font Family</Label>
-                  <Select value={designOptions.optFont} onValueChange={(v) => updateDesignOptions("optFont", v)}>
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {fontOptions.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <Label className="text-sm font-medium">Logo mode</Label>
-    <Select
-      value={designOptions.optLogoMode}
-      onValueChange={(v) => updateDesignOptions("optLogoMode", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cid">Embed inline (CID)</SelectItem>
-        <SelectItem value="url">Load from URL</SelectItem>
-        <SelectItem value="none">Hide logo</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-
-
-{/* Banner & Profile */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div>
-    <Label className="text-sm font-medium">Banner mode</Label>
-    <Select
-      value={designOptions.optBannerMode}
-      onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
-    >
-      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cid">Embed inline (CID)</SelectItem>
-        <SelectItem value="url">Load from URL</SelectItem>
-        <SelectItem value="none">No banner</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-  </div>
-  
-  {designOptions.optBannerMode === "url" && (
-    <div>
-      <Label className="text-sm font-medium">Banner URL</Label>
-      <Input
-        placeholder="https://…/banner.png"
-        value={designOptions.optBannerUrl}
-        onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
-        className="bg-white"
-      />
-    </div>
-  )}
-
-  {designOptions.optBannerMode !== "none" && (
-    <>
+     <Card>
+  <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
+  <CardContent className="space-y-4">
+    {/* Row 1: Banner + Logo */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Banner mode */}
       <div>
-        <Label className="text-sm font-medium">Preset banner (profile)</Label>
+        <Label className="text-sm font-medium">Banner mode</Label>
         <Select
-  value={designOptions.optBannerId}
-  onValueChange={(v) => {
-    updateDesignOptions("optBannerId", v);
-    applyProfile(v as BannerKey, designOptions.optReportKind, "fill"); // optional
-  }}
->
+          value={designOptions.optBannerMode}
+          onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+        >
+          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cid">Embed inline (CID)</SelectItem>
+            <SelectItem value="url">Load from URL</SelectItem>
+            <SelectItem value="none">No banner</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
+      {/* Logo mode */}
+      <div>
+        <Label className="text-sm font-medium">Logo mode</Label>
+        <Select
+          value={designOptions.optLogoMode}
+          onValueChange={(v) => updateDesignOptions("optLogoMode", v)}
+        >
+          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cid">Embed inline (CID)</SelectItem>
+            <SelectItem value="url">Load from URL</SelectItem>
+            <SelectItem value="none">Hide logo</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+
+    {/* Row 2: Banner preset / URL */}
+    {designOptions.optBannerMode === "cid" && (
+      <div>
+        <Label className="text-sm font-medium">Banner preset</Label>
+        <Select
+          value={designOptions.optBannerId}
+          onValueChange={(v) => {
+            updateDesignOptions("optBannerId", v);
+            applyProjectProfile(v as BannerKey, "fill");
+          }}
+        >
           <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="gns">GNS</SelectItem>
             <SelectItem value="azure">Azure</SelectItem>
             <SelectItem value="cie">CIE</SelectItem>
-            <SelectItem value="obn">Network Migration</SelectItem>
+            <SelectItem value="obn">One Big Network Migration</SelectItem>
             <SelectItem value="azlens">Azure Lens</SelectItem>
-            <SelectItem value="ipv6">IPv6</SelectItem>
+            <SelectItem value="ipv6">IPv6 Network</SelectItem>
           </SelectContent>
         </Select>
-        <div className="flex gap-2 mt-2">
-         <Button
-  type="button"
-  size="sm"
-  variant="outline"
-  onClick={() =>
-    applyProfile(
-      designOptions.optBannerId as BannerKey,
-      designOptions.optReportKind,
-      "overwrite"
-    )
-  }
->
-  Apply defaults (overwrite)
-</Button>
-
-        </div>
       </div>
+    )}
 
+    {designOptions.optBannerMode === "url" && (
       <div>
-        <Label className="text-sm font-medium">Banner caption</Label>
+        <Label className="text-sm font-medium">Banner URL (absolute)</Label>
         <Input
-          placeholder="Program Status"
-          value={designOptions.optBannerCaption}
-          onChange={(e) => updateDesignOptions("optBannerCaption", e.target.value)}
+          placeholder="https://cdn.example.com/banners/custom.png"
+          value={designOptions.optBannerUrl}
+          onChange={(e) => updateDesignOptions("optBannerUrl", e.target.value)}
           className="bg-white"
         />
       </div>
-    </>
-  )}
-</div>
+    )}
 
+    {/* Row 3: Font + Apply defaults */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+      <div>
+        <Label className="text-sm font-medium">Font Family</Label>
+        <Select
+          value={designOptions.optFont}
+          onValueChange={(v) => updateDesignOptions("optFont", v)}
+        >
+          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {fontOptions.map((f) => (
+              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-  
-
-  {designOptions.optLogoMode === "url" && (
-    <div>
-      <Label className="text-sm font-medium">Logo URL (http/https)</Label>
-      <Input
-        placeholder="https://example.com/path/logo.png"
-        value={designOptions.optLogoUrl}
-        onChange={(e) => updateDesignOptions("optLogoUrl", e.target.value)}
-        className="bg-white"
-      />
+      <div className="flex md:justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
+          }
+        >
+          Apply profile defaults (overwrite)
+        </Button>
+      </div>
     </div>
-  )}
+  </CardContent>
+</Card>
 
-
-                <div>
-                  <Label htmlFor="optAccent" className="text-sm font-medium">Accent Color</Label>
-                  <Input id="optAccent" type="color" value={designOptions.optAccent} onChange={(e) => updateDesignOptions("optAccent", e.target.value)} className="bg-white h-10" />
-                </div>
-
-                <div>
-                  <Label htmlFor="optDensity" className="text-sm font-medium">Density</Label>
-                  <Select value={designOptions.optDensity} onValueChange={(v) => updateDesignOptions("optDensity", v)}>
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="comfortable">Comfortable</SelectItem>
-                      <SelectItem value="compact">Compact</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="optBorders" className="text-sm font-medium">Table Style</Label>
-                  <Select value={designOptions.optBorders} onValueChange={(v) => updateDesignOptions("optBorders", v)}>
-                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lines">Lines</SelectItem>
-                      <SelectItem value="shaded">Shaded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="optCustomCss" className="text-sm font-medium">Custom CSS</Label>
-                  <Textarea
-                    id="optCustomCss"
-                    placeholder="Add custom CSS styles…"
-                    value={designOptions.optCustomCss}
-                    onChange={(e) => updateDesignOptions("optCustomCss", e.target.value)}
-                    rows={3}
-                    maxLength={SECURITY_CONFIG.MAX_CSS_LENGTH}
-                    className="resize-none bg-white font-mono text-xs"
-                  />
-                </div>
-            
-
-
-              </CardContent>
-            </Card>
 
            
 
