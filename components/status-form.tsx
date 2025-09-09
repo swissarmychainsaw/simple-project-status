@@ -913,6 +913,24 @@ design.optLogoMode = "none"; // force logos off globally
   // add near the other color consts
 const HEADER_BG = "#f5f5f5";
 
+const header = sectionHeaderRow("Executive Summary");
+console.log('H1:', header);                           // expect: <tr><td style="...">Executive Summary</td></tr>
+
+const afterStripe = stripeTables(header);
+console.log('H2:', afterStripe);                      // still should start with <tr><td ...
+
+const html = /* your full table string */ ;
+const finalHtml = /* whatever you render */;
+const spot = finalHtml.indexOf('Executive Summary');
+console.log('H3:', finalHtml.slice(spot - 60, spot + 60));
+
+
+
+
+
+
+
+  
 // replace your current stripeTables with this version
 const stripeTables = (html: string): string => {
   if (!html) return html
