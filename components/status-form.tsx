@@ -70,7 +70,7 @@ interface FormData {
   keyDecisionsTitle: string
   keyDecisionsSectionTitle: string
   keyDecisionsHtml: string
-
+  highlightsHtml: string
   risksTitle: string
   risksSectionTitle: string
   risksHtml: string
@@ -351,6 +351,7 @@ const SAVE_FIELDS = [
   "engSponsor",
   "execSummaryTitle",
   "highlightsTitle",
+  "highlightsHtml",  
   "sectionTitle",
   "updatesTitle",
   "emailTo",
@@ -375,7 +376,11 @@ const SAVE_FIELDS = [
 
 // const isLargeFieldKey = (k: string) => /(?:updatesHtml|milestonesHtml)/.test(k)
 const isLargeFieldKey = (k: string) =>
-  /(?:updatesHtml|milestonesHtml|keyDecisionsHtml|risksHtml|resourcesHtml)/.test(k)
+  /(?:updatesHtml|milestonesHtml|keyDecisionsHtml|risksHtml|resourcesHtml|highlightsHtml)/.test(k)
+
+
+const highlightsRef = useRef<HTMLDivElement>(null)
+
 
 const SECURITY_CONFIG = {
   MAX_FIELD_LENGTH: 20000,
@@ -447,8 +452,9 @@ const initialFormData: FormData = {
   engDri: "",
   bizSponsor: "",
   engSponsor: "",
-   execSummaryTitle: "Executive Summary",
+  execSummaryTitle: "Executive Summary",
   highlightsTitle: "Highlights / Accomplishments",
+  highlightsHtml: "", 
   updatesTrack: "",
   updatesTeam: "",
   updatesHtml: "",
@@ -506,7 +512,34 @@ export default function StatusForm() {
   const keyDecisionsRef = useRef<HTMLDivElement>(null)
   const risksRef = useRef<HTMLDivElement>(null)
   const resourcesRef = useRef<HTMLDivElement>(null)
+  const highlightsRef = useRef<HTMLDivElement>(null)
+
   
+const handleHighlightsInput = (e: React.FormEvent<HTMLDivElement>) => {
+  const target = e.currentTarget
+  if (target && target.innerHTML !== undefined) updateFormData("highlightsHtml", target.innerHTML)
+}
+
+const handleHighlightsBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+  const target = e.currentTarget
+  if (target && target.innerHTML !== undefined) updateFormData("highlightsHtml", target.innerHTML)
+}
+
+const handleHighlightsPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  e.preventDefault()
+  const rawHtml = e.clipboardData.getData("text/html")
+  const rawText = e.clipboardData.getData("text/plain")
+  let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
+  html = unwrapParagraphsInTables(html)
+  html = stripInlineBackgrounds(html)
+  html = sanitizeHtml(html)
+  document.execCommand("insertHTML", false, html)
+  const target = e.currentTarget
+  if (target) {
+    unwrapPsInCellsInPlace(target)
+    updateFormData("highlightsHtml", target.innerHTML)
+  }
+}
 
 
   const { toast } = useToast()
@@ -593,6 +626,19 @@ const PROFILES: Record<
     }
   }
 
+
+useEffect(() => {
+  if (highlightsRef.current && highlightsRef.current.innerHTML !== formData.highlightsHtml) {
+    highlightsRef.current.innerHTML = formData.highlightsHtml
+  }
+}, [formData.highlightsHtml])
+
+
+
+
+
+
+  
 // Load persisted data on mount + seed example data if empty
 useEffect(() => {
   SAVE_FIELDS.forEach((field) => {
@@ -615,6 +661,21 @@ useEffect(() => {
     }
   })
 
+
+ // --- Migrate legacy 'lowlights' (plain text) to rich 'highlightsHtml' once ---
+ // Read from localStorage directly to avoid race with setState above.
+  const savedHighlights = safeLocalStorageGet(PERSIST_PREFIX + "highlightsHtml")
+  const savedLowlights  = safeLocalStorageGet(PERSIST_PREFIX + "lowlights")
+  if (!savedHighlights && savedLowlights) {
+    const migrated = linesToList(savedLowlights)                  // you already have this helper
+    const normalized = normalizeEditorHtml(migrated)              // keeps sanitization consistent
+    setFormData((prev) => ({ ...prev, highlightsHtml: normalized }))
+    safeLocalStorageSet(PERSIST_PREFIX + "highlightsHtml", normalized)
+  }
+
+
+
+  
   // seed example data (unchanged)...
   const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
   if (!savedSummary) {
@@ -1186,7 +1247,7 @@ const pill = (val: string) => {
   const processedKeyDecisions = processRichHtml(data.keyDecisionsHtml)
   const processedRisks = processRichHtml(data.risksHtml)
   const processedResources = processRichHtml(data.resourcesHtml)
-
+ //  const processedHighlights = processRichHtml(data.highlightsHtml);
 
   const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
   const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
@@ -1293,16 +1354,15 @@ ${data.execSummary ? `
   </td>
 </tr>` : ""}
 
-<!-- Highlights / Accomplishments (formerly Lowlights) -->
-${data.lowlights ? `
-<tr>
-  <td colspan="1" style="${oddRowStyle}">
-    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
-      ${escapeHtml(data.highlightsTitle || "Highlights / Accomplishments")}
-    </h3>
-    <div style="margin:0;font-size:16px;color:#333333;">${linesToList(data.lowlights)}</div>
-  </td>
-</tr>` : ""}
+<!-- Highlights / Accomplishments -->
+${(data.highlightsHtml || data.lowlights) ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+      ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
+    </td></tr>
+  </table>` : ""}
+
 
 
       </table>
@@ -1462,6 +1522,8 @@ const banner = getBannerHtml(true, opts, containerWidth);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
   const processedRisks           = processRichHtml(data.risksHtml);
   const processedResources       = processRichHtml(data.resourcesHtml);
+  const processedHighlights = processRichHtml(data.highlightsHtml)
+
 
   return `
 <!-- Fixed-width banner -->
@@ -1537,13 +1599,19 @@ ${data.execSummary ? `
     </td></tr>
   </table>` : ""}
 
-<!-- Highlights / Accomplishments (formerly Lowlights) -->
-${data.lowlights ? `
-  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-    ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
-    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-      ${linesToList(data.lowlights)}
-    </td></tr>
+<!-- Highlights / Accomplishments -->
+${(data.highlightsHtml || data.lowlights) ? `
+<tr>
+  <td colspan="1" style="${oddRowStyle}">
+    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
+      ${escapeHtml(data.highlightsTitle || "Highlights / Accomplishments")}
+    </h3>
+    <div style="margin:0;font-size:16px;color:#333333;">
+      ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
+    </div>
+  </td>
+</tr>` : ""}
+
   </table>` : ""}
 
 
@@ -2025,6 +2093,12 @@ ${data.resourcesHtml ? `
   }, [formData.milestonesHtml])
 
   useEffect(() => {
+  if (highlightsRef.current && highlightsRef.current.innerHTML !== formData.highlightsHtml) {
+    highlightsRef.current.innerHTML = formData.highlightsHtml
+  }
+}, [formData.highlightsHtml])
+
+  useEffect(() => {
     if (execSummaryRef.current) {
       const html = execSummaryRef.current.innerHTML || ""
       const len = getPlainTextLength(html)
@@ -2393,17 +2467,35 @@ ${data.resourcesHtml ? `
       />
     </div>
 
-    <Label className="text-xs text-gray-600">
-      One item per line; we’ll convert lines to bullets in the output
-    </Label>
-    <Textarea
-      id="lowlights"
-      value={formData.lowlights}
-      onChange={(e) => updateFormData("lowlights", e.target.value)}
-      rows={8} 
-      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-      placeholder={`text goes here...`}
-      className="mt-1 resize-none bg-white"
+    <div className="flex gap-1 mb-2">
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("highlightsHtml", "b")} className="h-8 px-2">Bold</Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("highlightsHtml", "i")} className="h-8 px-2">Italic</Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("highlightsHtml", "u")} className="h-8 px-2">Underline</Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-3 ml-2"
+        onClick={() => {
+          updateFormData("highlightsHtml", "")
+          if (highlightsRef.current) highlightsRef.current.innerHTML = ""
+        }}
+      >
+        Clear Field
+      </Button>
+    </div>
+
+    <div
+      ref={highlightsRef}
+      id="highlightsHtml"
+      contentEditable
+      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+      style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
+      onInput={handleHighlightsInput}
+      onBlur={handleHighlightsBlur}
+      onPaste={handleHighlightsPaste}
+      data-placeholder="Type or paste highlights here…"
+      suppressContentEditableWarning
     />
   </CardContent>
 </Card>
