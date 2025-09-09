@@ -1360,10 +1360,6 @@ ${(data.highlightsHtml || data.lowlights) ? `
   </td>
 </tr>` : ""}
 
-  </table>` : ""}
-
-
-
       </table>
 
       ${data.updatesHtml ? `
