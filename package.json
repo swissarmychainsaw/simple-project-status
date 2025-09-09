@@ -68,7 +68,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
     "packageManager": "pnpm@8.x"
   },
   "devDependencies": {
