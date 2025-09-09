@@ -118,6 +118,76 @@ const LOGO_CID = "gns-logo";          // used for inline-embedded email images
 
 
 
+// Single source of truth for email width
+const EMAIL_MAX_WIDTH = 760;
+
+// Make paths absolute for email clients
+const absoluteUrl = (p: string) => {
+  try {
+    return new URL(p, window.location.origin).toString();
+  } catch {
+    return p;
+  }
+};
+
+// Logo helper
+const getLogoImg = (forEmail: boolean): string => {
+  if (designOptions.optLogoMode === "none") return "";
+
+  let src: string;
+  if (designOptions.optLogoMode === "url") {
+    src = designOptions.optLogoUrl?.trim() || LOGO_SRC_WEB;
+  } else {
+    // "cid" mode: email uses CID, preview uses web path
+    src = forEmail ? `cid:${LOGO_CID}` : LOGO_SRC_WEB;
+  }
+
+  // very light sanity check
+  const ok = /^(cid:|https?:\/\/|\/)/i.test(src);
+  const safeSrc = ok ? src : LOGO_SRC_WEB;
+
+  return `
+    <img src="${escapeHtml(safeSrc)}"
+         alt="GNS logo"
+         width="${LOGO_WIDTH}"
+         style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  `;
+};
+
+// Banner helper
+function getBannerHtml(
+  forEmail: boolean,
+  opts: DesignOptions,
+  maxWidth = EMAIL_MAX_WIDTH
+): string {
+  if (opts.optBannerMode === "none") return "";
+
+  const key = (opts.optBannerId || "") as BannerKey;
+  const preset = key ? BANNERS[key] : undefined;
+
+  const caption = opts.optBannerCaption || "Program Status";
+  const alt = preset?.alt || caption;
+
+  let src = "";
+  if (opts.optBannerMode === "url") {
+    const webSrc = (opts.optBannerUrl || preset?.web || "").trim();
+    // emails need absolute URLs
+    src = forEmail ? absoluteUrl(webSrc) : webSrc;
+  } else {
+    // "cid"
+    if (!preset) return "";
+    src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
+  }
+
+  const img = `
+    <img src="${escapeHtml(src)}"
+         alt="${escapeHtml(alt)}"
+         width="${maxWidth}"
+         style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  `;
+
+
+
 
 
 const BANNER_DEFAULTS: Partial<Record<BannerKey, {
@@ -815,30 +885,22 @@ src = forEmail ? "cid:" + LOGO_CID : LOGO_SRC_WEB;
   `
 }
 
-// keep this helper where it already is:
-const absoluteUrl = (p: string) => {
-  try { return new URL(p, window.location.origin).toString(); }
-  catch { return p; }
-};
+
 
 // drop-in replacement
-const EMAIL_MAX_WIDTH = 760;
+
   
 // keep absoluteUrl above this
 
-const EMAIL_MAX_WIDTH = 760;
 
 function getBannerHtml(
   forEmail: boolean,
   opts: DesignOptions,
 // ---- Email/Page layout constants & helpers ----
-const EMAIL_MAX_WIDTH = 760;
+
 
 /** Convert relative URL to absolute (for email clients) */
-const absoluteUrl = (p: string) => {
-  try { return new URL(p, window.location.origin).toString(); }
-  catch { return p; }
-};
+
 
 /** Banner HTML (works for both preview and email) */
 function getBannerHtml(
