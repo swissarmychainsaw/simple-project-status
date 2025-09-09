@@ -985,6 +985,65 @@ const stripeTables = (html: string): string => {
     })
     return root.innerHTML
   }
+// Remove pixel/percent widths that can blow up the layout in email.
+// Keep tables at 100% and make images responsive.
+const clampWidthsForEmail = (html: string): string => {
+  if (!html) return html;
+  const root = document.createElement("div");
+  root.innerHTML = html;
+
+  // 1) Tables: force width=100%
+  root.querySelectorAll("table").forEach((t) => {
+    const el = t as HTMLElement;
+    el.style.width = "100%";
+    el.setAttribute("width", "100%");
+    // remove explicit px widths on table wrapper DIVs, if any parent is the immediate wrapper
+    el.removeAttribute("height");
+    el.style.removeProperty("max-width");
+    el.style.removeProperty("min-width");
+  });
+
+  // 2) Cells: strip fixed widths that can expand container
+  root.querySelectorAll("th, td").forEach((cell) => {
+    const el = cell as HTMLElement;
+    el.style.removeProperty("width");
+    el.removeAttribute("width");
+    el.style.removeProperty("min-width");
+    el.style.removeProperty("max-width");
+    // keep left/top alignment to reduce reflow surprises in Outlook
+    el.setAttribute("align", "left");
+    el.setAttribute("valign", "top");
+  });
+
+  // 3) Generic wrappers (div/span/p): remove fixed/min/max widths
+  root.querySelectorAll("div, span, p, section, article").forEach((n) => {
+    const el = n as HTMLElement;
+    el.style.removeProperty("width");
+    el.removeAttribute("width");
+    el.style.removeProperty("min-width");
+    el.style.removeProperty("max-width");
+    // kill floats/absolute positioning that can shift outside the 700px frame
+    el.style.removeProperty("float");
+    el.style.removeProperty("position");
+    el.style.removeProperty("left");
+    el.style.removeProperty("right");
+  });
+
+  // 4) Images inside content: make responsive
+  root.querySelectorAll("img").forEach((img) => {
+    const el = img as HTMLImageElement;
+    // keep attribute width if small; otherwise prefer CSS (more predictable in clients)
+    el.removeAttribute("height");
+    el.style.maxWidth = "100%";
+    el.style.height = "auto";
+    const s = (el.getAttribute("style") || "").trim();
+    if (!/max-width/i.test(s)) {
+      el.setAttribute("style", `${s ? s + ";" : ""}max-width:100%;height:auto`);
+    }
+  });
+
+  return root.innerHTML;
+};
 
   // WidenTables
 const widenTables = (html: string): string => {
@@ -1070,16 +1129,19 @@ function updateFormData(field: keyof FormData, value: string) {
 }
 
 
-  const processRichHtml = (html: string): string =>
+const processRichHtml = (html: string): string =>
   widenTables(
     stripeTables(
-      stripInlineBackgrounds(
-        unwrapParagraphsInTables(        // <— add this
-          sanitizeHtml(html)
+      clampWidthsForEmail(
+        stripInlineBackgrounds(
+          unwrapParagraphsInTables(
+            sanitizeHtml(html)
+          )
         )
       )
     )
-  )
+  );
+
 //
 // buildhtml section
 //
@@ -1289,13 +1351,14 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     `border-collapse:collapse;width:${containerWidth}px;max-width:${containerWidth}px;` +
     `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
   const innerTableStyle =
-    "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+  "border-collapse:collapse;width:100%;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+
 
   const baseFont =
     `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
 
   const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
-  const cellLeft   = `${cellBase}text-align:left;vertical-align:top;`;
+const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
   const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
   const headCell   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
   const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
