@@ -206,7 +206,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
     defaults: {
       programTitle: "One Big Network Migration",
       programSummary:
-        "This initiative establishes a trusted Managed Network within Azure as part of the broader One Big Network (OBN) strategy. It enables seamless integration with the on-premises production OBN, aiming to simplify network architecture, enhance security posture, and reduce operational friction for development teams.",
+        "One Big Network Migration establishes a trusted Managed Network within Azure as part of the broader One Big Network (OBN) strategy. It enables seamless integration with the on-premises production OBN, aiming to simplify network architecture, enhance security posture, and reduce operational friction for development teams.",
       tpm: "Nick Adams",
       engDri: "Antony Alexander Christie ",
       bizSponsor: "Niha Mathur",
