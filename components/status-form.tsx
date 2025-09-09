@@ -131,28 +131,29 @@ const absoluteUrl = (p: string) => {
 };
 
 // Logo helper
-const getLogoImg = (forEmail: boolean): string => {
-  if (designOptions.optLogoMode === "none") return "";
+// Logo helper (single source of truth)
+const getLogoImg = (forEmail: boolean, opts: DesignOptions): string => {
+  if (opts.optLogoMode === "none") return "";
 
   let src: string;
-  if (designOptions.optLogoMode === "url") {
-    src = designOptions.optLogoUrl?.trim() || LOGO_SRC_WEB;
+  if (opts.optLogoMode === "url") {
+    src = opts.optLogoUrl?.trim() || LOGO_SRC_WEB;
   } else {
     // "cid" mode: email uses CID, preview uses web path
     src = forEmail ? `cid:${LOGO_CID}` : LOGO_SRC_WEB;
   }
 
   // very light sanity check
-  const ok = /^(cid:|https?:\/\/|\/)/i.test(src);
-  const safeSrc = ok ? src : LOGO_SRC_WEB;
+  if (!/^(cid:|https?:\/\/|\/)/i.test(src)) src = LOGO_SRC_WEB;
 
   return `
-    <img src="${escapeHtml(safeSrc)}"
+    <img src="${escapeHtml(src)}"
          alt="GNS logo"
          width="${LOGO_WIDTH}"
          style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 };
+
 
 // Banner helper
 function getBannerHtml(
@@ -162,37 +163,7 @@ function getBannerHtml(
 ): string {
   if (opts.optBannerMode === "none") return "";
 
-  const key = (opts.optBannerId || "") as BannerKey;
-  const preset = key ? BANNERS[key] : undefined;
-
-  const caption = opts.optBannerCaption || "Program Status";
-  const alt = preset?.alt || caption;
-
-  let src = "";
-  if (opts.optBannerMode === "url") {
-    const webSrc = (opts.optBannerUrl || preset?.web || "").trim();
-    // emails need absolute URLs
-    src = forEmail ? absoluteUrl(webSrc) : webSrc;
-  } else {
-    // "cid"
-    if (!preset) return "";
-    src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
-  }
-
-  const img = `
-    <img src="${escapeHtml(src)}"
-         alt="${escapeHtml(alt)}"
-         width="${maxWidth}"
-         style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-  `;
-
-  if (forEmail) return img; // caption only in on-page preview
-
-  return `${img}
-    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-      ${escapeHtml(caption)}
-    </div>`;
-}
+  
 
 
 
@@ -1208,7 +1179,7 @@ const processRichHtml = (html: string): string =>
 //
 // buildhtml section
 //
- const buildHtml = (data: FormData) => {
+ const buildHtml = (data: FormData, opts: DesignOptions) => {
   const asOf = data.asOf
     ? (() => {
         const [year, month, day] = data.asOf.split("-").map(Number)
@@ -2734,4 +2705,4 @@ const banner = getBannerHtml(true, opts, containerWidth);
 </div>
 </div>
   );
-}
+
