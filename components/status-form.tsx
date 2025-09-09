@@ -1280,7 +1280,7 @@ const pill = (val: string) => {
           </td>
         </tr>
 
-// Executive Summary section
+<!-- Executive Summary section -->
 ${data.execSummary ? `
 <tr>
   <td colspan="1" style="${oddRowStyle}">
@@ -1293,7 +1293,7 @@ ${data.execSummary ? `
   </td>
 </tr>` : ""}
 
-// Highlights / Accomplishments (formerly Lowlights)
+<!-- Highlights / Accomplishments (formerly Lowlights) -->
 ${data.lowlights ? `
 <tr>
   <td colspan="1" style="${oddRowStyle}">
