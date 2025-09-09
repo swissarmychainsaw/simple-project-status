@@ -909,7 +909,7 @@ function getBannerHtml(
     <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
       ${escapeHtml(caption)}
     </div>`;
-
+};
 
 
   const STRIPE_ODD = "#ffffff"
