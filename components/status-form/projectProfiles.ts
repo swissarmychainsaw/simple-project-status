@@ -123,28 +123,12 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       resourcesTitle: "Additional Resources",
       resourcesHtml: `
         <ul>
-          <li><a href="https://go/gns/projects" target="_blank">o/gns/projects</a></li>
+          <li><a href="https://go/gns/projects" target="_blank">go/gns/projects</a></li>
           <li><a href="https://go/gns/plan" target="_blank">go/gns/plan</a></li>
         </ul>
       `,
     },
   },
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
 
   azure: {
     label: BANNER_LABELS.azure,
@@ -169,6 +153,11 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       keyDecisionsTitle: "Key Decisions",
       risksTitle: "Risks & Issue Mitigation Plan",
       resourcesTitle: "Additional Resources",
+      resourcesHtml: `
+        <ul>
+          <li><a href="https://go/azure/oyssey" target="_blank">go/azure/oyssey</a></li>
+        </ul>
+      `,
     },
   },
 
