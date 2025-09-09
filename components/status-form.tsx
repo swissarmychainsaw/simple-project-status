@@ -54,8 +54,8 @@ interface FormData {
   engDri: string
   bizSponsor: string
   engSponsor: string
-  execSummary: string
-  lowlights: string
+  execSummaryTitle: string
+  highlightsTitle: string
   updatesTrack: string
   updatesTeam: string
   updatesHtml: string
@@ -347,7 +347,8 @@ const SAVE_FIELDS = [
   "engDri",
   "bizSponsor",
   "engSponsor",
-  "execSummary",
+  "execSummaryTitle",
+  "highlightsTitle",
   "sectionTitle",
   "updatesTitle",
   "emailTo",
@@ -443,8 +444,8 @@ const initialFormData: FormData = {
   engDri: "",
   bizSponsor: "",
   engSponsor: "",
-  execSummary: "",
-  lowlights: "",
+   execSummaryTitle: "Executive Summary",
+  highlightsTitle: "Highlights / Accomplishments",
   updatesTrack: "",
   updatesTeam: "",
   updatesHtml: "",
@@ -1281,26 +1282,30 @@ const pill = (val: string) => {
           </td>
         </tr>
 
-        ${data.execSummary ? `
+// Executive Summary section
+${data.execSummary ? `
+<tr>
+  <td colspan="1" style="${oddRowStyle}">
+    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
+      ${escapeHtml(data.execSummaryTitle || "Executive Summary")}
+    </h3>
+    <div style="margin:0;font-size:16px;color:#333333;">
+      ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
+    </div>
+  </td>
+</tr>` : ""}
 
+// Highlights / Accomplishments (formerly Lowlights)
+${data.lowlights ? `
+<tr>
+  <td colspan="1" style="${oddRowStyle}">
+    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
+      ${escapeHtml(data.highlightsTitle || "Highlights / Accomplishments")}
+    </h3>
+    <div style="margin:0;font-size:16px;color:#333333;">${linesToList(data.lowlights)}</div>
+  </td>
+</tr>` : ""}
 
-        
-        <tr>
-          <td colspan="1" style="${oddRowStyle}">
-            <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
-            <div style="margin:0;font-size:16px;color:#333333;">
-              ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
-            </div>
-          </td>
-        </tr>` : ""}
-
-        ${data.lowlights ? `
-        <tr>
-          <td colspan="1" style="${oddRowStyle}">
-            <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Lowlights</h3>
-            <div style="margin:0;font-size:16px;color:#333333;">${linesToList(data.lowlights)}</div>
-          </td>
-        </tr>` : ""}
 
       </table>
 
@@ -1525,24 +1530,24 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
 
 
-<!-- Executive Summary -->
-${data.execSummary ? `<table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">` +
-  sectionHeaderRow("Executive Summary") +
-`  <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+// Executive Summary
+${data.execSummary ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.execSummaryTitle || "Executive Summary")}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
       ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
     </td></tr>
   </table>` : ""}
 
-
-
-<!-- Lowlights -->
+// Highlights / Accomplishments (formerly Lowlights)
 ${data.lowlights ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-    ${sectionHeaderRow("Lowlights")}
+    ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
     <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
       ${linesToList(data.lowlights)}
     </td></tr>
   </table>` : ""}
+
 
       <!-- Updates -->
 ${data.updatesHtml ? `
@@ -2338,7 +2343,37 @@ ${data.resourcesHtml ? `
 
         
           {/* Executive Summary Section */} 
- 
+ <Card>
+  <CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader>
+  <CardContent>
+    {/* NEW: editable title */}
+    <div className="mb-2">
+      <Label className="text-xs text-gray-600">Section Title</Label>
+      <Input
+        value={formData.execSummaryTitle}
+        onChange={(e) => updateFormData("execSummaryTitle", e.target.value)}
+        placeholder="Executive Summary"
+        className="bg-white mt-1"
+      />
+    </div>
+
+    <div className="flex gap-1 mb-2">
+      {/* existing toolbar buttons... */}
+    </div>
+
+    <div
+      ref={execSummaryRef}
+      id="execSummary"
+      contentEditable
+      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm ..."
+      onInput={handleExecSummaryInput}
+      onBlur={handleExecSummaryBlur}
+      onPaste={handleExecSummaryPaste}
+      // ...
+    />
+  </CardContent>
+</Card>
+
 <Card>
   <CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader>
   <CardContent>
@@ -2379,10 +2414,22 @@ ${data.resourcesHtml ? `
 </Card>
 
 
-   {/* Lowlights Section */}
+   {/* Highlights / Accomplishments */}
 <Card>
-  <CardHeader><CardTitle>Lowlights</CardTitle></CardHeader>
+  <CardHeader><CardTitle>Highlights / Accomplishments</CardTitle></CardHeader>
   <CardContent>
+    {/* NEW: editable title */}
+    <div className="mb-2">
+      <Label className="text-xs text-gray-600">Section Title</Label>
+      <Input
+        type="text"
+        value={formData.highlightsTitle}
+        onChange={(e) => updateFormData("highlightsTitle", e.target.value)}
+        placeholder="Highlights / Accomplishments"
+        className="mt-1 bg-white"
+      />
+    </div>
+
     <Label className="text-xs text-gray-600">
       One item per line; we’ll convert lines to bullets in the output
     </Label>
@@ -2390,14 +2437,13 @@ ${data.resourcesHtml ? `
       id="lowlights"
       value={formData.lowlights}
       onChange={(e) => updateFormData("lowlights", e.target.value)}
-      rows={4}
+      rows={8} {/* was 4 → bigger */}
       maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-      placeholder={`Dependency slipped\nCapacity reduced\nBlocking issue`}
+      placeholder={`Shipped NGX UI beta banner\nEIE pilot: top 5 subs contacted\nDrafted one-time announcement email`}
       className="mt-1 resize-none bg-white"
     />
   </CardContent>
 </Card>
-
 
 
 
