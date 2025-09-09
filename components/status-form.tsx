@@ -1347,9 +1347,9 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
   // ---- email-safe style helpers (fixed-width container)
   const containerWidth = 700;
-  const outerTableStyle =
-    `border-collapse:collapse;width:${containerWidth}px;max-width:${containerWidth}px;` +
-    `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
+const outerTableStyle =
+  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
+  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
   const innerTableStyle =
   "border-collapse:collapse;width:100%;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;";
 
@@ -1384,12 +1384,14 @@ const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:bre
 
   return `
 <!-- Fixed-width banner -->
-<table role="presentation" align="center" width="${containerWidth}" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+<table role="presentation" align="center" width="$100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr><td style="padding:0;">${banner}</td></tr>
+  
+
 </table>
 
 <!-- Fixed-width outer container -->
-<table role="presentation" align="center" width="${containerWidth}" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+<table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr>
     <td style="padding:0;">
       <!-- Title + Summary (+ optional logo) -->
