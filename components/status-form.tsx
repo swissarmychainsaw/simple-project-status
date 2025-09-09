@@ -143,7 +143,8 @@ const escapeHtml = (s: string): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;");
-
+// Global email layout width (shared by preview + email)
+const EMAIL_MAX_WIDTH = 700; // px
 
 
 
@@ -501,8 +502,7 @@ export default function StatusForm() {
   const risksRef = useRef<HTMLDivElement>(null)
   const resourcesRef = useRef<HTMLDivElement>(null)
   
-// Global email layout width (shared by preview + email)
-const EMAIL_MAX_WIDTH = 700; // px
+
 
   const { toast } = useToast()
   const [copyRenderedLoading, setIsCopyingRendered] = useState(false)
