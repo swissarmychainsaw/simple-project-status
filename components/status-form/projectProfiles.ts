@@ -150,10 +150,10 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       optDensity: "comfortable",
     },
     defaults: {
-      programTitle: "Azure Adoption & Enablement",
+      programTitle: "Azure Odyssey Program Status",
       programSummary:
-        "Driving cloud adoption, governance, and platform automation across teams.",
-      tpm: "Morgan Díaz",
+        "Making Azure a first class citizen at LinkedIn" accomplishes this by enhancing developer productivity, ensuring security, and simplifying operations and scalability. The program involves multiple tracks, including Ownership & Management, Infra  & Deployment, Observability & Troubleshooting, Cost & Quota, Advanced Azure Functionalities and Data & Governance.  Program Resources go/Azure-Odyssey.",
+      tpm: "Nick Adams",
       engDri: "Mario Estevez-Cruz",
       bizSponsor: "Niha Mathur",
       engSponsor: "Suchreet Dhaliwal",
