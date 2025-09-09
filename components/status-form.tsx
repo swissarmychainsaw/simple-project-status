@@ -501,7 +501,8 @@ export default function StatusForm() {
   const risksRef = useRef<HTMLDivElement>(null)
   const resourcesRef = useRef<HTMLDivElement>(null)
   
-
+// Global email layout width (shared by preview + email)
+const EMAIL_MAX_WIDTH = 700; // px
 
   const { toast } = useToast()
   const [copyRenderedLoading, setIsCopyingRendered] = useState(false)
@@ -630,7 +631,7 @@ useEffect(() => {
     const warnings: string[] = []
     let sanitized = value
 
-    const maxLength =
+  const maxLength =
   field === "execSummary"
     ? SECURITY_CONFIG.MAX_EXEC_SUMMARY_LENGTH
     : isLargeFieldKey(field)
@@ -1369,8 +1370,6 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       })()
     : "";
 
-  // ---- email-safe style helpers (fixed-width container)
-// const containerWidth = EMAIL_MAX_WIDTH;
 
 
 
@@ -1378,7 +1377,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
 // Normalize density locally to a concrete union
 type DensityName = "comfortable" | "cozy" | "compact";
-const density = (opts.optDensity ?? "comfortable") as DensityName;
+
 
 
 
