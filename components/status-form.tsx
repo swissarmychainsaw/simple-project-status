@@ -1241,7 +1241,7 @@ const pill = (val: string) => {
 
         <!-- Status row -->
         <tr>
-          <td colspan="${COLSPAN}" style="${evenRowStyle}padding:0;">
+          <td colspan="1" style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
@@ -1267,7 +1267,7 @@ const pill = (val: string) => {
 
         <!-- Team row -->
         <tr>
-          <td colspan="${COLSPAN}" style="${oddRowStyle}padding:0;">
+          <td colspan="1" style="${oddRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
@@ -1293,7 +1293,7 @@ const pill = (val: string) => {
 
         ${data.execSummary ? `
         <tr>
-          <td colspan="${COLSPAN}" style="${oddRowStyle}">
+          <td colspan="1" style="${oddRowStyle}">
             <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
             <div style="margin:0;font-size:16px;color:#333333;">
               ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
@@ -1303,7 +1303,7 @@ const pill = (val: string) => {
 
         ${data.lowlights ? `
         <tr>
-          <td colspan="${COLSPAN}" style="${oddRowStyle}">
+          <td colspan="1" style="${oddRowStyle}">
             <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Lowlights</h3>
             <div style="margin:0;font-size:16px;color:#333333;">${linesToList(data.lowlights)}</div>
           </td>
