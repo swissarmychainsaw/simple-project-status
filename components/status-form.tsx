@@ -2026,67 +2026,26 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
         
         
      <Card>
+  <Card>
   <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
   <CardContent className="space-y-4">
-    {/* Row 1: Banner + Logo */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Banner mode */}
-      <div>
-        <Label className="text-sm font-medium">Banner mode</Label>
-        <Select
-          value={designOptions.optBannerMode}
-          onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
-        >
-          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="cid">Embed inline (CID)</SelectItem>
-            <SelectItem value="url">Load from URL</SelectItem>
-            <SelectItem value="none">No banner</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Logo mode */}
-      <div>
-        <Label className="text-sm font-medium">Logo mode</Label>
-        <Select
-          value={designOptions.optLogoMode}
-          onValueChange={(v) => updateDesignOptions("optLogoMode", v)}
-        >
-          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="cid">Embed inline (CID)</SelectItem>
-            <SelectItem value="url">Load from URL</SelectItem>
-            <SelectItem value="none">Hide logo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    {/* Banner mode */}
+    <div>
+      <Label className="text-sm font-medium">Banner mode</Label>
+      <Select
+        value={designOptions.optBannerMode}
+        onValueChange={(v) => updateDesignOptions("optBannerMode", v)}
+      >
+        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="cid">Embed inline (CID)</SelectItem>
+          <SelectItem value="url">Load from URL</SelectItem>
+          <SelectItem value="none">No banner</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
-    {/* Row 2: Banner preset / URL */}
-    {designOptions.optBannerMode === "cid" && (
-      <div>
-        <Label className="text-sm font-medium">Banner preset</Label>
-        <Select
-          value={designOptions.optBannerId}
-          onValueChange={(v) => {
-            updateDesignOptions("optBannerId", v);
-            applyProjectProfile(v as BannerKey, "fill");
-          }}
-        >
-          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="gns">GNS</SelectItem>
-            <SelectItem value="azure">Azure</SelectItem>
-            <SelectItem value="cie">CIE</SelectItem>
-            <SelectItem value="obn">One Big Network Migration</SelectItem>
-            <SelectItem value="azlens">Azure Lens</SelectItem>
-            <SelectItem value="ipv6">IPv6 Network</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    )}
-
+    {/* Banner URL (only when mode=url) */}
     {designOptions.optBannerMode === "url" && (
       <div>
         <Label className="text-sm font-medium">Banner URL (absolute)</Label>
@@ -2099,37 +2058,21 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
       </div>
     )}
 
-    {/* Row 3: Font + Apply defaults */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-      <div>
-        <Label className="text-sm font-medium">Font Family</Label>
-        <Select
-          value={designOptions.optFont}
-          onValueChange={(v) => updateDesignOptions("optFont", v)}
-        >
-          <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {fontOptions.map((f) => (
-              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex md:justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
-          }
-        >
-          Apply profile defaults (overwrite)
-        </Button>
-      </div>
+    {/* Apply defaults */}
+    <div className="flex md:justify-end">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() =>
+          applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
+        }
+      >
+        Apply profile defaults (overwrite)
+      </Button>
     </div>
   </CardContent>
 </Card>
+
 
 
            
