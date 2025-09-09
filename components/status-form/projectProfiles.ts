@@ -10,7 +10,7 @@ export const BANNERS = {
   azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure — Program Status" },
   cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
   obn:   { web: "/banners/obn-banner.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
-  azlens:{ web: "/banners/azure-lens.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
+  azlens:{ web: "/banners/azurelens-banner.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
   ipv6:  { web: "/banners/ipv6-banner.png",         cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
 } as const;
 
