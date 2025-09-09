@@ -1373,13 +1373,20 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     : "";
 
   // ---- email-safe style helpers (fixed-width container)
-const containerWidth = EMAIL_MAX_WIDTH;
+// const containerWidth = EMAIL_MAX_WIDTH;
 
 
 // compact trending and people table
 // ---- email-safe style helpers (fixed-width container)
 const containerWidth = EMAIL_MAX_WIDTH;
+// Normalize density locally to a concrete union
+type DensityName = "comfortable" | "cozy" | "compact";
+const density = (opts.optDensity ?? "comfortable") as DensityName;
 
+// Scale factors
+const scale = density === "compact" ? 0.8 : density === "cozy" ? 0.9 : 1;
+const px = (n: number) => `${Math.round(n * scale)}px`;
+  
 // Density scale: comfortable(1.00), cozy(0.90), compact(0.80)
 const scale =
   opts.optDensity === "compact" ? 0.8 :
@@ -1421,6 +1428,8 @@ const innerTableStyle =
 const baseFont =
   `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};` +
   `font-size:${px(14)};line-height:1.35;color:#111;`;
+
+  
   // Trim cell padding
 const cellBase   = `${baseFont}padding:${px(8)} ${px(10)};border:1px solid #e5e7eb;`;
 const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
