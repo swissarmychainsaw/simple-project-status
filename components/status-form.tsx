@@ -1224,19 +1224,19 @@ const pill = (val: string) => {
           <td colspan="1" style="${evenRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
-                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
+                <td style="width:25%;padding:10px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Last Status</h3>
                   ${pill(data.lastStatus)}
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
+                <td style="width:25%;padding:10px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Current Status</h3>
                   ${pill(data.currentStatus)}
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
+                <td style="width:25%;padding:10px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Trending</h3>
                   ${pill(data.trending)}
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
+                <td style="width:25%;padding:10px;text-align:center;border-left:1px solid #CCCCCC;border-right:1px solid #CCCCCC;border-top:0;border-bottom:0;background-color:#F5F5F5;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Date</h3>
                   <p style="margin:0;font-size:14px;color:#333333;">${escapeHtml(asOf)}</p>
                 </td>
@@ -1250,19 +1250,19 @@ const pill = (val: string) => {
           <td colspan="1" style="${oddRowStyle}padding:0;">
             <table style="width:100%;border-collapse:collapse;">
               <tr>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+                <td style="width:25%;padding:10px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">TPM</h3>
                   <p style="margin:0;font-size:16px;color:#333333;">${escapeHtml(data.tpm) || "Name"}</p>
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+                <td style="width:25%;padding:10px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Engineering DRI</h3>
                   <p style="margin:0;font-size:16px;color:#333333;">${escapeHtml(data.engDri) || "Name"}</p>
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+                <td style="width:25%;padding:10px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Business Sponsor</h3>
                   <p style="margin:0;font-size:16px;color:#333333;">${escapeHtml(data.bizSponsor) || "Name"}</p>
                 </td>
-                <td style="width:25%;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
+                <td style="width:25%;padding:10px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;">
                   <h3 style="margin:0 0 15px 0;font-size:18px;font-weight:bold;color:#333333;">Engineering Sponsor</h3>
                   <p style="margin:0;font-size:16px;color:#333333;">${escapeHtml(data.engSponsor) || "Name"}</p>
                 </td>
@@ -1377,7 +1377,10 @@ const innerTableStyle = 'border-collapse:collapse;width:100%;mso-table-lspace:0p
   const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
 const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
   const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
-  const headCell   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+
+  const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+  const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
+
   const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
   const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
 
@@ -1430,10 +1433,10 @@ const banner = getBannerHtml(true, opts, containerWidth);
       <table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
 
         <tr>
-          <td style="${headCell}" bgcolor="#f5f5f5">Last Status</td>
-          <td style="${headCell}" bgcolor="#f5f5f5">Current Status</td>
-          <td style="${headCell}" bgcolor="#f5f5f5">Trending</td>
-          <td style="${headCell}" bgcolor="#f5f5f5">Date</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Last Status</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Current Status</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Trending</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Date</td>
         </tr>
         <tr>
           <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
@@ -1446,10 +1449,10 @@ const banner = getBannerHtml(true, opts, containerWidth);
       <!-- Team -->
       <table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
         <tr>
-          <td style="${headCell}" bgcolor="#f5f5f5">TPM</td>
-          <td style="${headCell}" bgcolor="#f5f5f5">Engineering DRI</td>
-          <td style="${headCell}" bgcolor="#f5f5f5">Business Sponsor</td>
-          <td style="${headCell}" bgcolor="#f5f5f5">Engineering Sponsor</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">TPM</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Engineering DRI</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Business Sponsor</td>
+          <td style="${headCellCenter}" bgcolor="#f5f5f5">Engineering Sponsor</td>
         </tr>
         <tr>
           <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.tpm)}</td>
@@ -1461,7 +1464,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.execSummary ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Executive Summary</td></tr>
+        <tr>td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">Executive Summary</td></tr>
         <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
           ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
         </td></tr>
@@ -1469,7 +1472,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.lowlights ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">Lowlights</td></tr>
+        <tr>td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">Lowlights</td></tr>
         <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
           ${linesToList(data.lowlights)}
         </td></tr>
@@ -1477,7 +1480,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.updatesHtml ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
           ${escapeHtml(data.updatesTitle || "Top Accomplishments")}
         </td></tr>
         ${data.sectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
@@ -1488,7 +1491,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.milestonesHtml ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
           ${escapeHtml(data.milestonesTitle || "Upcoming Milestones")}
         </td></tr>
         ${data.milestonesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
@@ -1499,7 +1502,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.keyDecisionsHtml ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        <tr>td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
           ${escapeHtml(data.keyDecisionsTitle || "Key Decisions")}
         </td></tr>
         ${data.keyDecisionsSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
@@ -1510,7 +1513,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.risksHtml ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
           ${escapeHtml(data.risksTitle || "Risks & Issue Mitigation Plan")}
         </td></tr>
         ${data.risksSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
@@ -1521,7 +1524,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
       ${data.resourcesHtml ? `
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCell}" bgcolor="#f5f5f5" align="left">
+        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
           ${escapeHtml(data.resourcesTitle || "Additional Resources")}
         </td></tr>
         ${data.resourcesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
