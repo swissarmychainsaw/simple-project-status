@@ -2283,6 +2283,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     onChange={(v) => updateFormData("updatesHtml", v)}
     placeholder="Paste tables, add formatted text, or type updates here..."
   />
+  </div>
 </div>
 
 
