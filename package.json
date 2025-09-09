@@ -54,6 +54,7 @@
     "next": "15.2.4",
     "next-themes": "latest",
     "nodemailer": "latest",
+    "packageManager": "pnpm@8.x",
     "path": "latest",
     "react": "^19",
     "react-day-picker": "9.8.0",
@@ -68,8 +69,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67",
-    "packageManager": "pnpm@8.x"
+    "zod": "3.25.67"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
