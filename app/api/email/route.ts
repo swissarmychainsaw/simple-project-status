@@ -11,9 +11,9 @@ const BANNERS: Record<string, { cid: string; filename: string; relPath: string }
   gns:   { cid: "banner-gns",   filename: "gns-banner.png",   relPath: "banners/gns-banner.png" },
   azure: { cid: "banner-azure", filename: "azure-banner.png", relPath: "banners/azure-banner.png" },
   cie:   { cid: "banner-cie",   filename: "cie-banner.png",   relPath: "banners/cie-banner.png" },
-  netmig:{ cid: "banner-netmig",filename: "OBN-mig.png",      relPath: "banners/OBN-mig.png" },
+  netmig:{ cid: "banner-netmig",filename: "obn-banner.png",   relPath: "banners/obn-banner.png" },
   azlens:{ cid: "banner-azlens",filename: "azure-lens.png",   relPath: "banners/azure-lens.png" },
-  ipv6:  { cid: "banner-ipv6",  filename: "ipv6.png",         relPath: "banners/ipv6.png" },
+  ipv6:  { cid: "banner-ipv6",  filename: "ipv6-banner.png",  relPath: "ipv6-banner.png" },
 };
 
 const LOGO = { cid: "gns-logo", filename: "gns-logo.png", relPath: "gns-logo.png" };
