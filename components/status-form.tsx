@@ -409,7 +409,7 @@ export default function StatusForm() {
     optDensity: "comfortable",
     optBorders: "lines",
     optCustomCss: "",
-  optLogoMode: "cid",   // ← add
+  optLogoMode: "none",   // ← add
   optLogoUrl: "",       // ← add
 
   // NEW defaults
@@ -679,7 +679,8 @@ const applyProfile = (bannerId: BannerKey, kind?: ReportKind, mode: ApplyMode = 
 // === Apply a project profile into state (without triggering old applyProfile side-effects) ===
 const applyProjectProfile = (key: BannerKey, mode: "fill" | "overwrite" = "overwrite") => {
   const { design, form } = getMergedProfileChanges(key, mode, designOptions, formData);
-
+design.optLogoMode = "none"; // force logos off globally
+  
   // Merge design options directly, then persist
   setDesignOptions((prev) => ({ ...prev, ...(design as any) }));
   Object.entries(design).forEach(([k, v]) => {
