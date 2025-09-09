@@ -2414,11 +2414,10 @@ ${data.resourcesHtml ? `
 </Card>
 
 
-   {/* Highlights / Accomplishments */}
+   
 <Card>
   <CardHeader><CardTitle>Highlights / Accomplishments</CardTitle></CardHeader>
   <CardContent>
-    {/* NEW: editable title */}
     <div className="mb-2">
       <Label className="text-xs text-gray-600">Section Title</Label>
       <Input
@@ -2437,9 +2436,9 @@ ${data.resourcesHtml ? `
       id="lowlights"
       value={formData.lowlights}
       onChange={(e) => updateFormData("lowlights", e.target.value)}
-      rows={8} {/* was 4 → bigger */}
+      rows={8} 
       maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
-      placeholder={`Shipped NGX UI beta banner\nEIE pilot: top 5 subs contacted\nDrafted one-time announcement email`}
+      placeholder={`text goes here...`}
       className="mt-1 resize-none bg-white"
     />
   </CardContent>
