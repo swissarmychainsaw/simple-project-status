@@ -56,6 +56,8 @@ interface FormData {
   engSponsor: string
   execSummaryTitle: string
   highlightsTitle: string
+  execSummary: string
+  lowlights: string
   updatesTrack: string
   updatesTeam: string
   updatesHtml: string
@@ -367,6 +369,7 @@ const SAVE_FIELDS = [
   "resourcesTitle",
   "resourcesSectionTitle",
   "resourcesHtml",
+    "execSummary","lowlights",
 
 ] as const
 
@@ -459,7 +462,8 @@ const initialFormData: FormData = {
   keyDecisionsTitle: "Key Decisions",
   keyDecisionsSectionTitle: "",
   keyDecisionsHtml: "",
-
+  execSummary: "",
+  lowlights: "",
   risksTitle: "Risks & Issue Mitigation Plan",
   risksSectionTitle: "",
   risksHtml: "",
@@ -1222,13 +1226,7 @@ const pill = (val: string) => {
           </td>
         </tr>
 
-        <tr>
-          <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
-            <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
-              ${nlToParas(data.programSummary) || "Program summary description goes here."}
-            </span>
-          </td>
-        </tr>
+  
 
         <!-- Status row -->
         <tr>
@@ -2346,7 +2344,7 @@ ${data.resourcesHtml ? `
  <Card>
   <CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader>
   <CardContent>
-    {/* NEW: editable title */}
+    {/* Title input (kept here) */}
     <div className="mb-2">
       <Label className="text-xs text-gray-600">Section Title</Label>
       <Input
@@ -2357,47 +2355,12 @@ ${data.resourcesHtml ? `
       />
     </div>
 
+
     <div className="flex gap-1 mb-2">
       {/* existing toolbar buttons... */}
     </div>
 
-    <div
-      ref={execSummaryRef}
-      id="execSummary"
-      contentEditable
-      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm ..."
-      onInput={handleExecSummaryInput}
-      onBlur={handleExecSummaryBlur}
-      onPaste={handleExecSummaryPaste}
-      // ...
-    />
-  </CardContent>
-</Card>
-
-<Card>
-  <CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader>
-  <CardContent>
-    <div className="flex gap-1 mb-2">
-      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "b")} className="h-8 px-2"><Bold className="w-3 h-3" /></Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "i")} className="h-8 px-2"><Italic className="w-3 h-3" /></Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "u")} className="h-8 px-2"><Underline className="w-3 h-3" /></Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-8 px-3 ml-2"
-        onClick={() => {
-          updateFormData("execSummary", "")
-          if (execSummaryRef.current) execSummaryRef.current.innerHTML = ""
-        }}
-      >
-        Clear Field
-      </Button>
-      <div className={`ml-auto text-xs ${execOver ? "text-red-600" : "text-gray-500"}`}>
-        {execLen}/{EXEC_SUMMARY_PLAIN_LIMIT} chars
-      </div>
-    </div>
-
+   {/* Single editor instance */}
     <div
       ref={execSummaryRef}
       id="execSummary"
@@ -2412,6 +2375,7 @@ ${data.resourcesHtml ? `
     />
   </CardContent>
 </Card>
+
 
 
    
