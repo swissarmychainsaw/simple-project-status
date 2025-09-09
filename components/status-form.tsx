@@ -186,6 +186,13 @@ function getBannerHtml(
          style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 
+  if (forEmail) return img; // caption only in on-page preview
+
+  return `${img}
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>`;
+}
 
 
 
