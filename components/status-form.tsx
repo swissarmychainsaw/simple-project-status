@@ -1383,7 +1383,8 @@ const containerWidth = EMAIL_MAX_WIDTH;
 type DensityName = "comfortable" | "cozy" | "compact";
 const density = (opts.optDensity ?? "comfortable") as DensityName;
 
-// Scale factors
+
+// Scale factors (used ONLY for status/team tables)
 const scale = density === "compact" ? 0.8 : density === "cozy" ? 0.9 : 1;
 const px = (n: number) => `${Math.round(n * scale)}px`;
   
@@ -1410,43 +1411,75 @@ const px = (n: number) => `${Math.round(n * scale)}px`;
 //    const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
  
 
-
-  
-  // compact trending and people table 
-  const outerTableStyle =
+// Shared table wrappers
+const outerTableStyle =
   `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
-  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;  
-// compact trending and people table
-
+  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
 const innerTableStyle =
   "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
-// Smaller base font + tighter line-height when compact
-const baseFont =
-  `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};` +
-  `font-size:${px(14)};line-height:1.35;color:#111;`;
-
   
-  // Trim cell padding
-const cellBase   = `${baseFont}padding:${px(8)} ${px(10)};border:1px solid #e5e7eb;`;
+
+
+
+// ---- email-safe style helpers (fixed-width container)
+const containerWidth = EMAIL_MAX_WIDTH;
+
+// Normalize density locally to a concrete union
+type DensityName = "comfortable" | "cozy" | "compact";
+const density = (opts.optDensity ?? "comfortable") as DensityName;
+
+// Scale factors (used ONLY for status/team tables)
+const scale = density === "compact" ? 0.8 : density === "cozy" ? 0.9 : 1;
+const px = (n: number) => `${Math.round(n * scale)}px`;
+
+// Shared table wrappers
+const outerTableStyle =
+  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
+  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
+const innerTableStyle =
+  "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+
+// ----- GLOBAL (unscaled) text for everything else -----
+const fontFamily = opts.optFont || "Arial, Helvetica, sans-serif";
+const baseText   = `font-family:${fontFamily};color:#111;`;
+const baseFont   = `${baseText}font-size:16px;line-height:1.45;`;
+
+const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
 const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
 const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
-// Slightly smaller header text and padding
-const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;` +
-                       `text-align:center;vertical-align:middle;font-size:${px(13)};padding:${px(8)} ${px(10)};`;
-const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;` +
-                       `text-align:left;vertical-align:middle;font-size:${px(13)};padding:${px(8)} ${px(10)};`;
-// Title row: scale down font and padding
-const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;` +
-                   `font-size:${px(18)};text-align:left;vertical-align:middle;padding:${px(10)} ${px(12)};`;
-const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
+const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
+const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
 
-  
+// ----- SCALED styles used ONLY in the Status + Team tables -----
+const sFont      = `${baseText}font-size:${px(14)};line-height:1.35;`;
+const sCellBase  = `${sFont}padding:${px(8)} ${px(10)};border:1px solid #e5e7eb;`;
+const sCellLeft  = `${sCellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
+const sCellCenter= `${sCellBase}text-align:center;vertical-align:middle;`;
+const sHeadCellC = `${sCellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;font-size:${px(13)};`;
+const sHeadCellL = `${sCellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;font-size:${px(13)};`;
 
-
-  
-   const sectionHeaderRow = (label: string) =>
+// section header row (unscaled everywhere except the two special tables)
+const sectionHeaderRow = (label: string) =>
   `<tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">${escapeHtml(label)}</td></tr>`;
 
+// Pill (only appears in the Status row; keep scaled)
+const emailPill = (s: string) => {
+  const colors = {
+    green:  { bg: "#27c08a", color: "#fff" },
+    yellow: { bg: "#f4c542", color: "#111" },
+    red:    { bg: "#e5534b", color: "#fff" },
+  } as const;
+  const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
+  return `<span style="${sFont}display:inline-block;padding:${px(4)} ${px(8)};border-radius:${px(10)};font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
+};
+
+  
+
+  
+
+
+  
 
   
 // Larger Pill
@@ -1460,18 +1493,7 @@ const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertic
 //     return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
 //   };
 
-const emailPill = (s: string) => {
-  const colors = {
-    green:  { bg: "#27c08a", color: "#fff" },
-    yellow: { bg: "#f4c542", color: "#111" },
-    red:    { bg: "#e5534b", color: "#fff" },
-  } as const;
-  const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
-  return `<span style="${baseFont}display:inline-block;` +
-         `padding:${px(4)} ${px(8)};border-radius:${px(10)};font-weight:700;` +
-         `font-size:${px(13)};background-color:${c.bg};color:${c.color};">` +
-         `${escapeHtml(s)}</span>`;
-};  
+
 const banner = getBannerHtml(true, opts, containerWidth);
   
   const processedUpdates         = processRichHtml(data.updatesHtml);
@@ -1507,38 +1529,41 @@ const banner = getBannerHtml(true, opts, containerWidth);
       </table>
 
 
-      <!-- Status -->
-      <table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
-
-        <tr>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Last Status</td>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Current Status</td>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Trending</td>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Date</td>
-        </tr>
-        <tr>
-          <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
-          <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.currentStatus)}</td>
-          <td style="${cellCenter}" align="center" valign="middle">${emailPill(data.trending)}</td>
-          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(asOf)}</td>
-        </tr>
-      </table>
+      <!--  Status table (use scaled)  Team -->
+<table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
+  <tr>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Last Status</td>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Current Status</td>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Trending</td>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Date</td>
+  </tr>
+  <tr>
+    <td style="${sCellCenter}" align="center" valign="middle">${emailPill(data.lastStatus)}</td>
+    <td style="${sCellCenter}" align="center" valign="middle">${emailPill(data.currentStatus)}</td>
+    <td style="${sCellCenter}" align="center" valign="middle">${emailPill(data.trending)}</td>
+    <td style="${sCellCenter}" align="center" valign="middle">${escapeHtml(asOf)}</td>
+  </tr>
+</table>
 
       <!-- Team -->
-      <table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
-        <tr>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">TPM</td>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Engineering DRI</td>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Business Sponsor</td>
-          <td style="${headCellCenter}" bgcolor="#f5f5f5">Engineering Sponsor</td>
-        </tr>
-        <tr>
-          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.tpm)}</td>
-          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.engDri)}</td>
-          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.bizSponsor)}</td>
-          <td style="${cellCenter}" align="center" valign="middle">${escapeHtml(data.engSponsor)}</td>
-        </tr>
-      </table>
+<table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
+  <tr>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">TPM</td>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Engineering DRI</td>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Business Sponsor</td>
+    <td style="${sHeadCellC}" bgcolor="#f5f5f5">Engineering Sponsor</td>
+  </tr>
+  <tr>
+    <td style="${sCellCenter}" align="center" valign="middle">${escapeHtml(data.tpm)}</td>
+    <td style="${sCellCenter}" align="center" valign="middle">${escapeHtml(data.engDri)}</td>
+    <td style="${sCellCenter}" align="center" valign="middle">${escapeHtml(data.bizSponsor)}</td>
+    <td style="${sCellCenter}" align="center" valign="middle">${escapeHtml(data.engSponsor)}</td>
+  </tr>
+</table>
+
+
+
+
 
 
 
