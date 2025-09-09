@@ -887,28 +887,6 @@ src = forEmail ? "cid:" + LOGO_CID : LOGO_SRC_WEB;
 
 
 
-// drop-in replacement
-
-  
-// keep absoluteUrl above this
-
-
-function getBannerHtml(
-  forEmail: boolean,
-  opts: DesignOptions,
-// ---- Email/Page layout constants & helpers ----
-
-
-/** Convert relative URL to absolute (for email clients) */
-
-
-/** Banner HTML (works for both preview and email) */
-function getBannerHtml(
-  forEmail: boolean,
-  opts: DesignOptions,
-  maxWidth = EMAIL_MAX_WIDTH
-): string {
-  if (opts.optBannerMode === "none") return "";
 
   const key = (opts.optBannerId || "") as BannerKey;
   const preset = key ? BANNERS[key] : undefined;
