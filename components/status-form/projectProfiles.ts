@@ -240,8 +240,14 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       keyDecisionsTitle: "Key Decisions",
       risksTitle: "Risks & Issue Mitigation Plan",
       resourcesTitle: "Additional Resources",
+      resourcesHtml: `
+        <ul>
+          <li><a href="https://go/azure/lens " target="_blank">https://go/azure/lens </a></li>
+        </ul>
+      `,
     },
   },
+
 
   ipv6: {
     label: BANNER_LABELS.ipv6,
