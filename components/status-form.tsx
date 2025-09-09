@@ -93,20 +93,14 @@ import {
   Underline,
 } from "lucide-react";
 
-interface DesignOptions {
-  optFont: string
-  optAccent: string
-  optDensity: Density
-  optBorders: Borders
-  optCustomCss: string
-  optLogoMode: LogoMode
-  optLogoUrl: string
-  optMode: Mode
-  optId: Key
-  optUrl: string
-  optCaption: string
-  optReportKind: ReportKind
-}
+
+// Reuse the shared profile type and extend with the local-only field
+type DesignOptions = DesignOptionsProfile & {
+  optReportKind: ReportKind;
+};
+
+
+
 
 
 const statusOptions = ["Green", "Yellow", "Red"]
