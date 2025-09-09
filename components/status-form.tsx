@@ -379,7 +379,6 @@ const isLargeFieldKey = (k: string) =>
   /(?:updatesHtml|milestonesHtml|keyDecisionsHtml|risksHtml|resourcesHtml|highlightsHtml)/.test(k)
 
 
-const highlightsRef = useRef<HTMLDivElement>(null)
 
 
 const SECURITY_CONFIG = {
@@ -627,11 +626,6 @@ const PROFILES: Record<
   }
 
 
-useEffect(() => {
-  if (highlightsRef.current && highlightsRef.current.innerHTML !== formData.highlightsHtml) {
-    highlightsRef.current.innerHTML = formData.highlightsHtml
-  }
-}, [formData.highlightsHtml])
 
 
 
@@ -644,8 +638,8 @@ useEffect(() => {
   SAVE_FIELDS.forEach((field) => {
     const value = safeLocalStorageGet(PERSIST_PREFIX + field)
     if (value !== null) {
-      if (field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary") {
-        setFormData((prev) => ({ ...prev, [field]: normalizeEditorHtml(value) }))
+if (field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary" || field === "highlightsHtml") {
+  setFormData((prev) => ({ ...prev, [field]: normalizeEditorHtml(value) }))
       } else if ((field as string).startsWith("opt")) {
         setDesignOptions((prev) => ({ ...prev, [field as keyof DesignOptions]: value }))
       } else {
@@ -1247,11 +1241,9 @@ const pill = (val: string) => {
   const processedKeyDecisions = processRichHtml(data.keyDecisionsHtml)
   const processedRisks = processRichHtml(data.risksHtml)
   const processedResources = processRichHtml(data.resourcesHtml)
- //  const processedHighlights = processRichHtml(data.highlightsHtml);
-
+const processedHighlights = processRichHtml(data.highlightsHtml)
   const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
   const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
-
 
 
   return `<!DOCTYPE html>
@@ -1354,13 +1346,20 @@ ${data.execSummary ? `
   </td>
 </tr>` : ""}
 
+// inside buildHtml return, alongside Exec Summary rows
 <!-- Highlights / Accomplishments -->
 ${(data.highlightsHtml || data.lowlights) ? `
-  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-    ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
-    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+<tr>
+  <td colspan="1" style="${oddRowStyle}">
+    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
+      ${escapeHtml(data.highlightsTitle || "Highlights / Accomplishments")}
+    </h3>
+    <div style="margin:0;font-size:16px;color:#333333;">
       ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
-    </td></tr>
+    </div>
+  </td>
+</tr>` : ""}
+
   </table>` : ""}
 
 
@@ -1599,18 +1598,17 @@ ${data.execSummary ? `
     </td></tr>
   </table>` : ""}
 
+// inside buildEmailHtml return, between Exec Summary and Updates blocks
 <!-- Highlights / Accomplishments -->
 ${(data.highlightsHtml || data.lowlights) ? `
-<tr>
-  <td colspan="1" style="${oddRowStyle}">
-    <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
-      ${escapeHtml(data.highlightsTitle || "Highlights / Accomplishments")}
-    </h3>
-    <div style="margin:0;font-size:16px;color:#333333;">
-      ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
-    </div>
-  </td>
-</tr>` : ""}
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
+    <tr>
+      <td style="${cellLeft}" bgcolor="#ffffff" align="left">
+        ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
+      </td>
+    </tr>
+
 
   </table>` : ""}
 
