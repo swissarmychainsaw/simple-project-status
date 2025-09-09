@@ -126,9 +126,6 @@ const fontOptions = [
 
 
 
-// Single source of truth for email width
-const EMAIL_MAX_WIDTH = 760;
-
 // Make paths absolute for email clients
 const absoluteUrl = (p: string) => {
   try {
@@ -1384,52 +1381,17 @@ type DensityName = "comfortable" | "cozy" | "compact";
 const density = (opts.optDensity ?? "comfortable") as DensityName;
 
 
-// Scale factors (used ONLY for status/team tables)
-const scale = density === "compact" ? 0.8 : density === "cozy" ? 0.9 : 1;
-const px = (n: number) => `${Math.round(n * scale)}px`;
-  
 
 
 // compact trending and people table
+// ---- email-safe helpers (fixed-width container), defined ONCE
+const containerWidth = EMAIL_MAX_WIDTH;
 
-  
-
-
-
-//  const outerTableStyle =
-//  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
-//  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
-// const innerTableStyle = 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;';  
-//    const baseFont =
-//    `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
-//  const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
-//  const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
-//  const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
-//  const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
-//    const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
-//    const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
-//    const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
- 
-
-// Shared table wrappers
-const outerTableStyle =
-  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
-  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
-const innerTableStyle =
-  "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
-  
-
-
-
-// Normalize density locally to a concrete union
-type DensityName = "comfortable" | "cozy" | "compact";
-const density = (opts.optDensity ?? "comfortable") as DensityName;
-
-// Scale factors (used ONLY for status/team tables)
-const scale = density === "compact" ? 0.8 : density === "cozy" ? 0.9 : 1;
+// Don’t rely on an imported narrower type; normalize locally.
+const dens = (opts.optDensity ?? "comfortable") as "comfortable" | "cozy" | "compact";
+const scale = dens === "compact" ? 0.8 : dens === "cozy" ? 0.9 : 1;
 const px = (n: number) => `${Math.round(n * scale)}px`;
 
-// Shared table wrappers
 const outerTableStyle =
   `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
   `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
@@ -1448,13 +1410,13 @@ const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text
 const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
 const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
 
-// ----- SCALED styles used ONLY in the Status + Team tables -----
-const sFont      = `${baseText}font-size:${px(14)};line-height:1.35;`;
-const sCellBase  = `${sFont}padding:${px(8)} ${px(10)};border:1px solid #e5e7eb;`;
-const sCellLeft  = `${sCellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
-const sCellCenter= `${sCellBase}text-align:center;vertical-align:middle;`;
-const sHeadCellC = `${sCellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;font-size:${px(13)};`;
-const sHeadCellL = `${sCellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;font-size:${px(13)};`;
+// ----- SCALED (used ONLY in Status + Team tables) -----
+const sFont       = `${baseText}font-size:${px(14)};line-height:1.35;`;
+const sCellBase   = `${sFont}padding:${px(8)} ${px(10)};border:1px solid #e5e7eb;`;
+const sCellLeft   = `${sCellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
+const sCellCenter = `${sCellBase}text-align:center;vertical-align:middle;`;
+const sHeadCellC  = `${sCellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;font-size:${px(13)};`;
+const sHeadCellL  = `${sCellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;font-size:${px(13)};`;
 
 // section header row (unscaled everywhere except the two special tables)
 const sectionHeaderRow = (label: string) =>
