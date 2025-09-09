@@ -1491,7 +1491,7 @@ ${data.execSummary ? `<table role="presentation" width="100%" style="${innerTabl
 
 
 
-// Lowlights
+<!-- Lowlights -->
 ${data.lowlights ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow("Lowlights")}
@@ -1500,7 +1500,7 @@ ${data.lowlights ? `
     </td></tr>
   </table>` : ""}
 
-      // Updates
+      <!-- Updates -->
 ${data.updatesHtml ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.updatesTitle || "Top Accomplishments")}
@@ -1508,7 +1508,7 @@ ${data.updatesHtml ? `
     <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
   </table>` : ""}
 
-// Milestones
+<!-- Milestones -->
 ${data.milestonesHtml ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.milestonesTitle || "Upcoming Milestones")}
@@ -1516,7 +1516,7 @@ ${data.milestonesHtml ? `
     <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
   </table>` : ""}
 
-// Key Decisions
+<!--  Key Decisions -->
 ${data.keyDecisionsHtml ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.keyDecisionsTitle || "Key Decisions")}
@@ -1524,7 +1524,7 @@ ${data.keyDecisionsHtml ? `
     <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedKeyDecisions}</td></tr>
   </table>` : ""}
 
-// Risks
+<!--  Risks -->
 ${data.risksHtml ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.risksTitle || "Risks & Issue Mitigation Plan")}
@@ -1532,7 +1532,7 @@ ${data.risksHtml ? `
     <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedRisks}</td></tr>
   </table>` : ""}
 
-// Additional Resources
+<!-- Additional Resources -->
 ${data.resourcesHtml ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.resourcesTitle || "Additional Resources")}
