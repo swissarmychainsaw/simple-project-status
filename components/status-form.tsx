@@ -2026,8 +2026,8 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
         
  
-      </Card>
-  <Card>
+      <Card>
+  
   <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
   <CardContent className="space-y-4">
     {/* Banner mode */}
