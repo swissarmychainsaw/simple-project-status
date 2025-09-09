@@ -109,11 +109,7 @@ type DesignOptions = DesignOptionsProfile & {
 };
 
 
-const hdr = sectionHeaderRow("Executive Summary");
-console.log('HDR:', hdr.startsWith('<tr><td')); // should be true
-const html = buildEmailHtml(formData, designOptions);
-const i = html.indexOf('Executive Summary');
-console.log(html.slice(i - 80, i + 80)); // should show “…<tr><td style="…">Executive Summary</td>…”
+
 
 
 
@@ -1287,6 +1283,9 @@ const pill = (val: string) => {
         </tr>
 
         ${data.execSummary ? `
+
+
+        
         <tr>
           <td colspan="1" style="${oddRowStyle}">
             <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">Executive Summary</h3>
