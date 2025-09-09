@@ -1387,12 +1387,8 @@ const density = (opts.optDensity ?? "comfortable") as DensityName;
 const scale = density === "compact" ? 0.8 : density === "cozy" ? 0.9 : 1;
 const px = (n: number) => `${Math.round(n * scale)}px`;
   
-// Density scale: comfortable(1.00), cozy(0.90), compact(0.80)
-const scale =
-  opts.optDensity === "compact" ? 0.8 :
-  opts.optDensity === "cozy"    ? 0.9 : 1;
 
-const px = (n: number) => `${Math.round(n * scale)}px`;
+
 // compact trending and people table
 
   
