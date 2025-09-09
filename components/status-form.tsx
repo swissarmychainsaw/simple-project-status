@@ -2025,8 +2025,8 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 </div>
 
         
-        
-     <Card>
+ 
+      </Card>
   <Card>
   <CardHeader><CardTitle>Design Options</CardTitle></CardHeader>
   <CardContent className="space-y-4">
