@@ -1259,8 +1259,12 @@ const pill = (val: string) => {
   const processedKeyDecisions = processRichHtml(data.keyDecisionsHtml)
   const processedRisks = processRichHtml(data.risksHtml)
   const processedResources = processRichHtml(data.resourcesHtml)
-const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))  const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
+
+const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml));
+const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
   const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
+  
+
 
 
   return `<!DOCTYPE html>
