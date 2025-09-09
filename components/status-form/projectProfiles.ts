@@ -151,8 +151,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
     },
     defaults: {
       programTitle: "Azure Odyssey Program Status",
-      programSummary:
-        "Making Azure a first class citizen at LinkedIn" accomplishes this by enhancing developer productivity, ensuring security, and simplifying operations and scalability. The program involves multiple tracks, including Ownership & Management, Infra  & Deployment, Observability & Troubleshooting, Cost & Quota, Advanced Azure Functionalities and Data & Governance.  Program Resources go/Azure-Odyssey.",
+      programSummary: "Making Azure a First-Class Citizen at LinkedIn” drives developer productivity, strengthens security, and streamlines operations and scalability. The program spans multiple tracks—Ownership & Management, Infrastructure & Deployment, Observability & Troubleshooting, Cost & Quota, Advanced Azure Functionalities, and Data & Governance. For more details, see program resources at go/Azure-Odyssey.",
       tpm: "Nick Adams",
       engDri: "Mario Estevez-Cruz",
       bizSponsor: "Niha Mathur",
