@@ -1378,8 +1378,8 @@ const innerTableStyle = 'border-collapse:collapse;width:100%;mso-table-lspace:0p
   const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
   const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
 
-  const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
-  const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
+  //const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+  //const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
 
   const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
   const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
