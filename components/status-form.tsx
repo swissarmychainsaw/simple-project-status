@@ -144,7 +144,7 @@ const escapeHtml = (s: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;");
 // Global email layout width (shared by preview + email)
-const EMAIL_MAX_WIDTH = 700; // px
+const EMAIL_MAX_WIDTH = 900; // px
 
 
 
