@@ -1333,6 +1333,13 @@ const pill = (val: string) => {
 </body>
 </html>`
 }
+const fourColColgroup = `
+  <colgroup>
+    <col style="width:25%" width="25%">
+    <col style="width:25%" width="25%">
+    <col style="width:25%" width="25%">
+    <col style="width:25%" width="25%">
+  </colgroup>`;
 
 
 // buildEmailHtml Email Report email report
@@ -1420,7 +1427,8 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
 
       <!-- Status -->
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+      <table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
+
         <tr>
           <td style="${headCell}" bgcolor="#f5f5f5">Last Status</td>
           <td style="${headCell}" bgcolor="#f5f5f5">Current Status</td>
@@ -1436,7 +1444,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
       </table>
 
       <!-- Team -->
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+      <table role="presentation" width="100%" style="${innerTableStyle};table-layout:fixed" cellpadding="0" cellspacing="0" border="0"> ${fourColColgroup}
         <tr>
           <td style="${headCell}" bgcolor="#f5f5f5">TPM</td>
           <td style="${headCell}" bgcolor="#f5f5f5">Engineering DRI</td>
