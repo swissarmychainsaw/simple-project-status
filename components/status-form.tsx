@@ -1346,7 +1346,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     : "";
 
   // ---- email-safe style helpers (fixed-width container)
-  const containerWidth = 700;
+  const containerWidth = 900;
 const outerTableStyle =
   `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
   `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
