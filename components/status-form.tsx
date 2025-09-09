@@ -822,7 +822,9 @@ const absoluteUrl = (p: string) => {
 const getBannerHtml = (forEmail: boolean, opts: DesignOptions): string => {
   if (opts.optBannerMode === "none") return "";
 
-  const preset = BANNERS[opts.optBannerId];
+
+  const preset = opts.optBannerId ? BANNERS[opts.optBannerId as BannerKey] : undefined;
+
   const caption = opts.optBannerCaption || "Program Status";
   const alt = preset?.alt || caption;
 
