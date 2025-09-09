@@ -12,7 +12,7 @@ const BANNERS: Record<string, { cid: string; filename: string; relPath: string }
   azure: { cid: "banner-azure", filename: "azure-banner.png", relPath: "banners/azure-banner.png" },
   cie:   { cid: "banner-cie",   filename: "cie-banner.png",   relPath: "banners/cie-banner.png" },
   netmig:{ cid: "banner-netmig",filename: "obn-banner.png",   relPath: "banners/obn-banner.png" },
-  azlens:{ cid: "banner-azlens",filename: "azure-lens.png",   relPath: "banners/azure-lens.png" },
+  azlens:{ cid: "banner-azlens",filename: "azurelens-banner.png",   relPath: "banners/azurelens-banner.png" },
   ipv6:  { cid: "banner-ipv6",  filename: "ipv6-banner.png",  relPath: "ipv6-banner.png" },
 };
 
