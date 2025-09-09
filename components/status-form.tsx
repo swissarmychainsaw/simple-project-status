@@ -2422,7 +2422,10 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                 </div>
               </CardContent>
             </Card>
-       </div>       {/* closes max-width container */}
-    </div>         {/* closes page wrapper */}
+</div>
+</div>
+</div>
+</div>
+
   );
 }
