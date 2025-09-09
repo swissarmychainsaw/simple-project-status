@@ -234,8 +234,8 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
     defaults: {
       programTitle: "Azure Lens",
       programSummary:
-        "Insights and observability for Azure cost, performance, and reliability.",
-      tpm: "Kai Thompson",
+        "Azure Lens is a system designed to optimize Azure resource utilization and reduce costs for LinkedIn. It addresses challenges such as identifying underutilized resources, managing ownership details, and making actionable recommendations for cost savings. ",
+      tpm: "Nick Adams",
       engDri: "Mario Estevez-Cruz",
       bizSponsor: "Niha Mathur",
       engSponsor: "Suchreet Dhaliwal",
