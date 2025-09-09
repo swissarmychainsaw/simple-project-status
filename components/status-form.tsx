@@ -135,11 +135,19 @@ const absoluteUrl = (p: string) => {
   }
 };
 
-// Logo helper
-// Logo helper (single source of truth)
+// Make safe for HTML attrs/text
+const escapeHtml = (s: string): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 
 
-// Banner helper
+
+
+
 // Banner helper
 function getBannerHtml(
   forEmail: boolean,
@@ -691,14 +699,7 @@ useEffect(() => {
 };
 
 
-  // HTML helpers
-  const escapeHtml = (s: string) =>
-  String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
+ 
 
 
 const applyDefaultsPack = (pack: DefaultsPack, mode: ApplyMode = "fill") => {
