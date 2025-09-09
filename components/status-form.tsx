@@ -799,9 +799,9 @@ const getLogoImg = (forEmail: boolean): string => {
     src = designOptions.optLogoUrl?.trim() || LOGO_SRC_WEB
   } else {
     // "cid" mode: email uses CID, preview uses web path
-    src = forEmail ? `cid:${LOGO_CID}` : LOGO_SRC_WEB
+src = forEmail ? "cid:" + LOGO_CID : LOGO_SRC_WEB;
   }
-const EMAIL_MAX_WIDTH = 760; // good for desktop, scales on mobile
+
 
   // very light sanity check: only allow http/https/cid in src
   const ok = /^(cid:|https?:\/\/|\/)/i.test(src)
@@ -831,6 +831,19 @@ const EMAIL_MAX_WIDTH = 760;
 function getBannerHtml(
   forEmail: boolean,
   opts: DesignOptions,
+// ---- Email/Page layout constants & helpers ----
+const EMAIL_MAX_WIDTH = 760;
+
+/** Convert relative URL to absolute (for email clients) */
+const absoluteUrl = (p: string) => {
+  try { return new URL(p, window.location.origin).toString(); }
+  catch { return p; }
+};
+
+/** Banner HTML (works for both preview and email) */
+function getBannerHtml(
+  forEmail: boolean,
+  opts: DesignOptions,
   maxWidth = EMAIL_MAX_WIDTH
 ): string {
   if (opts.optBannerMode === "none") return "";
@@ -849,57 +862,14 @@ function getBannerHtml(
   } else {
     // "cid"
     if (!preset) return "";
-    src = forEmail ? \`cid:\${preset.cid}\` : (preset.web || "");
-  }
-
-  const img = \`
-    <img src="\${escapeHtml(src)}"
-         alt="\${escapeHtml(alt)}"
-         width="\${maxWidth}"
-         style="display:block;width:100%;max-width:\${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-  \`;
-
-  // Only show the caption in on-page preview, not in the email
-  if (forEmail) return img;
-
-  return \`\${img}
-    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-      \${escapeHtml(caption)}
-    </div>\`;
-}
-
-  // Only show caption on on-page preview, not in the email
-  if (forEmail) return img;
-
-  return `${img}
-    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-      ${escapeHtml(caption)}
-    </div>`;
-};
-
-
-
-  const preset = opts.optBannerId ? BANNERS[opts.optBannerId as BannerKey] : undefined;
-
-  const caption = opts.optBannerCaption || "Program Status";
-  const alt = preset?.alt || caption;
-
-  let src = "";
-  if (opts.optBannerMode === "url") {
-    const webSrc = opts.optBannerUrl?.trim() || preset?.web || "";
-    // emails need absolute URLs
-    src = forEmail ? absoluteUrl(webSrc) : webSrc;
-  } else {
-    // "cid" mode
-    if (!preset) return "";
     src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
   }
 
   const img = `
     <img src="${escapeHtml(src)}"
          alt="${escapeHtml(alt)}"
-         width="${EMAIL_MAX_WIDTH}"
-         style="display:block;width:100%;max-width:${EMAIL_MAX_WIDTH};height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+         width="${maxWidth}"
+         style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 
   // Only show the caption in on-page preview, not in the email
@@ -909,7 +879,7 @@ function getBannerHtml(
     <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
       ${escapeHtml(caption)}
     </div>`;
-};
+}
 
 
   const STRIPE_ODD = "#ffffff"
@@ -1414,6 +1384,7 @@ const containerWidth = EMAIL_MAX_WIDTH;
   `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
   `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
 
+const innerTableStyle = 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;';
 
 
   const baseFont =
@@ -1447,7 +1418,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
   return `
 <!-- Fixed-width banner -->
-<table role="presentation" align="center" width="$100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+<table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr><td style="padding:0;">${banner}</td></tr>
   
 
