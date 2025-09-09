@@ -40,6 +40,24 @@ export function ReportHeader() {
 type ApplyMode = "fill" | "overwrite";
 
 
+const listsToParagraphs = (html: string): string => {
+  if (!html) return "";
+  const root = document.createElement("div");
+  root.innerHTML = html;
+
+  // For each UL/OL, replace with a sequence of <p>…</p>
+  root.querySelectorAll("ul, ol").forEach((list) => {
+    const frag = document.createDocumentFragment();
+    list.querySelectorAll(":scope > li").forEach((li) => {
+      const p = document.createElement("p");
+      p.innerHTML = (li as HTMLElement).innerHTML;
+      frag.appendChild(p);
+    });
+    list.replaceWith(frag);
+  });
+
+  return root.innerHTML;
+};
 
 
 
@@ -536,7 +554,7 @@ const handleHighlightsPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
   const target = e.currentTarget
   if (target) {
     unwrapPsInCellsInPlace(target)
-    updateFormData("highlightsHtml", target.innerHTML)
+    updateFormData("highlightsHtml", listsToParagraphs(target.innerHTML))
   }
 }
 
@@ -1241,8 +1259,7 @@ const pill = (val: string) => {
   const processedKeyDecisions = processRichHtml(data.keyDecisionsHtml)
   const processedRisks = processRichHtml(data.risksHtml)
   const processedResources = processRichHtml(data.resourcesHtml)
-const processedHighlights = processRichHtml(data.highlightsHtml)
-  const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
+const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))  const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
   const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
 
 
@@ -1517,8 +1534,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
   const processedRisks           = processRichHtml(data.risksHtml);
   const processedResources       = processRichHtml(data.resourcesHtml);
-  const processedHighlights = processRichHtml(data.highlightsHtml)
-
+const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))
 
   return `
 <!-- Fixed-width banner -->
@@ -1919,7 +1935,7 @@ ${data.resourcesHtml ? `
     let html = rawHtml || safeInline(rawText).replace(/\n/g, "<br>")
     html = unwrapParagraphsInTables(html)
     html = stripInlineBackgrounds(html)
-    html = sanitizeHtml(html)
+    html = listsToParagraphs(sanitizeHtml(html))
 
     document.execCommand("insertHTML", false, html)
 
