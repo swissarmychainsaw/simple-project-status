@@ -1421,9 +1421,6 @@ const innerTableStyle =
 
 
 
-// ---- email-safe style helpers (fixed-width container)
-const containerWidth = EMAIL_MAX_WIDTH;
-
 // Normalize density locally to a concrete union
 type DensityName = "comfortable" | "cozy" | "compact";
 const density = (opts.optDensity ?? "comfortable") as DensityName;
