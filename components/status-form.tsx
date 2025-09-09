@@ -1348,14 +1348,14 @@ ${data.execSummary ? `
 
 // inside buildHtml return, alongside Exec Summary rows
 <!-- Highlights / Accomplishments -->
-${(data.highlightsHtml || data.lowlights) ? `
+${data.highlightsHtml ? `
 <tr>
   <td colspan="1" style="${oddRowStyle}">
     <h3 style="margin:0 0 10px 0;font-size:18px;font-weight:bold;color:#333333;">
       ${escapeHtml(data.highlightsTitle || "Highlights / Accomplishments")}
     </h3>
     <div style="margin:0;font-size:16px;color:#333333;">
-      ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
+     ${processedHighlights}
     </div>
   </td>
 </tr>` : ""}
@@ -1596,12 +1596,12 @@ ${data.execSummary ? `
 
 <!-- inside buildEmailHtml return, between Exec Summary and Updates blocks -->
 <!-- Highlights / Accomplishments -->
-${(data.highlightsHtml || data.lowlights) ? `
+${data.highlightsHtml ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
     <tr>
       <td style="${cellLeft}" bgcolor="#ffffff" align="left">
-        ${data.highlightsHtml ? processedHighlights : linesToList(data.lowlights)}
+       ${processedHighlights}
       </td>
     </tr>
 
