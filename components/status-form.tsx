@@ -821,14 +821,18 @@ const absoluteUrl = (p: string) => {
   catch { return p; }
 };
 
-// ✅ drop-in replacement
+// drop-in replacement
+const EMAIL_MAX_WIDTH = 760;
+  
+// keep absoluteUrl above this
+
 const EMAIL_MAX_WIDTH = 760;
 
-const getBannerHtml = (
+function getBannerHtml(
   forEmail: boolean,
   opts: DesignOptions,
   maxWidth = EMAIL_MAX_WIDTH
-): string => {
+): string {
   if (opts.optBannerMode === "none") return "";
 
   const key = (opts.optBannerId || "") as BannerKey;
@@ -854,14 +858,14 @@ const getBannerHtml = (
          style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
   `;
 
-  // Only caption in on-page preview
+  // Only show the caption in on-page preview, not in the email
   if (forEmail) return img;
 
   return `${img}
     <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
       ${escapeHtml(caption)}
     </div>`;
-};
+}
 
 // (next line in your file should already be something like:)
 const STRIPE_ODD = "#ffffff";
