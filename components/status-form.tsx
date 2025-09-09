@@ -2097,6 +2097,122 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   </CardContent>
 </Card>
 
+<Card>
+  <CardHeader>
+    <CardTitle>Basics</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Program Title */}
+    <div>
+      <Label className="text-sm font-medium">Program / Project Title</Label>
+      <Input
+        value={formData.programTitle}
+        onChange={(e) => updateFormData("programTitle", e.target.value)}
+        placeholder="e.g., Global Network Services"
+        className="bg-white mt-1"
+      />
+    </div>
+
+    {/* Program Summary */}
+    <div>
+      <Label className="text-sm font-medium">Program Summary</Label>
+      <Textarea
+        value={formData.programSummary}
+        onChange={(e) => updateFormData("programSummary", e.target.value)}
+        rows={3}
+        maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+        className="bg-white mt-1 resize-none"
+        placeholder="One or two sentences describing the program/project."
+      />
+    </div>
+
+    {/* Header table Date + Statuses */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div>
+        <Label className="text-sm font-medium">Date</Label>
+        <Input
+          type="date"
+          value={formData.asOf}
+          onChange={(e) => updateFormData("asOf", e.target.value)}
+          className="bg-white mt-1"
+        />
+      </div>
+
+      {["lastStatus","currentStatus","trending"].map((k) => (
+        <div key={k}>
+          <Label className="text-sm font-medium capitalize">{k.replace(/([A-Z])/g," $1")}</Label>
+          <Select
+            value={(formData as any)[k]}
+            onValueChange={(v) => updateFormData(k as any, v)}
+          >
+            <SelectTrigger className="bg-white mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Green">Green</SelectItem>
+              <SelectItem value="Yellow">Yellow</SelectItem>
+              <SelectItem value="Red">Red</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      ))}
+    </div>
+
+    {/* People */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div>
+        <Label className="text-sm font-medium">TPM</Label>
+        <Input
+          value={formData.tpm}
+          onChange={(e) => updateFormData("tpm", e.target.value)}
+          placeholder="Name"
+          className="bg-white mt-1"
+        />
+      </div>
+      <div>
+        <Label className="text-sm font-medium">Engineering DRI</Label>
+        <Input
+          value={formData.engDri}
+          onChange={(e) => updateFormData("engDri", e.target.value)}
+          placeholder="Name"
+          className="bg-white mt-1"
+        />
+      </div>
+      <div>
+        <Label className="text-sm font-medium">Business Sponsor</Label>
+        <Input
+          value={formData.bizSponsor}
+          onChange={(e) => updateFormData("bizSponsor", e.target.value)}
+          placeholder="Name"
+          className="bg-white mt-1"
+        />
+      </div>
+      <div>
+        <Label className="text-sm font-medium">Engineering Sponsor</Label>
+        <Input
+          value={formData.engSponsor}
+          onChange={(e) => updateFormData("engSponsor", e.target.value)}
+          placeholder="Name"
+          className="bg-white mt-1"
+        />
+      </div>
+    </div>
+
+    {/* Email To */}
+    <div>
+      <Label className="text-sm font-medium">Email To</Label>
+      <Input
+        value={formData.emailTo}
+        onChange={(e) => updateFormData("emailTo", e.target.value)}
+        placeholder="you@example.com"
+        className="bg-white mt-1"
+      />
+    </div>
+  </CardContent>
+</Card>
+
+
+
+
+        
           {/* Executive Summary Section */} 
  
 <Card>
