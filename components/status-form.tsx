@@ -2099,6 +2099,44 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 
         
  
+<Card>
+  <CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader>
+  <CardContent>
+    <div className="flex gap-1 mb-2">
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "b")} className="h-8 px-2"><Bold className="w-3 h-3" /></Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "i")} className="h-8 px-2"><Italic className="w-3 h-3" /></Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => wrapSelection("execSummary", "u")} className="h-8 px-2"><Underline className="w-3 h-3" /></Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-3 ml-2"
+        onClick={() => {
+          updateFormData("execSummary", "")
+          if (execSummaryRef.current) execSummaryRef.current.innerHTML = ""
+        }}
+      >
+        Clear Field
+      </Button>
+      <div className={`ml-auto text-xs ${execOver ? "text-red-600" : "text-gray-500"}`}>
+        {execLen}/{EXEC_SUMMARY_PLAIN_LIMIT} chars
+      </div>
+    </div>
+
+    <div
+      ref={execSummaryRef}
+      id="execSummary"
+      contentEditable
+      className="min-h-[120px] p-3 border border-input rounded-md bg-white text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:outline-none"
+      style={{ lineHeight: "1.5", overflowX: "auto", maxWidth: "100%" }}
+      onInput={handleExecSummaryInput}
+      onBlur={handleExecSummaryBlur}
+      onPaste={handleExecSummaryPaste}
+      data-placeholder="Type or paste your executive summary here…"
+      suppressContentEditableWarning
+    />
+  </CardContent>
+</Card>
 
 
 
