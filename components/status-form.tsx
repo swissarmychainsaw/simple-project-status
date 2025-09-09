@@ -1594,7 +1594,7 @@ ${data.execSummary ? `
     </td></tr>
   </table>` : ""}
 
-// inside buildEmailHtml return, between Exec Summary and Updates blocks
+<!-- inside buildEmailHtml return, between Exec Summary and Updates blocks -->
 <!-- Highlights / Accomplishments -->
 ${(data.highlightsHtml || data.lowlights) ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
