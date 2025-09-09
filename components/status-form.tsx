@@ -1477,68 +1477,54 @@ ${data.execSummary ? `
 
 
 
-      ${data.lowlights ? `
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr>td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">Lowlights</td></tr>
-        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-          ${linesToList(data.lowlights)}
-        </td></tr>
-      </table>` : ""}
+// Lowlights
+${data.lowlights ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow("Lowlights")}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+      ${linesToList(data.lowlights)}
+    </td></tr>
+  </table>` : ""}
 
-      ${data.updatesHtml ? `
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
-          ${escapeHtml(data.updatesTitle || "Top Accomplishments")}
-        </td></tr>
-        ${data.sectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-          <strong>${escapeHtml(data.sectionTitle)}</strong>
-        </td></tr>` : ""}
-        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
-      </table>` : ""}
+      // Updates
+${data.updatesHtml ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.updatesTitle || "Top Accomplishments")}
+    ${data.sectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left"><strong>${escapeHtml(data.sectionTitle)}</strong></td></tr>` : ""}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedUpdates}</td></tr>
+  </table>` : ""}
 
-      ${data.milestonesHtml ? `
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
-          ${escapeHtml(data.milestonesTitle || "Upcoming Milestones")}
-        </td></tr>
-        ${data.milestonesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-          <strong>${escapeHtml(data.milestonesSectionTitle)}</strong>
-        </td></tr>` : ""}
-        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
-      </table>` : ""}
+// Milestones
+${data.milestonesHtml ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.milestonesTitle || "Upcoming Milestones")}
+    ${data.milestonesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left"><strong>${escapeHtml(data.milestonesSectionTitle)}</strong></td></tr>` : ""}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedMilestones}</td></tr>
+  </table>` : ""}
 
-      ${data.keyDecisionsHtml ? `
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr>td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
-          ${escapeHtml(data.keyDecisionsTitle || "Key Decisions")}
-        </td></tr>
-        ${data.keyDecisionsSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-          <strong>${escapeHtml(data.keyDecisionsSectionTitle)}</strong>
-        </td></tr>` : ""}
-        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedKeyDecisions}</td></tr>
-      </table>` : ""}
+// Key Decisions
+${data.keyDecisionsHtml ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.keyDecisionsTitle || "Key Decisions")}
+    ${data.keyDecisionsSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left"><strong>${escapeHtml(data.keyDecisionsSectionTitle)}</strong></td></tr>` : ""}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedKeyDecisions}</td></tr>
+  </table>` : ""}
 
-      ${data.risksHtml ? `
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
-          ${escapeHtml(data.risksTitle || "Risks & Issue Mitigation Plan")}
-        </td></tr>
-        ${data.risksSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-          <strong>${escapeHtml(data.risksSectionTitle)}</strong>
-        </td></tr>` : ""}
-        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedRisks}</td></tr>
-      </table>` : ""}
+// Risks
+${data.risksHtml ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.risksTitle || "Risks & Issue Mitigation Plan")}
+    ${data.risksSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left"><strong>${escapeHtml(data.risksSectionTitle)}</strong></td></tr>` : ""}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedRisks}</td></tr>
+  </table>` : ""}
 
-      ${data.resourcesHtml ? `
-      <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-        <tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">
-          ${escapeHtml(data.resourcesTitle || "Additional Resources")}
-        </td></tr>
-        ${data.resourcesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
-          <strong>${escapeHtml(data.resourcesSectionTitle)}</strong>
-        </td></tr>` : ""}
-        <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedResources}</td></tr>
-      </table>` : ""}
+// Additional Resources
+${data.resourcesHtml ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    ${sectionHeaderRow(data.resourcesTitle || "Additional Resources")}
+    ${data.resourcesSectionTitle ? `<tr><td style="${cellLeft}" bgcolor="#ffffff" align="left"><strong>${escapeHtml(data.resourcesSectionTitle)}</strong></td></tr>` : ""}
+    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">${processedResources}</td></tr>
+  </table>` : ""}
 
     </td>
   </tr>
