@@ -1407,7 +1407,7 @@ const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:bre
     return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
   };
 
-  const banner = getBannerHtml(true, opts);
+const banner = getBannerHtml(true, opts, containerWidth);
   const processedUpdates         = processRichHtml(data.updatesHtml);
   const processedMilestones      = processRichHtml(data.milestonesHtml);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
