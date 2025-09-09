@@ -2659,4 +2659,4 @@ const banner = getBannerHtml(true, opts, containerWidth);
 </div>
 </div>
   );
-
+}
