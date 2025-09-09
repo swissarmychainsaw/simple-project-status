@@ -815,23 +815,34 @@ const EMAIL_MAX_WIDTH = 760; // good for desktop, scales on mobile
   `
 }
 
+// keep this helper where it already is:
 const absoluteUrl = (p: string) => {
   try { return new URL(p, window.location.origin).toString(); }
   catch { return p; }
 };
 
-const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = EMAIL_MAX_WIDTH): string => {
+// ✅ drop-in replacement
+const EMAIL_MAX_WIDTH = 760;
+
+const getBannerHtml = (
+  forEmail: boolean,
+  opts: DesignOptions,
+  maxWidth = EMAIL_MAX_WIDTH
+): string => {
   if (opts.optBannerMode === "none") return "";
 
-  const preset = opts.optBannerId ? BANNERS[opts.optBannerId as BannerKey] : undefined;
+  const key = (opts.optBannerId || "") as BannerKey;
+  const preset = key ? BANNERS[key] : undefined;
+
   const caption = opts.optBannerCaption || "Program Status";
   const alt = preset?.alt || caption;
 
   let src = "";
   if (opts.optBannerMode === "url") {
     const webSrc = (opts.optBannerUrl || preset?.web || "").trim();
-    src = forEmail ? absoluteUrl(webSrc) : webSrc; // emails must be absolute
+    src = forEmail ? absoluteUrl(webSrc) : webSrc; // emails need absolute URLs
   } else {
+    // "cid"
     if (!preset) return "";
     src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
   }
@@ -851,6 +862,10 @@ const getBannerHtml = (forEmail: boolean, opts: DesignOptions, maxWidth = EMAIL_
       ${escapeHtml(caption)}
     </div>`;
 };
+
+// (next line in your file should already be something like:)
+const STRIPE_ODD = "#ffffff";
+
   // Only show caption on on-page preview, not in the email
   if (forEmail) return img;
 
