@@ -844,31 +844,29 @@ function getBannerHtml(
   let src = "";
   if (opts.optBannerMode === "url") {
     const webSrc = (opts.optBannerUrl || preset?.web || "").trim();
-    src = forEmail ? absoluteUrl(webSrc) : webSrc; // emails need absolute URLs
+    // emails need absolute URLs
+    src = forEmail ? absoluteUrl(webSrc) : webSrc;
   } else {
     // "cid"
     if (!preset) return "";
-    src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
+    src = forEmail ? \`cid:\${preset.cid}\` : (preset.web || "");
   }
 
-  const img = `
-    <img src="${escapeHtml(src)}"
-         alt="${escapeHtml(alt)}"
-         width="${maxWidth}"
-         style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-  `;
+  const img = \`
+    <img src="\${escapeHtml(src)}"
+         alt="\${escapeHtml(alt)}"
+         width="\${maxWidth}"
+         style="display:block;width:100%;max-width:\${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  \`;
 
   // Only show the caption in on-page preview, not in the email
   if (forEmail) return img;
 
-  return `${img}
+  return \`\${img}
     <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
-      ${escapeHtml(caption)}
-    </div>`;
+      \${escapeHtml(caption)}
+    </div>\`;
 }
-
-// (next line in your file should already be something like:)
-const STRIPE_ODD = "#ffffff";
 
   // Only show caption on on-page preview, not in the email
   if (forEmail) return img;
