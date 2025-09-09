@@ -1528,7 +1528,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
 
 
-// Executive Summary
+
 ${data.execSummary ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.execSummaryTitle || "Executive Summary")}
@@ -1537,7 +1537,7 @@ ${data.execSummary ? `
     </td></tr>
   </table>` : ""}
 
-// Highlights / Accomplishments (formerly Lowlights)
+<!-- Highlights / Accomplishments (formerly Lowlights) -->
 ${data.lowlights ? `
   <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
     ${sectionHeaderRow(data.highlightsTitle || "Highlights / Accomplishments")}
