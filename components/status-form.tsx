@@ -894,17 +894,7 @@ src = forEmail ? "cid:" + LOGO_CID : LOGO_SRC_WEB;
   const caption = opts.optBannerCaption || "Program Status";
   const alt = preset?.alt || caption;
 
-  let src = "";
-  if (opts.optBannerMode === "url") {
-    const webSrc = (opts.optBannerUrl || preset?.web || "").trim();
-    // emails need absolute URLs
-    src = forEmail ? absoluteUrl(webSrc) : webSrc;
-  } else {
-    // "cid"
-    if (!preset) return "";
-    src = forEmail ? `cid:${preset.cid}` : (preset.web || "");
-  }
-
+ 
   const img = `
     <img src="${escapeHtml(src)}"
          alt="${escapeHtml(alt)}"
