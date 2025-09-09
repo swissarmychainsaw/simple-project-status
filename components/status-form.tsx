@@ -109,6 +109,13 @@ type DesignOptions = DesignOptionsProfile & {
 };
 
 
+const hdr = sectionHeaderRow("Executive Summary");
+console.log('HDR:', hdr.startsWith('<tr><td')); // should be true
+const html = buildEmailHtml(formData, designOptions);
+const i = html.indexOf('Executive Summary');
+console.log(html.slice(i - 80, i + 80)); // should show “…<tr><td style="…">Executive Summary</td>…”
+
+
 
 
 
