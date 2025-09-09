@@ -92,7 +92,16 @@ import {
   Shield,
   Underline,
 } from "lucide-react";
-
+// --- Report types you support (add/remove as you like)
+type ReportKind =
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "program"
+  | "project"
+  | "ops"
+  | "exec"
+  | "incident";
 
 // Reuse the shared profile type and extend with the local-only field
 type DesignOptions = DesignOptionsProfile & {
@@ -131,12 +140,54 @@ const absoluteUrl = (p: string) => {
 
 
 // Banner helper
+// Banner helper
 function getBannerHtml(
   forEmail: boolean,
   opts: DesignOptions,
   maxWidth = EMAIL_MAX_WIDTH
 ): string {
+  // Nothing to render
   if (opts.optBannerMode === "none") return "";
+
+  // Figure out the image source
+  let src = "";
+  const key = (opts.optBannerId || "") as BannerKey;
+  const meta = key ? BANNERS[key] : undefined;
+
+  if (opts.optBannerMode === "url" && opts.optBannerUrl) {
+    // Absolute URL for reliability in email clients
+    src = absoluteUrl(opts.optBannerUrl);
+  } else if (opts.optBannerMode === "cid") {
+    // In email, use the CID; in on-page preview, fall back to any web path if available
+    if (forEmail && meta?.cid) {
+      src = `cid:${meta.cid}`;
+    } else if ((meta as any)?.web) {
+      src = absoluteUrl((meta as any).web);
+    } else if ((meta as any)?.url) {
+      src = absoluteUrl((meta as any).url);
+    }
+  }
+
+  if (!src) return "";
+
+  const caption = opts.optBannerCaption || "Program Status";
+  const alt = (meta as any)?.alt || caption;
+
+  const img = `
+    <img src="${escapeHtml(src)}"
+         alt="${escapeHtml(alt)}"
+         width="${maxWidth}"
+         style="display:block;width:100%;max-width:${maxWidth}px;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
+  `;
+
+  // Caption only in on-page preview (not email)
+  if (forEmail) return img;
+
+  return `${img}
+    <div style="font-weight:600;text-align:center;margin:8px 0 4px 0;color:#111;font-size:18px;line-height:1.3;">
+      ${escapeHtml(caption)}
+    </div>`;
+}
 
   
 
@@ -163,16 +214,7 @@ const BANNER_DEFAULTS: Partial<Record<BannerKey, {
   },
 };
 
-// --- Report types you support (add/remove as you like)
-type ReportKind =
-  | "weekly"
-  | "monthly"
-  | "quarterly"
-  | "program"
-  | "project"
-  | "ops"
-  | "exec"
-  | "incident";
+
 
 // What a defaults pack can set
 type DefaultsPack = {
@@ -1165,7 +1207,7 @@ const pill = (val: string) => {
   <title>Status Report</title>
 </head>
 <body style="margin:0;padding:0;">
-  ${getBannerHtml(false, designOptions, EMAIL_MAX_WIDTH)}
+  ${getBannerHtml(false, opts, EMAIL_MAX_WIDTH)}
 
   <table style="width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
 
@@ -1569,7 +1611,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
     setIsGenerating(true)
     setSecurityWarnings([])
     try {
-      const html = buildHtml(formData)
+   const html = buildHtml(formData, designOptions)
       const formatted = formatHtml(html)
       setGeneratedHtml(formatted)
       return formatted
