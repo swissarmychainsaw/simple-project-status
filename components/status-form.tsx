@@ -476,11 +476,12 @@ export default function StatusForm() {
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
     optFont: "Inter, Arial, Helvetica, sans-serif",
     optAccent: "#086dd7",
-    optDensity: "comfortable",
+    //optDensity: "comfortable",
+    optDensity: "compact",
     optBorders: "lines",
     optCustomCss: "",
-  optLogoMode: "none",   // ← add
-  optLogoUrl: "",       // ← add
+    optLogoMode: "none",  
+    optLogoUrl: "",       
 
   // NEW defaults
   optBannerMode: "url",
@@ -1375,42 +1376,97 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 const containerWidth = EMAIL_MAX_WIDTH;
 
 
+// compact trending and people table
+// ---- email-safe style helpers (fixed-width container)
+const containerWidth = EMAIL_MAX_WIDTH;
 
+// Density scale: comfortable(1.00), cozy(0.90), compact(0.80)
+const scale =
+  opts.optDensity === "compact" ? 0.8 :
+  opts.optDensity === "cozy"    ? 0.9 : 1;
 
-
-  const outerTableStyle =
-  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
-  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
-
-const innerTableStyle = 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;';
-
-
-  const baseFont =
-    `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
-
-  const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
-  const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
-  const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
+const px = (n: number) => `${Math.round(n * scale)}px`;
+// compact trending and people table
 
   
-  const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
-  const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
 
-  const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
-  const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
-  const sectionHeaderRow = (label: string) =>
+
+
+//  const outerTableStyle =
+//  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
+//  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;
+// const innerTableStyle = 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;';  
+//    const baseFont =
+//    `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};font-size:16px;line-height:1.45;color:#111;`;
+//  const cellBase   = `${baseFont}padding:16px;border:1px solid #e5e7eb;`;
+//  const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
+//  const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
+//  const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:center;vertical-align:middle;`;
+//    const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;text-align:left;vertical-align:middle;`;
+//    const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;font-size:20px;text-align:left;vertical-align:middle;`;
+//    const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
+ 
+
+
+  
+  // compact trending and people table 
+  const outerTableStyle =
+  `border-collapse:collapse;width:100%;max-width:${containerWidth}px;` +
+  `margin:0 auto;mso-table-lspace:0pt;mso-table-rspace:0pt;`;  
+// compact trending and people table
+
+const innerTableStyle =
+  "border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;";
+// Smaller base font + tighter line-height when compact
+const baseFont =
+  `font-family:${opts.optFont || "Arial, Helvetica, sans-serif"};` +
+  `font-size:${px(14)};line-height:1.35;color:#111;`;
+  // Trim cell padding
+const cellBase   = `${baseFont}padding:${px(8)} ${px(10)};border:1px solid #e5e7eb;`;
+const cellLeft   = `${cellBase}text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;`;
+const cellCenter = `${cellBase}text-align:center;vertical-align:middle;`;
+// Slightly smaller header text and padding
+const headCellCenter = `${cellBase}background-color:#f5f5f5;font-weight:700;` +
+                       `text-align:center;vertical-align:middle;font-size:${px(13)};padding:${px(8)} ${px(10)};`;
+const headCellLeft   = `${cellBase}background-color:#f5f5f5;font-weight:700;` +
+                       `text-align:left;vertical-align:middle;font-size:${px(13)};padding:${px(8)} ${px(10)};`;
+// Title row: scale down font and padding
+const titleCell  = `${cellBase}background-color:#e5e7eb;font-weight:700;` +
+                   `font-size:${px(18)};text-align:left;vertical-align:middle;padding:${px(10)} ${px(12)};`;
+const logoCell   = `${cellBase}background-color:#ffffff;text-align:center;vertical-align:middle;`;
+
+  
+
+
+  
+   const sectionHeaderRow = (label: string) =>
   `<tr><td style="${headCellLeft}" bgcolor="#f5f5f5" align="left">${escapeHtml(label)}</td></tr>`;
 
-  const emailPill = (s: string) => {
-    const colors = {
-      green:  { bg: "#27c08a", color: "#fff" },
-      yellow: { bg: "#f4c542", color: "#111" },
-      red:    { bg: "#e5534b", color: "#fff" },
-    } as const;
-    const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
-    return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
-  };
 
+  
+// Larger Pill
+//   const emailPill = (s: string) => {
+//     const colors = {
+//       green:  { bg: "#27c08a", color: "#fff" },
+//       yellow: { bg: "#f4c542", color: "#111" },
+//       red:    { bg: "#e5534b", color: "#fff" },
+//     } as const;
+//     const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
+//     return `<span style="${baseFont}display:inline-block;padding:6px 12px;border-radius:10px;font-weight:700;background-color:${c.bg};color:${c.color};">${escapeHtml(s)}</span>`;
+//   };
+
+const emailPill = (s: string) => {
+  const colors = {
+    green:  { bg: "#27c08a", color: "#fff" },
+    yellow: { bg: "#f4c542", color: "#111" },
+    red:    { bg: "#e5534b", color: "#fff" },
+  } as const;
+  const c = colors[(s || "").toLowerCase() as keyof typeof colors] || colors.green;
+  return `<span style="${baseFont}display:inline-block;` +
+         `padding:${px(4)} ${px(8)};border-radius:${px(10)};font-weight:700;` +
+         `font-size:${px(13)};background-color:${c.bg};color:${c.color};">` +
+         `${escapeHtml(s)}</span>`;
+};  
 const banner = getBannerHtml(true, opts, containerWidth);
   
   const processedUpdates         = processRichHtml(data.updatesHtml);
