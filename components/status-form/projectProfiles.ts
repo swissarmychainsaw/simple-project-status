@@ -67,6 +67,7 @@ export interface FormDefaultsProfile {
 
   resourcesTitle?: string;
   resourcesSectionTitle?: string;
+  resourcesHtml?: string;
 }
 
 export interface ProjectProfile {
@@ -120,6 +121,12 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       keyDecisionsTitle: "Key Decisions",
       risksTitle: "Risks & Issue Mitigation Plan",
       resourcesTitle: "Additional Resources",
+      resourcesHtml: `
+        <ul>
+          <li><a href="https://go/gns/projects" target="_blank">o/gns/projects</a></li>
+          <li><a href="https://go/gns/plan" target="_blank">go/gns/plan</a></li>
+        </ul>
+      `,
     },
   },
 
