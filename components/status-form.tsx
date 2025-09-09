@@ -2025,6 +2025,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 </div>
 <Card>
   <CardHeader>
+    {/* Design Options */}
     <CardTitle>Design Options</CardTitle>
   </CardHeader>
   <CardContent className="space-y-4">
@@ -2427,11 +2428,8 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
                 </div>
               </CardContent>
             </Card>
-          
-          </div>   {/* closes space-y-6 */}
-        </div>     {/* closes grid */}
-      </div>       {/* closes max-width container */}
-      {/* closes page wrapper */}
-    </div>
-  )
-}
+        </div>   {/* closes space-y-6 */}
+      </div>     {/* closes grid */}
+    </div>       {/* closes max-width container */}
+  </div>         {/* closes page wrapper */}
+);
