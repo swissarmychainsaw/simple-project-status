@@ -2097,7 +2097,7 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
   </CardContent>
 </Card>
 
-        
+          {/* Executive Summary Section */} 
  
 <Card>
   <CardHeader><CardTitle>Executive Summary</CardTitle></CardHeader>
@@ -2139,7 +2139,24 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
 </Card>
 
 
-
+   {/* Lowlights Section */}
+<Card>
+  <CardHeader><CardTitle>Lowlights</CardTitle></CardHeader>
+  <CardContent>
+    <Label className="text-xs text-gray-600">
+      One item per line; we’ll convert lines to bullets in the output
+    </Label>
+    <Textarea
+      id="lowlights"
+      value={formData.lowlights}
+      onChange={(e) => updateFormData("lowlights", e.target.value)}
+      rows={4}
+      maxLength={SECURITY_CONFIG.MAX_FIELD_LENGTH}
+      placeholder={`Dependency slipped\nCapacity reduced\nBlocking issue`}
+      className="mt-1 resize-none bg-white"
+    />
+  </CardContent>
+</Card>
 
 
 
