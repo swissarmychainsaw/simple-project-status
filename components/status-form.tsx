@@ -111,10 +111,6 @@ const fontOptions = [
   { value: "Helvetica, Arial, sans-serif", label: "Helvetica" },
   { value: "Georgia, serif", label: "Georgia" },
 ]
-// Logo constants
-const LOGO_WIDTH = 120;               // px
-const LOGO_SRC_WEB = "/gns-logo.png"; // put the PNG in /public
-const LOGO_CID = "gns-logo";          // used for inline-embedded email images
 
 
 
@@ -132,27 +128,6 @@ const absoluteUrl = (p: string) => {
 
 // Logo helper
 // Logo helper (single source of truth)
-const getLogoImg = (forEmail: boolean, opts: DesignOptions): string => {
-  if (opts.optLogoMode === "none") return "";
-
-  let src: string;
-  if (opts.optLogoMode === "url") {
-    src = opts.optLogoUrl?.trim() || LOGO_SRC_WEB;
-  } else {
-    // "cid" mode: email uses CID, preview uses web path
-    src = forEmail ? `cid:${LOGO_CID}` : LOGO_SRC_WEB;
-  }
-
-  // very light sanity check
-  if (!/^(cid:|https?:\/\/|\/)/i.test(src)) src = LOGO_SRC_WEB;
-
-  return `
-    <img src="${escapeHtml(src)}"
-         alt="GNS logo"
-         width="${LOGO_WIDTH}"
-         style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-  `;
-};
 
 
 // Banner helper
@@ -837,35 +812,6 @@ design.optLogoMode = "none"; // force logos off globally
     }
   }
 
-const getLogoImg = (forEmail: boolean): string => {
-  if (designOptions.optLogoMode === "none") return ""
-
-  // pick the correct src
-  let src: string
-  if (designOptions.optLogoMode === "url") {
-    // use provided URL (fallback to web path if empty)
-    src = designOptions.optLogoUrl?.trim() || LOGO_SRC_WEB
-  } else {
-    // "cid" mode: email uses CID, preview uses web path
-src = forEmail ? "cid:" + LOGO_CID : LOGO_SRC_WEB;
-  }
-
-
-  // very light sanity check: only allow http/https/cid in src
-  const ok = /^(cid:|https?:\/\/|\/)/i.test(src)
-  const safeSrc = ok ? src : LOGO_SRC_WEB
-
-  return `
-    <img src="${escapeHtml(safeSrc)}"
-         alt="GNS logo"
-         width="${LOGO_WIDTH}"
-         style="display:block;height:auto;border:0;outline:0;-ms-interpolation-mode:bicubic;" />
-  `
-}
-
-
-
-
   const key = (opts.optBannerId || "") as BannerKey;
   const preset = key ? BANNERS[key] : undefined;
 
@@ -1208,9 +1154,7 @@ const pill = (val: string) => {
   const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CCCCCC;"
   const oddRowStyle  = "background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;"
 
-  const logoHtml = getLogoImg(false)
-  // If the logo renders, the header table has 2 columns; otherwise, it has 1.
-  const COLSPAN = logoHtml ? 2 : 1
+
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1228,18 +1172,21 @@ const pill = (val: string) => {
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
-        <!-- Title + Summary with right-aligned logo spanning two rows -->
+               <!-- Title + Summary -->
         <tr>
           <td style="background-color:#E8E8E8;padding:20px;text-align:left;border:1px solid #CCCCCC;">
             <h1 style="margin:0;font-size:24px;font-weight:bold;color:#333333;">
               ${data.programTitle || "Your Program/Project Title here"}
             </h1>
           </td>
-          ${logoHtml ? `
-          <td rowspan="2"
-              style="width:${LOGO_WIDTH + 20}px;padding:20px;text-align:center;border:1px solid #CCCCCC;background-color:#FFFFFF;vertical-align:middle;">
-            ${logoHtml}
-          </td>` : ``}
+        </tr>
+
+        <tr>
+          <td style="background-color:#ffffff;padding:20px;border:1px solid #CCCCCC;">
+            <span style="margin:0;font-size:16px;line-height:1.5;color:#333333;">
+              ${nlToParas(data.programSummary) || "Program summary description goes here."}
+            </span>
+          </td>
         </tr>
 
         <tr>
@@ -1422,7 +1369,6 @@ const banner = getBannerHtml(true, opts, containerWidth);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
   const processedRisks           = processRichHtml(data.risksHtml);
   const processedResources       = processRichHtml(data.resourcesHtml);
-  const logoEmail = getLogoImg(true);
 
   return `
 <!-- Fixed-width banner -->
@@ -1436,19 +1382,12 @@ const banner = getBannerHtml(true, opts, containerWidth);
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr>
     <td style="padding:0;">
-      <!-- Title + Summary (+ optional logo) -->
+           <!-- Title + Summary -->
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="${titleCell}" bgcolor="#e5e7eb" align="left" valign="middle">
             ${escapeHtml(data.programTitle || "Your Program/Project Title here")}
           </td>
-          ${
-            logoEmail
-              ? `<td rowspan="2" style="${logoCell}" bgcolor="#ffffff" align="center" valign="middle" width="${LOGO_WIDTH + 40}">
-                   ${logoEmail}
-                 </td>`
-              : ""
-          }
         </tr>
         <tr>
           <td style="${cellLeft}" bgcolor="#ffffff" align="left" valign="top">
@@ -1456,6 +1395,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
           </td>
         </tr>
       </table>
+
 
       <!-- Status -->
       <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
@@ -2087,14 +2027,7 @@ const banner = getBannerHtml(true, opts, containerWidth);
       </span>
     </div>
 
-    {/* Optional tiny logo preview (if you’re using a logo URL) */}
-    {designOptions.optLogoMode === "url" && designOptions.optLogoUrl ? (
-      <img
-        src={designOptions.optLogoUrl}
-        alt="Logo preview"
-        className="h-8 w-auto rounded bg-white border"
-      />
-    ) : null}
+
   </div>
 
   {/* Banner preview */}
