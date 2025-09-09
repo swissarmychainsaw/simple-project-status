@@ -1475,11 +1475,10 @@ const banner = getBannerHtml(true, opts, containerWidth);
 
 
 
-// Executive Summary
-${data.execSummary ? `
-  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
-    ${sectionHeaderRow("Executive Summary")}
-    <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
+<!-- Executive Summary -->
+${data.execSummary ? `<table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">` +
+  sectionHeaderRow("Executive Summary") +
+`  <tr><td style="${cellLeft}" bgcolor="#ffffff" align="left">
       ${unwrapParagraphsInTables(stripInlineBackgrounds(sanitizeHtml(data.execSummary)))}
     </td></tr>
   </table>` : ""}
