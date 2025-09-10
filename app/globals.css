@@ -10,7 +10,8 @@
   /*  --card: oklch(0.97 0.01 258.34); */
   --card:            oklch(0.95 0 0);   /* ≈ #EEEEEE — light neutral gray */
   --card-foreground: oklch(0.35 0.01 258.34);
-   /*  --card-foreground: oklch(0.32 0 0);   /* ≈ #2E2E2E — dark neutral text */   */
+   /*  --card-foreground: oklch(0.32 0 0);   */
+        /* ≈ #2E2E2E — dark neutral text */   
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.35 0.01 258.34);
   --primary: oklch(0.5 0.15 162.4);
