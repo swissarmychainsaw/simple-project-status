@@ -2157,23 +2157,33 @@ ${data.resourcesHtml ? `
   className="min-h-screen bg-gray-50 py-8 project-tint"
   data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
 >
-      
+      {/* Sticky project header */}
+<div className="sticky top-0 z-50 bg-[var(--tint-bg)]/90 backdrop-blur supports-[backdrop-filter]:bg-[var(--tint-bg)]/60 border-b border-[color:var(--tint-accent)]">
+  <div className="max-w-[900px] mx-auto px-4 py-2 flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <span className="project-chip inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium">
+        Project
+      </span>
+      <span className="text-sm font-medium text-gray-800">{currentProjectLabel}</span>
+    </div>
+
+    {/* Optional right-side status bits */}
+    <div className="hidden md:flex items-center gap-3 text-xs text-gray-600">
+      <div className="flex items-center gap-2">
+        <CheckCircle className="w-4 h-4 text-green-600" />
+        <span>Auto-save enabled</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Shield className="w-4 h-4 text-blue-600" />
+        <span>Content sanitized</span>
+      </div>
+    </div>
+  </div>
+</div>
+
       <div className="max-w-[900px] mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Status Report Generator</h1>
-          <p className="text-gray-600">Create professional status reports with customizable design</p>
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-gray-600">Auto-save enabled</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-gray-600">Content sanitized</span>
-            </div>
-          </div>
-        </div>
+
 <div aria-hidden className="tint-bar" />
 
         {/* Security Warnings */}
