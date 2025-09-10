@@ -154,9 +154,12 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       risksTitle: "Risks & Issue Mitigation Plan",
       resourcesTitle: "Additional Resources",
       resourcesHtml: `
-        <ul>
-          <li><a href="https://go/azure/oyssey" target="_blank">https://go/azure/oyssey</a></li>
-        </ul>
+Execution Reviews
+https://go/azure/odyssey/execution
+Program Details
+https://go/Azure-Odyssey
+Roadmap
+http://go/Azure-Odyssey/JiraRoadmap
       `,
     },
   },
