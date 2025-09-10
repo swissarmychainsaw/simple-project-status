@@ -95,6 +95,21 @@ export async function POST(req: NextRequest) {
 const fromAddr =
   process.env.MAIL_FROM
   ?? 'Acme <onboarding@resend.dev>'; // sandbox sender for tests
+console.log('[email] using SMTP', {
+  host,
+  port,
+  user,
+  hasKey: !!pass,
+  fromAddr,
+});
+
+try {
+  await transporter.verify();
+  console.log('[email] transporter.verify() OK');
+} catch (e) {
+  console.error('[email] transporter.verify() FAILED', e);
+  return NextResponse.json({ ok: false, error: 'SMTP verify failed', detail: String((e as any)?.message || e) }, { status: 500 });
+}
 
 const info = await transporter.sendMail({ from: fromAddr, to, subject, html: finalHtml, attachments });
 
