@@ -2147,34 +2147,22 @@ ${data.resourcesHtml ? `
     }
   }, [formData.resourcesHtml])
 
-  // --- derived project label for the header preview ---
-    const currentProjectKey = useMemo<BannerKey | undefined>(
-    () => (designOptions.optBannerId as BannerKey) || undefined,
-    [designOptions.optBannerId]
-  )
-  
+// --- derived project label for the header preview ---
+const currentProjectKey = useMemo<BannerKey | undefined>(
+  () => (designOptions.optBannerId as BannerKey) || undefined,
+  [designOptions.optBannerId]
+)
 
+const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
 
-
-  
-useEffect(() => {
-  onTitleChange?.(appTitle)
-}, [appTitle, onTitleChange])
-
-  const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
 const appTitle = useMemo(
   () => `${currentProjectLabel} Status Report`,
   [currentProjectLabel]
-);
+)
 
 useEffect(() => {
-  onTitleChange?.(appTitle);
-}, [appTitle, onTitleChange]);
-
-
-useEffect(() => {
-  onTitleChange?.(appTitle);
-}, [appTitle, onTitleChange]);
+  onTitleChange?.(appTitle)
+}, [appTitle, onTitleChange])
 
 
 
