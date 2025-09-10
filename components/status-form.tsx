@@ -2183,7 +2183,7 @@ useEffect(() => {
       <span className="project-chip inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium">
         Project
       </span>
-      <span className="text-sm font-medium text-gray-800">{currentProjectLabel}</span>
+    //  <span className="text-sm font-medium text-gray-800">{currentProjectLabel}</span>
     </div>
 
     {/* Optional right-side status bits */}
