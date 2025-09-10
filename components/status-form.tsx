@@ -2191,7 +2191,7 @@ useEffect(() => {
 
       </div>
     </div>
-  </div>
+
 
 
       <div className="max-w-[900px] mx-auto px-4">
