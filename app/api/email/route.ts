@@ -96,12 +96,21 @@ const fromAddr =
   process.env.MAIL_FROM
   ?? 'Acme <onboarding@resend.dev>'; // sandbox sender for tests
 
-    const info = await transporter.sendMail({ from: fromAddr, to, subject, html: finalHtml, attachments });
+const info = await transporter.sendMail({ from: fromAddr, to, subject, html: finalHtml, attachments });
 
-    return NextResponse.json(
-      { ok: true, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected, response: info.response },
-      { status: 200 }
-    );
+// add this log line:
+console.log('[email] sent', {
+  id: info.messageId,
+  accepted: info.accepted,
+  rejected: info.rejected,
+  response: info.response,
+});
+
+return NextResponse.json(
+  { ok: true, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected, response: info.response },
+  { status: 200 }
+);
+
   } catch (err: any) {
     console.error("[/api/email] ERROR:", err);
     return NextResponse.json({ ok: false, error: String(err?.message || err) }, { status: 500 });
