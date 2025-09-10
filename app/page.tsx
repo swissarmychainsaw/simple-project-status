@@ -1,4 +1,27 @@
 import StatusForm from "@/components/status-form"
+"use client";
+
+import { useState } from "react";
+import StatusForm from "./status-form";
+
+export default function Page() {
+  const [title, setTitle] = useState("Status Report Generator");
+
+  return (
+    <main className="min-h-screen">
+      <div className="max-w-[900px] mx-auto px-4 pt-8">
+        {/* Line 10 — replace static text with {title} */}
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{title}</h1>
+        <p className="text-muted-foreground">
+          Create polished, executive-ready status reports with real-time preview
+        </p>
+      </div>
+
+      {/* Pass the setter so the form can update the page title */}
+      <StatusForm onTitleChange={setTitle} />
+    </main>
+  );
+}
 
 export default function Home() {
   return (
