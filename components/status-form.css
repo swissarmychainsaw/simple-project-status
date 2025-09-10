@@ -85,28 +85,13 @@
   --tint-accent: #cbd5e1; /* fallback */
 }
 
-/* Very light backgrounds + an accent per project */
-/* [data-project="gns"]    { --tint-bg:#f5f9ff; --tint-accent:#0b6dd7; } /* light blue */ */
-[data-project="gns"]{
-  --tint-bg: #ffffff;     /* cards look white */
-  --tint-accent: #0954cb; /* deeper blue than #0b6dd7 */
-  --tint-border: #c7dbff; /* optional: crisper card edge */
-}
 
-[data-project="gns"]{
-  --tint-bg: #ffffff;     /* cards look white */
-  --tint-accent: #0954cb; /* deeper blue than #0b6dd7 */
-  --tint-border: #c7dbff; /* optional: crisper card edge */
-}
-
- /* [data-project="azure"]  { --tint-bg:#f4f8ff; --tint-accent:#0078d4; } /* azure */  */
-/*  [data-project="azure"]  { --tint-bg:#f4f8ff; --tint-accent:#005FB8; }  /* Azure Deep */  */
-
-[data-project="azure"] { --tint-bg:#f4f8ff; --tint-accent:#0047AB; } /* Cobalt */
-[data-project="ipv6"]   { --tint-bg:#f3fff6; --tint-accent:#16a34a; } /* mint */
-[data-project="obn"]    { --tint-bg:#fff8ed; --tint-accent:#f97316; } /* apricot */
-[data-project="cie"]    { --tint-bg:#f7f7fb; --tint-accent:#6b7280; } /* soft gray */
-[data-project="azlens"] { --tint-bg:#f8f5ff; --tint-accent:#8b5cf6; } /* lilac */
+[data-project="gns"]{--tint-bg:#ffffff;--tint-accent:#0a63d1;--tint-border:#cfe3ff;} 
+[data-project="azure"]{--tint-bg:#f0f6ff;--tint-accent:#0047ab;--tint-border:#bcd6ff;} 
+[data-project="ipv6"]{--tint-bg:#f2fff6;--tint-accent:#118a45;--tint-border:#c8f1d5;} 
+[data-project="obn"]{--tint-bg:#fff4e8;--tint-accent:#d46100;--tint-border:#ffd8b4;} 
+[data-project="cie"]{--tint-bg:#f5f6f8;--tint-accent:#4b5563;--tint-border:#e3e6eb;} 
+[data-project="azlens"]{--tint-bg:#f7f2ff;--tint-accent:#7c3aed;--tint-border:#e1d4ff;}
 
 /* Apply the page tint (overrides Tailwind bg-gray-50) */
 .project-tint {
