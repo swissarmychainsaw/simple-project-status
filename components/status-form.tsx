@@ -2153,7 +2153,10 @@ ${data.resourcesHtml ? `
   const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+<div
+  className="min-h-screen bg-gray-50 py-8 project-tint"
+  data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
+>
       <div className="max-w-[1400px] mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
@@ -2170,6 +2173,7 @@ ${data.resourcesHtml ? `
             </div>
           </div>
         </div>
+<div aria-hidden className="tint-bar" />
 
         {/* Security Warnings */}
         {securityWarnings.length > 0 && (
@@ -2192,11 +2196,12 @@ ${data.resourcesHtml ? `
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
       <span
-        className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
-        style={{ borderColor: designOptions.optAccent || "#e5e7eb" }}
-      >
-        Project
-      </span>
+  className="project-chip inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
+  style={{ borderColor: designOptions.optAccent || "#e5e7eb" }}
+>
+  Project
+</span>
+
       <span className="text-sm font-medium text-gray-800">
         {currentProjectLabel}
       </span>
