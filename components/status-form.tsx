@@ -2219,9 +2219,6 @@ useEffect(() => {
         alt={`${currentProjectLabel} banner`}
         className="w-full h-32 object-cover"
       />
-      {designOptions.optBannerCaption ? (
-        
-      ) : null}
     </div>
   ) : designOptions.optBannerMode !== "none" ? (
     // Lightweight visual when using CID banners (no external URL to show)
