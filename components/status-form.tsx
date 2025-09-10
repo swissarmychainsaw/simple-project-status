@@ -991,7 +991,7 @@ design.optLogoMode = "none"; // force logos off globally
   }
 
   // add near the other color consts
-const HEADER_BG = "#f5f5f5";
+const HEADER_BG = "#f5f5f5"; // White smoke
 
 
 
