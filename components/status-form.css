@@ -100,7 +100,7 @@
 
 /* Thin colored ribbon under the header */
 .tint-bar {
-  height: 6px;
+  height: 12px;
   border-radius: 6px;
   background: var(--tint-accent);
   opacity: 0.35;
