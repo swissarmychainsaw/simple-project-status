@@ -2152,16 +2152,24 @@ ${data.resourcesHtml ? `
     () => (designOptions.optBannerId as BannerKey) || undefined,
     [designOptions.optBannerId]
   )
-  const appTitle = useMemo(
-  () => `${currentProjectLabel} Status Report`,
-  [currentProjectLabel]
-)
+  
 
+
+
+  
 useEffect(() => {
   onTitleChange?.(appTitle)
 }, [appTitle, onTitleChange])
 
   const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
+const appTitle = useMemo(
+  () => `${currentProjectLabel} Status Report`,
+  [currentProjectLabel]
+);
+
+useEffect(() => {
+  onTitleChange?.(appTitle);
+}, [appTitle, onTitleChange]);
 
 
 useEffect(() => {
@@ -2169,11 +2177,11 @@ useEffect(() => {
 }, [appTitle, onTitleChange]);
 
 
-  
-const appTitle = React.useMemo(
-  () => (currentProjectLabel ? `${currentProjectLabel} Status Report` : "Status Report Generator"),
-  [currentProjectLabel]
-);
+
+
+
+
+
 
   return (
 <div
