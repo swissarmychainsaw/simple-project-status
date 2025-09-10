@@ -2157,7 +2157,8 @@ ${data.resourcesHtml ? `
   className="min-h-screen bg-gray-50 py-8 project-tint"
   data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
 >
-      <div className="max-w-[1400px] mx-auto px-4">
+      
+      <div className="max-w-[900px] mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Status Report Generator</h1>
