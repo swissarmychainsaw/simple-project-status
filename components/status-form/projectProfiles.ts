@@ -155,7 +155,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       resourcesTitle: "Additional Resources",
       resourcesHtml: `
         <ul>
-          <li><a href="https://go/azure/oyssey" target="_blank">go/azure/oyssey</a></li>
+          <li><a href="https://go/azure/oyssey" target="_blank">https://go/azure/oyssey</a></li>
         </ul>
       `,
     },
