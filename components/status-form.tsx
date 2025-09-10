@@ -496,9 +496,11 @@ const initialFormData: FormData = {
   resourcesHtml: "",
 
 }
-export default function StatusForm({
-  onTitleChange,
-}: { onTitleChange?: (title: string) => void }) {
+// components/status-form.tsx
+
+export default function StatusForm(
+  { onTitleChange }: { onTitleChange?: (title: string) => void }
+) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
     optFont: "Inter, Arial, Helvetica, sans-serif",
@@ -507,17 +509,16 @@ export default function StatusForm({
     optDensity: "compact",
     optBorders: "lines",
     optCustomCss: "",
-    optLogoMode: "none",  
-    optLogoUrl: "",       
+    optLogoMode: "none",
+    optLogoUrl: "",
 
-  // NEW defaults
-  optBannerMode: "url",
-  optBannerId: "gns",
-  optBannerUrl: "",
-  optBannerCaption: "Program Status",
-    optReportKind: "weekly", 
+    // NEW defaults
+    optBannerMode: "url",
+    optBannerId: "gns",
+    optBannerUrl: "",
+    optBannerCaption: "Program Status",
+    optReportKind: "weekly",
   })
-
   const [generatedHtml, setGeneratedHtml] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
@@ -2151,9 +2152,17 @@ ${data.resourcesHtml ? `
     () => (designOptions.optBannerId as BannerKey) || undefined,
     [designOptions.optBannerId]
   )
+  const appTitle = useMemo(
+  () => `${currentProjectLabel} Status Report`,
+  [currentProjectLabel]
+)
+
+useEffect(() => {
+  onTitleChange?.(appTitle)
+}, [appTitle, onTitleChange])
+
   const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
 
-const appTitle = `${currentProjectLabel} Status Report`;
 
 useEffect(() => {
   onTitleChange?.(appTitle);
