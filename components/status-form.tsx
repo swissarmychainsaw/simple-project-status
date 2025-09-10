@@ -2229,7 +2229,7 @@ useEffect(() => {
       </div>
       {designOptions.optBannerCaption ? (
         <div className="text-sm text-gray-600 mt-0.5">
-          {designOptions.optBannerCaption}
+       
         </div>
       ) : null}
     </div>
