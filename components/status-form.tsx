@@ -2206,12 +2206,7 @@ useEffect(() => {
 <div className="mb-6">
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
-      <span
-  className="project-chip inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
-  style={{ borderColor: designOptions.optAccent || "#e5e7eb" }}
->
-  Project
-</span>
+     
 
       <span className="text-sm font-medium text-gray-800">
         {currentProjectLabel}
