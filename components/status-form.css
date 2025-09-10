@@ -86,7 +86,13 @@
 }
 
 /* Very light backgrounds + an accent per project */
-[data-project="gns"]    { --tint-bg:#f5f9ff; --tint-accent:#0b6dd7; } /* light blue */
+/* [data-project="gns"]    { --tint-bg:#f5f9ff; --tint-accent:#0b6dd7; } /* light blue */ */
+[data-project="gns"]{
+  --tint-bg: #ffffff;     /* cards look white */
+  --tint-accent: #0954cb; /* deeper blue than #0b6dd7 */
+  --tint-border: #c7dbff; /* optional: crisper card edge */
+}
+
 [data-project="azure"]  { --tint-bg:#f4f8ff; --tint-accent:#0078d4; } /* azure */
 [data-project="ipv6"]   { --tint-bg:#f3fff6; --tint-accent:#16a34a; } /* mint */
 [data-project="obn"]    { --tint-bg:#fff8ed; --tint-accent:#f97316; } /* apricot */
