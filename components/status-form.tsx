@@ -2206,11 +2206,6 @@ useEffect(() => {
 <div className="mb-6">
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
-     
-
-      <span className="text-sm font-medium text-gray-800">
-        {currentProjectLabel}
-      </span>
     </div>
 
 
