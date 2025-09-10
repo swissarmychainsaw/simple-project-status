@@ -496,8 +496,11 @@ const initialFormData: FormData = {
   resourcesHtml: "",
 
 }
+// components/status-form.tsx
 
-export default function StatusForm() {
+export default function StatusForm(
+  { onTitleChange }: { onTitleChange?: (title: string) => void }
+) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
     optFont: "Inter, Arial, Helvetica, sans-serif",
@@ -506,17 +509,16 @@ export default function StatusForm() {
     optDensity: "compact",
     optBorders: "lines",
     optCustomCss: "",
-    optLogoMode: "none",  
-    optLogoUrl: "",       
+    optLogoMode: "none",
+    optLogoUrl: "",
 
-  // NEW defaults
-  optBannerMode: "url",
-  optBannerId: "gns",
-  optBannerUrl: "",
-  optBannerCaption: "Program Status",
-    optReportKind: "weekly", 
+    // NEW defaults
+    optBannerMode: "url",
+    optBannerId: "gns",
+    optBannerUrl: "",
+    optBannerCaption: "Program Status",
+    optReportKind: "weekly",
   })
-
   const [generatedHtml, setGeneratedHtml] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
@@ -991,7 +993,7 @@ design.optLogoMode = "none"; // force logos off globally
   }
 
   // add near the other color consts
-const HEADER_BG = "#f5f5f5";
+const HEADER_BG = "#f5f5f5"; // White smoke
 
 
 
@@ -2145,31 +2147,44 @@ ${data.resourcesHtml ? `
     }
   }, [formData.resourcesHtml])
 
-  // --- derived project label for the header preview ---
-    const currentProjectKey = useMemo<BannerKey | undefined>(
-    () => (designOptions.optBannerId as BannerKey) || undefined,
-    [designOptions.optBannerId]
-  )
-  const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
+// --- derived project label for the header preview ---
+const currentProjectKey = useMemo<BannerKey | undefined>(
+  () => (designOptions.optBannerId as BannerKey) || undefined,
+  [designOptions.optBannerId]
+)
+
+const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
+
+const appTitle = useMemo(
+  () => `${currentProjectLabel} Status Report`,
+  [currentProjectLabel]
+)
+
+useEffect(() => {
+  onTitleChange?.(appTitle)
+}, [appTitle, onTitleChange])
+
+
+
+
+
+
+
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-[1400px] mx-auto px-4">
+<div
+  className="min-h-screen bg-gray-50 py-8 project-tint"
+  data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
+>
+      {/* Sticky project header */}
+
+
+
+
+      <div className="max-w-[900px] mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Status Report Generator</h1>
-          <p className="text-gray-600">Create professional status reports with customizable design</p>
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-gray-600">Auto-save enabled</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-gray-600">Content sanitized</span>
-            </div>
-          </div>
-        </div>
+
+<div aria-hidden className="tint-bar" />
 
         {/* Security Warnings */}
         {securityWarnings.length > 0 && (
@@ -2191,15 +2206,6 @@ ${data.resourcesHtml ? `
 <div className="mb-6">
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
-      <span
-        className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
-        style={{ borderColor: designOptions.optAccent || "#e5e7eb" }}
-      >
-        Project
-      </span>
-      <span className="text-sm font-medium text-gray-800">
-        {currentProjectLabel}
-      </span>
     </div>
 
 
@@ -2213,22 +2219,17 @@ ${data.resourcesHtml ? `
         alt={`${currentProjectLabel} banner`}
         className="w-full h-32 object-cover"
       />
-      {designOptions.optBannerCaption ? (
-        <div className="px-3 py-2 text-sm text-gray-700">
-          {designOptions.optBannerCaption}
-        </div>
-      ) : null}
     </div>
   ) : designOptions.optBannerMode !== "none" ? (
     // Lightweight visual when using CID banners (no external URL to show)
     <div className="mt-3 rounded-lg border bg-gradient-to-r from-gray-50 to-white p-4">
-      <div className="text-xs text-gray-500 mb-1">Banner preview</div>
+      
       <div className="text-lg font-semibold leading-tight">
-        {currentProjectLabel}
+      {currentProjectLabel}
       </div>
       {designOptions.optBannerCaption ? (
         <div className="text-sm text-gray-600 mt-0.5">
-          {designOptions.optBannerCaption}
+       
         </div>
       ) : null}
     </div>

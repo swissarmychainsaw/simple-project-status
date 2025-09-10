@@ -78,3 +78,42 @@
 #resourcesHtml p {
   margin: 0;
 }
+
+/* ---- Project tints ----------------------------------------------------- */
+[data-project] {
+  --tint-bg: #f8fafc;     /* fallback */
+  --tint-accent: #cbd5e1; /* fallback */
+}
+
+
+[data-project="gns"]{--tint-bg:#ffffff;--tint-accent:#0a63d1;--tint-border:#cfe3ff;} 
+[data-project="azure"]{--tint-bg:#f0f6ff;--tint-accent:#0047ab;--tint-border:#bcd6ff;} 
+[data-project="ipv6"]{--tint-bg:#f2fff6;--tint-accent:#118a45;--tint-border:#c8f1d5;} 
+[data-project="obn"]{--tint-bg:#fff4e8;--tint-accent:#d46100;--tint-border:#ffd8b4;} 
+[data-project="cie"]{--tint-bg:#f5f6f8;--tint-accent:#4b5563;--tint-border:#e3e6eb;} 
+[data-project="azlens"]{--tint-bg:#f7f2ff;--tint-accent:#7c3aed;--tint-border:#e1d4ff;}
+
+/* Apply the page tint (overrides Tailwind bg-gray-50) */
+.project-tint {
+  background-color: var(--tint-bg) !important;
+}
+
+/* Thin colored ribbon under the header */
+.tint-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--tint-accent);
+  opacity: 0.35;
+  margin: 0.25rem 0 1rem;
+}
+
+/* Make the “Project” chip reflect the accent */
+.project-chip {
+  border-color: var(--tint-accent) !important;
+  /* very light fill; falls back below if color-mix unsupported */
+  background-color: color-mix(in srgb, var(--tint-accent) 10%, white);
+}
+
+@supports not (color-mix(in srgb, white 10%, black)) {
+  .project-chip { background-color: var(--tint-bg); }
+}
