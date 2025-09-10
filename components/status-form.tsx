@@ -2228,7 +2228,7 @@ useEffect(() => {
   ) : designOptions.optBannerMode !== "none" ? (
     // Lightweight visual when using CID banners (no external URL to show)
     <div className="mt-3 rounded-lg border bg-gradient-to-r from-gray-50 to-white p-4">
-      <div className="text-xs text-gray-500 mb-1">Banner preview</div>
+      
       <div className="text-lg font-semibold leading-tight">
         {currentProjectLabel}
       </div>
