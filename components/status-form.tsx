@@ -496,8 +496,9 @@ const initialFormData: FormData = {
   resourcesHtml: "",
 
 }
-
-export default function StatusForm() {
+export default function StatusForm({
+  onTitleChange,
+}: { onTitleChange?: (title: string) => void }) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
     optFont: "Inter, Arial, Helvetica, sans-serif",
@@ -2151,6 +2152,15 @@ ${data.resourcesHtml ? `
     [designOptions.optBannerId]
   )
   const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
+
+const appTitle = `${currentProjectLabel} Status Report`;
+
+useEffect(() => {
+  onTitleChange?.(appTitle);
+}, [appTitle, onTitleChange]);
+
+
+  
 const appTitle = React.useMemo(
   () => (currentProjectLabel ? `${currentProjectLabel} Status Report` : "Status Report Generator"),
   [currentProjectLabel]
