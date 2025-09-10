@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
     const attachedCids = new Set<string>(attachments.map((a: any) => a.cid));
     const finalHtml = stripUnattachedCidImages(html, attachedCids);
 
-    const fromAddr =
-      process.env.MAIL_FROM || `Status Bot <status@${(process.env.SENDMAIL_DOMAIN || "example.dev")}>`;
+const fromAddr =
+  process.env.MAIL_FROM
+  ?? 'Acme <onboarding@resend.dev>'; // sandbox sender for tests
 
     const info = await transporter.sendMail({ from: fromAddr, to, subject, html: finalHtml, attachments });
 
