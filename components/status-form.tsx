@@ -2225,7 +2225,7 @@ useEffect(() => {
     <div className="mt-3 rounded-lg border bg-gradient-to-r from-gray-50 to-white p-4">
       
       <div className="text-lg font-semibold leading-tight">
-      
+      {currentProjectLabel}
       </div>
       {designOptions.optBannerCaption ? (
         <div className="text-sm text-gray-600 mt-0.5">
