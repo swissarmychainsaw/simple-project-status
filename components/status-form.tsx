@@ -2177,17 +2177,7 @@ useEffect(() => {
   data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
 >
       {/* Sticky project header */}
-<div className="sticky top-0 z-50 bg-[var(--tint-bg)]/90 backdrop-blur supports-[backdrop-filter]:bg-[var(--tint-bg)]/60 border-b border-[color:var(--tint-accent)]">
-  <div className="max-w-[900px] mx-auto px-4 py-2 flex items-center justify-between">
-    <div className="flex items-center gap-2">
-   
-    </div>
 
-    {/* Optional right-side status bits */}
-
-
-      </div>
-    </div>
 
 
 
