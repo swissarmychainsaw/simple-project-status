@@ -2151,6 +2151,10 @@ ${data.resourcesHtml ? `
     [designOptions.optBannerId]
   )
   const currentProjectLabel = currentProjectKey ? BANNER_LABELS[currentProjectKey] : "—"
+const appTitle = React.useMemo(
+  () => (currentProjectLabel ? `${currentProjectLabel} Status Report` : "Status Report Generator"),
+  [currentProjectLabel]
+);
 
   return (
 <div
