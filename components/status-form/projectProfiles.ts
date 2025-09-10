@@ -146,7 +146,7 @@ export const PROJECT_PROFILES: Record<BannerKey, ProjectProfile> = {
       tpm: "Nick Adams, Carlos Garcia-Lara, Praween Kumar Jha",
       engDri: "Suchreet Dhaliwal",
       bizSponsor: "Sabry Tozin",
-      engSponsor: "Suchreet Dhaliwal",
+      engSponsor: "Niha Mathur",
       emailTo: "swissarmychainsaw@gmail.com",
       updatesTitle: "Top Accomplishments",
       milestonesTitle: "Upcoming Milestones",
