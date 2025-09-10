@@ -2187,14 +2187,8 @@ useEffect(() => {
     </div>
 
     {/* Optional right-side status bits */}
-    <div className="hidden md:flex items-center gap-3 text-xs text-gray-600">
-      <div className="flex items-center gap-2">
-        <CheckCircle className="w-4 h-4 text-green-600" />
-        <span>Auto-save enabled</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <Shield className="w-4 h-4 text-blue-600" />
-        <span>Content sanitized</span>
+
+
       </div>
     </div>
   </div>
