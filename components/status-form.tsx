@@ -2220,9 +2220,7 @@ useEffect(() => {
         className="w-full h-32 object-cover"
       />
       {designOptions.optBannerCaption ? (
-        <div className="px-3 py-2 text-sm text-gray-700">
-          {designOptions.optBannerCaption}
-        </div>
+        
       ) : null}
     </div>
   ) : designOptions.optBannerMode !== "none" ? (
