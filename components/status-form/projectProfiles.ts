@@ -7,7 +7,7 @@ export const DEFAULT_EMAIL = "swissarmychainsaw@gmail.com";
 // PNGs live in /public/banners/*.png
 export const BANNERS = {
   gns:   { web: "/banners/gns-banner.png",   cid: "banner-gns",   alt: "GNS — Global Network Services" },
-  azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure Odyssey" },
+  azure: { web: "/banners/azure-banner.png", cid: "banner-azure", alt: "Azure Odyssey - Program Status" },
   cie:   { web: "/banners/cie-banner.png",   cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
   obn:   { web: "/banners/obn-banner.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
   azlens:{ web: "/banners/azurelens-banner.png",   cid: "banner-azlens",alt: "Azure Lens — Project Status" },
