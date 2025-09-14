@@ -19,4 +19,3 @@ export async function GET() {
     return NextResponse.json({ ok: false, hasCookie: true, parseError: true });
   }
 }
-

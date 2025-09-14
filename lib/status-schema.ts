@@ -12,4 +12,3 @@ export const StatusSchema = z.object({
 }).strict();
 
 export type ExecStatus = z.infer<typeof StatusSchema>;
-

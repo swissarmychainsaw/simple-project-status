@@ -30,4 +30,3 @@ export async function GET(req: Request) {
   // Redirect back to your app (change "/" if your form is elsewhere)
   return NextResponse.redirect(new URL("/", req.url));
 }
-
