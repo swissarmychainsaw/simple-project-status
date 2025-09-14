@@ -105,7 +105,7 @@ dependencies:
     specifier: ^10.4.20
     version: 10.4.21(postcss@8.5.6)
   cheerio:
-    specifier: ^1.1.2
+    specifier: latest
     version: 1.1.2
   class-variance-authority:
     specifier: ^0.7.1
@@ -129,13 +129,13 @@ dependencies:
     specifier: latest
     version: 1.5.1(next@15.2.4)
   googleapis:
-    specifier: ^159.0.0
+    specifier: latest
     version: 159.0.0
   input-otp:
     specifier: 1.4.1
     version: 1.4.1(react-dom@19.1.1)(react@19.1.1)
   js-yaml:
-    specifier: ^4.1.0
+    specifier: latest
     version: 4.1.0
   lucide-react:
     specifier: ^0.454.0
@@ -177,7 +177,7 @@ dependencies:
     specifier: latest
     version: 6.0.3(@react-email/render@1.2.3)
   sanitize-html:
-    specifier: ^2.17.0
+    specifier: latest
     version: 2.17.0
   sonner:
     specifier: ^1.7.4
