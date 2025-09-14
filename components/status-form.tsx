@@ -18,6 +18,14 @@ import {
   type Borders,
 } from "@/components/status-form/projectProfiles";
 
+import ImportFromDoc from "@/components/ImportFromDoc";
+import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
+
+
+
+
+
+
 
 
 
@@ -532,6 +540,11 @@ export default function StatusForm(
   const risksRef = useRef<HTMLDivElement>(null)
   const resourcesRef = useRef<HTMLDivElement>(null)
   const highlightsRef = useRef<HTMLDivElement>(null)
+const [summary, setSummary] = useState("");
+const [highlights, setHighlights] = useState("");
+const [upcomingMilestones, setUpcomingMilestones] = useState("");
+const [keyDecisions, setKeyDecisions] = useState("");
+const [risks, setRisks] = useState("");
 
   
 const handleHighlightsInput = (e: React.FormEvent<HTMLDivElement>) => {
@@ -853,6 +866,43 @@ design.optLogoMode = "none"; // force logos off globally
       .filter(Boolean)
     return parts.map((p) => safeInline(p).replace(/\n/g, "<br>")).join("<br><br>")
   }
+
+function listAwareTextToHtml(text: string): string {
+  const src = (text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = src.split("\n");
+
+  // If all lines are empty, fall back to paragraph formatter
+  const nonEmpty = lines.filter((l) => l.trim().length > 0);
+  if (nonEmpty.length === 0) return nlToParas(src);
+
+  // Recognize bullets and numbers
+  const bulletRe = /^\s*([-*•])\s+/;      // -, *, or • followed by space
+  const numberRe = /^\s*\d+[.)]\s+/;      // 1.  or 1) followed by space
+
+  const isAllBullets = nonEmpty.every((l) => bulletRe.test(l));
+  const isAllNumbers = nonEmpty.every((l) => numberRe.test(l));
+
+  if (isAllBullets) {
+    const items = nonEmpty.map((l) => l.replace(bulletRe, "").trim());
+    return `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+  }
+
+  if (isAllNumbers) {
+    const items = nonEmpty.map((l) => l.replace(numberRe, "").trim());
+    return `<ol>${items.map((i) => `<li>${i}</li>`).join("")}</ol>`;
+  }
+
+  // Mixed content or not a list → fall back to paragraphs/line breaks
+  return nlToParas(src);
+}
+
+
+
+
+
+
+
+
 
   // Replace <p> inside table cells with inline spans (+ <br> separators) before insertion
   const unwrapParagraphsInTables = (html: string): string => {
@@ -1221,6 +1271,36 @@ function updateFormData(field: keyof FormData, value: string) {
 }
 
 
+
+function looksLikeHtml(s: string) {
+  return /<\/?[a-z][\s\S]*>/i.test(s);
+}
+
+function applyImported(d: {
+  summary?: string;
+  highlights?: string;
+  upcoming_milestones?: string;
+  key_decisions?: string;
+  risks?: string;
+}) {
+  const S = d.summary ?? "";
+  const H = d.highlights ?? "";
+  const M = d.upcoming_milestones ?? "";
+  const K = d.key_decisions ?? "";
+  const R = d.risks ?? "";
+
+  // If the server sent HTML (from HTML export), use it directly.
+  // Otherwise, fall back to your existing plain-text → HTML transforms.
+  updateFormData("execSummary", looksLikeHtml(S) ? S : nlToParas(S));
+  updateFormData("highlightsHtml", looksLikeHtml(H) ? H : listAwareTextToHtml(H));
+  updateFormData("milestonesHtml", looksLikeHtml(M) ? M : listAwareTextToHtml(M));
+  updateFormData("keyDecisionsHtml", looksLikeHtml(K) ? K : listAwareTextToHtml(K));
+  updateFormData("risksHtml", looksLikeHtml(R) ? R : listAwareTextToHtml(R));
+}
+
+
+
+
 const processRichHtml = (html: string): string =>
   widenTables(
     stripeTables(
@@ -1279,6 +1359,8 @@ const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CC
 </head>
 <body style="margin:0;padding:0;">
   ${getBannerHtml(false, opts, EMAIL_MAX_WIDTH)}
+
+
 
   <table style="width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
 
@@ -2211,6 +2293,13 @@ useEffect(() => {
 
   </div>
 
+
+
+
+
+
+
+
   {/* Banner preview */}
   {designOptions.optBannerMode === "url" && designOptions.optBannerUrl ? (
     <div className="mt-3 overflow-hidden rounded-lg border bg-white">
@@ -2290,6 +2379,18 @@ useEffect(() => {
         />
       </div>
     )}
+
+<Card>
+  <CardHeader>
+    <CardTitle>Import from Google Doc / YAML</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <ImportFromDoc onPrefill={applyImported} />
+  </CardContent>
+</Card>
+
+
+
 
     {/* Apply defaults + explainer */}
     <div className="flex items-start gap-3">

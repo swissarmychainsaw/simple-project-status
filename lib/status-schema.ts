@@ -1,12 +1,15 @@
 import { z } from "zod";
 
-// Five fields, each as plain text (line breaks preserved by using YAML "|")
+// Allow empty or missing values for all five fields.
+const Text = z.string().optional().default("");
+
 export const StatusSchema = z.object({
-  summary: z.string().min(1, "summary required"),
-  highlights: z.string().min(1, "highlights required"),
-  upcoming_milestones: z.string().min(1, "upcoming_milestones required"),
-  key_decisions: z.string().min(1, "key_decisions required"),
-  risks: z.string().min(1, "risks required"),
+  summary: Text,
+  highlights: Text,
+  upcoming_milestones: Text,
+  key_decisions: Text,
+  risks: Text,
 }).strict();
 
 export type ExecStatus = z.infer<typeof StatusSchema>;
+

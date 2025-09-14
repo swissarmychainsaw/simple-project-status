@@ -3,7 +3,9 @@ import { cookies } from "next/headers";
 
 export async function GET() {
   const raw = cookies().get("gTokens")?.value;
-  if (!raw) return NextResponse.json({ ok:false, hasCookie:false });
+  if (!raw) {
+    return NextResponse.json({ ok: false, hasCookie: false });
+  }
   try {
     const t = JSON.parse(raw);
     return NextResponse.json({
@@ -14,7 +16,7 @@ export async function GET() {
       expiry_date: t.expiry_date ?? null,
     });
   } catch {
-    return NextResponse.json({ ok:false, hasCookie:true, parseError:true });
+    return NextResponse.json({ ok: false, hasCookie: true, parseError: true });
   }
 }
 
