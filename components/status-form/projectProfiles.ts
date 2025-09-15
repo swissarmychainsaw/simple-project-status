@@ -84,7 +84,7 @@ export function normalizeBannerKey(k: string): BannerKey {
 // Labels you can reuse in Selects, etc.
 export const BANNER_LABELS: Record<BannerKey, string> = {
   gns: "GNS",
-  azure: "Azure",
+  azure: "Azure Odyssey",
   cie: "CIE",
   obn: "One Big Network Migration",
   azlens: "Azure Lens",
