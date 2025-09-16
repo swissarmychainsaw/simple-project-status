@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
-import AudioUrlField from "@/components/AudioUrlField";
+import AudioUrlField from "./AudioUrlField";
+
 import {
   BANNERS,
   BANNER_LABELS,
@@ -1882,7 +1883,53 @@ ${data.resourcesHtml ? `
   const copyRenderedContent = async () => {
     setIsCopyingRendered(true)
     try {
-      const emailHtml = buildEmailHtml(formData, designOptions)
+               // BEGIN listen-CTA injection
+       const APP_ORIGIN =
+         process.env.NEXT_PUBLIC_APP_URL ||
+         (typeof window !== "undefined" ? window.location.origin : "");
+
+       const LISTEN_URL = formData.audioUrl
+         ? `${APP_ORIGIN.replace(/\/$/, "")}/listen?src=${encodeURIComponent(formData.audioUrl)}`
+         : "";
+
+       const emailListenCta = (href: string) => `
+ <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
+   <tr>
+     <td align="center" bgcolor="#0A66C2" style="border-radius:12px;">
+       <!--[if mso]>
+       <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${href}"
+         style="height:48px;v-text-anchor:middle;width:320px;" arcsize="18%" stroke="f" fillcolor="#0A66C2">
+         <w:anchorlock/>
+         <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:18px;font-weight:bold;">
+           Listen to this report
+         </center>
+       </v:roundrect>
+       <![endif]-->
+       <!--[if !mso]><!-- -->
+       <a href="${href}" target="_blank"
+          style="display:inline-block;background:#0A66C2;color:#ffffff;
+                 font-family:Arial,sans-serif;font-size:18px;font-weight:bold;
+                 line-height:18px;text-decoration:none;border-radius:12px;
+                 padding:14px 28px;">
+         Listen to this report
+       </a>
+       <!--<![endif]-->
+     </td>
+   </tr>
+ </table>`;
+
+       let emailHtml = buildEmailHtml(formData, designOptions);
+
+       if (LISTEN_URL) {
+         if (emailHtml.includes("<!-- __LISTEN_CTA__ -->")) {
+           emailHtml = emailHtml.replace("<!-- __LISTEN_CTA__ -->", emailListenCta(LISTEN_URL));
+         } else {
+           // No placeholder in template: prepend CTA above the body
+           emailHtml = emailListenCta(LISTEN_URL) + "\n" + emailHtml;
+         }
+       }
+       // END listen-CTA injection
+
       const tempDiv = document.createElement("div")
       tempDiv.innerHTML = emailHtml
       tempDiv.style.position = "absolute"
@@ -2392,29 +2439,17 @@ useEffect(() => {
 
 <Card>
     <CardContent>
-{/* Audio (Listen to this report) */}
+    {/* Audio (Listen to this report) */}
 <div className="space-y-2">
   <Label className="text-sm font-medium">Audio URL (optional)</Label>
   <p className="text-xs text-gray-500">
-    Paste a direct-download MP3 link (e.g., SharePoint link ending with <code>?download=1</code>).
-    We’ll validate it and show an in-form audio player if valid.
+    Paste a direct-download MP3 link (e.g., SharePoint link ending with <code>?download=1</code>). We’ll validate it and show a player if valid.
   </p>
 
-  {/* local state just for this field */}
-  {(() => {
-    const [audioUrl, setAudioUrl] = React.useState<string>("");
-
-    // NOTE: this IIFE pattern keeps state scoped without refactoring your form
-    // If you already have central form state (e.g., setForm), replace setAudioUrl with that.
-
-    return (
-      <>
-        <AudioUrlField value={audioUrl} onChange={setAudioUrl} />
-        {/* ensure your existing submit handler sees the value */}
-        <input type="hidden" name="audioUrl" value={audioUrl} />
-      </>
-    );
-  })()}
+  <AudioUrlField
+    value={formData.audioUrl || ""}
+    onChange={(v) => updateFormData("audioUrl", v)}
+  />
 </div>
 </CardContent>
 </Card>
