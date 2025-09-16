@@ -1,3 +1,4 @@
+// components/AudioUrlField.tsx
 "use client";
 
 import * as React from "react";
@@ -16,12 +17,13 @@ type Check =
   | { state: "error"; msg: string };
 
 export default function AudioUrlField({ value, onChange, onValidated }: Props) {
-  // Always pass a string to <input value={...}> to avoid the controlled/uncontrolled warning
-  const val = typeof value === "string" ? value : "";
+  // always a string so the input is controlled
+  const val = value ?? "";
   const [check, setCheck] = React.useState<Check>({ state: "idle" });
+  const loading = check.state === "loading";
   const lastCheckedRef = React.useRef<string>("");
 
-  // If the user edits the field after a successful check, clear the “ok” state
+  // if user edits after a success, clear the success badge
   React.useEffect(() => {
     if (check.state === "ok" && val !== lastCheckedRef.current) {
       setCheck({ state: "idle" });
@@ -55,15 +57,13 @@ export default function AudioUrlField({ value, onChange, onValidated }: Props) {
       });
       lastCheckedRef.current = url;
 
-      // Notify parent with normalized data
-      const payload: AudioValidated = {
+      onValidated?.({
         normalized: typeof j.normalized === "string" ? j.normalized : url,
         playableUrl: playable,
         gated: Boolean(j.gated),
         message: typeof j.message === "string" ? j.message : undefined,
-        player: (j.player as PlayerKind) || "unknown",
-      };
-      onValidated?.(payload);
+        player: ((j.player as PlayerKind) ?? "unknown"),
+      });
     } catch (e: any) {
       setCheck({ state: "error", msg: e?.message || "Network error" });
     }
@@ -72,34 +72,39 @@ export default function AudioUrlField({ value, onChange, onValidated }: Props) {
   return (
     <div className="space-y-2">
       <input
-        className="w-full border rounded px-2 py-1"
+        className="w-full rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
         placeholder="Paste SharePoint/Drive page URL or public .mp3"
         value={val}
         onChange={(e) => onChange(e.target.value)}
       />
 
-      <div className="flex gap-2 items-center">
-        <button type="button" className="border rounded px-3 py-1" onClick={testLink}>
-          Test audio
+      <div className="flex gap-3 items-center">
+        <button
+          type="button"
+          onClick={testLink}
+          disabled={loading}
+          className="inline-flex items-center rounded-md bg-blue-600 text-white px-4 py-2 font-medium shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Testing…" : "Test audio"}
         </button>
 
         {check.state === "loading" && <span>Checking…</span>}
         {check.state === "ok" && (
-          <span className="text-green-700">
+          <span className={`text-sm ${check.gated ? "text-amber-700" : "text-green-700"}`}>
             {check.gated ? "Looks good (sign-in required)" : "Valid audio link"}
             {check.note ? ` – ${check.note}` : ""}
           </span>
         )}
-        {check.state === "error" && <span className="text-red-700">{check.msg}</span>}
+        {check.state === "error" && <span className="text-red-700 text-sm">{check.msg}</span>}
       </div>
 
       {check.state === "ok" && !check.gated && check.playableUrl ? (
         <audio controls className="w-full">
-          <source src={check.playableUrl} />
+          <source src={check.playableUrl} type="audio/mpeg" />
         </audio>
       ) : null}
 
-      {/* Keep value in form submit */}
+      {/* keep the value in form submissions */}
       <input type="hidden" name="audioUrl" value={val} />
     </div>
   );
