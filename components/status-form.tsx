@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
+import AudioUrlField from "@/components/AudioUrlField";
 import {
   BANNERS,
   BANNER_LABELS,
@@ -2389,6 +2390,34 @@ useEffect(() => {
   </CardContent>
 </Card>
 
+<Card>
+    <CardContent>
+{/* Audio (Listen to this report) */}
+<div className="space-y-2">
+  <Label className="text-sm font-medium">Audio URL (optional)</Label>
+  <p className="text-xs text-gray-500">
+    Paste a direct-download MP3 link (e.g., SharePoint link ending with <code>?download=1</code>).
+    We’ll validate it and show an in-form audio player if valid.
+  </p>
+
+  {/* local state just for this field */}
+  {(() => {
+    const [audioUrl, setAudioUrl] = React.useState<string>("");
+
+    // NOTE: this IIFE pattern keeps state scoped without refactoring your form
+    // If you already have central form state (e.g., setForm), replace setAudioUrl with that.
+
+    return (
+      <>
+        <AudioUrlField value={audioUrl} onChange={setAudioUrl} />
+        {/* ensure your existing submit handler sees the value */}
+        <input type="hidden" name="audioUrl" value={audioUrl} />
+      </>
+    );
+  })()}
+</div>
+</CardContent>
+</Card>
 
 
 
