@@ -4,6 +4,27 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image"
 import "./status-form.css";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
+import { SECURITY_CONFIG, sanitizeHtml } from "@/components/status-form/utils/sanitize";
+import {
+  unwrapParagraphsInTables,
+  unwrapPsInCellsInPlace,
+  stripInlineBackgrounds,
+  clampWidthsForEmail,
+  widenTables,
+  stripeTables,
+  processRichHtml,   // ← add this line
+  LEFT_COL,
+  RIGHT_COL,
+  HEADER_BG,
+  STRIPE_ODD,
+  STRIPE_EVEN,
+  stripDecl,
+  stripBgDecls,
+} from "@/components/status-form/utils/tables";
+
+import { safeInline, listsToParagraphs } from "@/components/status-form/utils/text";
+
+
 import {
   BANNERS,
   BANNER_LABELS,
@@ -19,9 +40,9 @@ import {
 } from "@/components/status-form/projectProfiles";
 
 import ImportFromDoc from "@/components/ImportFromDoc";
-import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
 
 
+import ProfilePills from "@/components/ProfilePills";
 
 
 
@@ -33,11 +54,12 @@ import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { useToast } from "@/hooks/use-toast"
+
+
 
 // Optional helper used inside your page, NOT default-exported:
 export function ReportHeader() {
@@ -48,24 +70,6 @@ export function ReportHeader() {
 type ApplyMode = "fill" | "overwrite";
 
 
-const listsToParagraphs = (html: string): string => {
-  if (!html) return "";
-  const root = document.createElement("div");
-  root.innerHTML = html;
-
-  // For each UL/OL, replace with a sequence of <p>…</p>
-  root.querySelectorAll("ul, ol").forEach((list) => {
-    const frag = document.createDocumentFragment();
-    list.querySelectorAll(":scope > li").forEach((li) => {
-      const p = document.createElement("p");
-      p.innerHTML = (li as HTMLElement).innerHTML;
-      frag.appendChild(p);
-    });
-    list.replaceWith(frag);
-  });
-
-  return root.innerHTML;
-};
 
 
 
@@ -100,11 +104,10 @@ interface FormData {
   risksTitle: string
   risksSectionTitle: string
   risksHtml: string
-
   resourcesTitle: string
   resourcesSectionTitle: string
   resourcesHtml: string
-
+  audioMp3Url: string
 }
 import {
   AlertTriangle,
@@ -155,13 +158,13 @@ const fontOptions = [
 
 
 // Make paths absolute for email clients
-const absoluteUrl = (p: string) => {
-  try {
-    return new URL(p, window.location.origin).toString();
-  } catch {
-    return p;
-  }
-};
+ const absoluteUrl = (p: string) => {
+   try {
+     return new URL(p, window.location.origin).toString();
+   } catch {
+     return p;
+   }
+ };
 
 // Make safe for HTML attrs/text
 const escapeHtml = (s: string): string =>
@@ -381,6 +384,7 @@ const SAVE_FIELDS = [
   "sectionTitle",
   "updatesTitle",
   "emailTo",
+  "audioMp3Url",   
   "asOf",
   "milestonesTitle",
   "milestonesSectionTitle",
@@ -407,64 +411,6 @@ const isLargeFieldKey = (k: string) =>
 
 
 
-const SECURITY_CONFIG = {
-  MAX_FIELD_LENGTH: 20000,
-  MAX_EXEC_SUMMARY_LENGTH: 3000,
-  MAX_UPDATES_LENGTH: 100000, // large sections
-  MAX_CSS_LENGTH: 5000,
-  ALLOWED_TAGS: new Set([
-    "b",
-    "i",
-    "u",
-    "p",
-    "br",
-    "ul",
-    "ol",
-    "li",
-    "a",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    "strong",
-    "em",
-    "div",
-    "span",
-    "h1",
-    "h2",
-    "h3",
-    "img",
-  ]),
-  ALLOWED_ATTRIBUTES: {
-    "*": ["class", "style"],
-    a: ["href", "title", "target"],
-    img: ["src", "alt", "width", "height"],
-    table: [
-      "class",
-      "style",
-      "border",
-      "cellpadding",
-      "cellspacing",
-      "data-testid",
-      "data-number-column",
-      "data-table-width",
-      "data-layout",
-    ],
-    th: ["class", "style", "colspan", "rowspan", "scope"],
-    td: ["class", "style", "colspan", "rowspan"],
-    tr: ["class", "style"],
-    thead: ["class", "style"],
-    tbody: ["class", "style"],
-    tfoot: ["class", "style"],
-  },
-  DANGEROUS_PROTOCOLS: /^(javascript:|data:|vbscript:|file:|about:)/i,
-  CSS_INJECTION_PATTERNS: /(expression|javascript|@import|behavior|binding)/i,
-  // safer in TSX:
-  HTML_INJECTION_PATTERNS: new RegExp("<(?:script|iframe|object|embed|link|meta|base)", "i"),
-
-}
 
 const initialFormData: FormData = {
   programTitle: "",
@@ -502,12 +448,12 @@ const initialFormData: FormData = {
   resourcesTitle: "Additional Resources",
   resourcesSectionTitle: "",
   resourcesHtml: "",
+  audioMp3Url: "",
 
 }
 // components/status-form.tsx
 
 export default function StatusForm(
-  { onTitleChange }: { onTitleChange?: (title: string) => void }
 ) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [designOptions, setDesignOptions] = useState<DesignOptions>({
@@ -546,16 +492,21 @@ const [upcomingMilestones, setUpcomingMilestones] = useState("");
 const [keyDecisions, setKeyDecisions] = useState("");
 const [risks, setRisks] = useState("");
 
-  
-const handleHighlightsInput = (e: React.FormEvent<HTMLDivElement>) => {
-  const target = e.currentTarget
-  if (target && target.innerHTML !== undefined) updateFormData("highlightsHtml", target.innerHTML)
-}
 
-const handleHighlightsBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-  const target = e.currentTarget
-  if (target && target.innerHTML !== undefined) updateFormData("highlightsHtml", target.innerHTML)
-}
+ const handleHighlightsInput = (e: React.FormEvent<HTMLDivElement>) => {
+   const target = e.currentTarget;
+   if (target && target.innerHTML !== undefined) {
+     updateFormData("highlightsHtml", target.innerHTML);
+   }
+ };
+ 
+ const handleHighlightsBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+   const target = e.currentTarget;
+   if (target && target.innerHTML !== undefined) {
+     updateFormData("highlightsHtml", target.innerHTML);
+   }
+ };
+
 
 const handleHighlightsPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
   e.preventDefault()
@@ -579,8 +530,86 @@ const handleHighlightsPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
   const [copyRenderedFeedback, setCopyRenderedFeedback] = useState("")
   const [isEmailing, setIsEmailing] = useState(false)
 
+
+type AudioCheck = "idle" | "checking" | "ok" | "error";
+const [audioCheck, setAudioCheck] = useState<AudioCheck>("idle");
+const [audioCheckMsg, setAudioCheckMsg] = useState("");
+const [audioPlayable, setAudioPlayable] = useState<boolean | null>(null); // null = not tried
+
+async function validateAudioUrlNow() {
+  const raw = cleanAudioUrl(formData.audioMp3Url || "");
+  // normalize if it's the sharepoint pattern (keeps only ?download=1)
+  const normalized = normalizeSharePointDownloadUrl(raw);
+  if (normalized !== formData.audioMp3Url) {
+    updateFormData("audioMp3Url", normalized);
+  }
+  if (!normalized) {
+    setAudioCheck("error");
+    setAudioCheckMsg("Add a URL first.");
+    return;
+  }
+  if (!isValidAudioUrl(normalized)) {
+    setAudioCheck("error");
+    setAudioCheckMsg("Use a .mp3 link or a SharePoint :u: link with ?download=1.");
+    return;
+  }
+  // For authenticated SharePoint links, server HEAD may not work; rely on heuristics.
+  setAudioCheck("ok");
+  setAudioCheckMsg("Looks good. Try the player below.");
+  setAudioPlayable(null); // reset the last player result
+}
+
+
+
+
+
+
+
+
   const [execLen, setExecLen] = useState(0)
   const [execOver, setExecOver] = useState(false)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const OPT_FIELDS = [
   "optFont",
@@ -894,42 +923,64 @@ function listAwareTextToHtml(text: string): string {
 
   // Mixed content or not a list → fall back to paragraphs/line breaks
   return nlToParas(src);
-}
-
-
-
-
-
-
-
-
-
-  // Replace <p> inside table cells with inline spans (+ <br> separators) before insertion
-  const unwrapParagraphsInTables = (html: string): string => {
-    if (!html) return ""
-    const root = document.createElement("div")
-    root.innerHTML = html
-
-    root.querySelectorAll("table td, table th").forEach((cell) => {
-      const ps = Array.from(cell.querySelectorAll("p"))
-      ps.forEach((p, i) => {
-        const span = document.createElement("span")
-        span.innerHTML = (p as HTMLElement).innerHTML
-        p.replaceWith(span)
-        if (i !== ps.length - 1) span.insertAdjacentHTML("afterend", "<br>")
-      })
-    })
-
-    return root.innerHTML
-  }
-
-  const linesToList = (text: string) => {
+}const linesToList = (text: string) => {
     const items = String(text || "")
       .split(/\n/)
       .map((s) => s.trim())
       .filter(Boolean)
     return items.length ? `<ul>\n${items.map((i) => `  <li>${safeInline(i)}</li>`).join("\n")}\n</ul>` : ""
   }
+
+// ---- Audio URL validation helpers ----
+// ---- Audio URL validation helpers ----
+const isHttpLike = (s: string) => /^https?:\/\//i.test((s || "").trim());
+
+// Accept plain .mp3 URLs (with optional query)
+const looksLikeMp3 = (s: string) => /\.mp3(\?.*)?$/i.test((s || "").trim());
+
+// SharePoint “direct download” sharing link format we want to allow.
+// Examples we accept:
+//   https://microsoft-my.sharepoint.com/:u:/g/personal/<alias>/EZglv...?...download=1
+//   https://<tenant>.sharepoint.com/:u:/g/personal/<alias>/<token>?download=1
+function isSharePointDirectDownloadFormat(s: string): boolean {
+  try {
+    const u = new URL((s || "").trim());
+    const hostOk = /\.sharepoint\.com$/i.test(u.hostname);
+    const pathOk = /\/:u:\/g\/personal\//i.test(u.pathname); // ensure :u:/g/personal
+    const dl = u.searchParams.get("download");
+    return hostOk && pathOk && dl === "1";
+  } catch {
+    return false;
+  }
+}
+
+// Normalize a SharePoint :u: link to keep only ?download=1
+function normalizeSharePointDownloadUrl(s: string): string {
+  try {
+    const u = new URL((s || "").trim());
+    if (!/\.sharepoint\.com$/i.test(u.hostname)) return s;
+    if (!/\/:u:\/g\/personal\//i.test(u.pathname)) return s;
+    // strip all other params, force download=1
+    u.search = "";
+    u.searchParams.set("download", "1");
+    return u.toString();
+  } catch {
+    return s;
+  }
+}
+
+// Final client-side check used by builders and UI
+const isValidAudioUrl = (s: string) =>
+  isHttpLike(s) && (looksLikeMp3(s) || isSharePointDirectDownloadFormat(s));
+
+// Trim only
+const cleanAudioUrl = (s: string) => (s || "").trim();
+
+
+
+
+
+
 
   const sanitizeHtml = (html: string): string => {
     if (!html || typeof html !== "string") return ""
@@ -998,258 +1049,10 @@ function listAwareTextToHtml(text: string): string {
       v.trim(),
     )
 
-  const stripBgDecls = (style: string) => style.replace(/background(?:-color)?:\s*[^;]+;?/gi, "").trim()
-  const LEFT_COL = "30%"
-  const RIGHT_COL = "70%"
-  const stripDecl = (style: string, prop: string) =>
-    style.replace(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*[^;]+;?`, "gi"), "").trim()
-
-  // Trim leading/trailing empty nodes inside a cell
-  const trimCellWhitespace = (el: HTMLElement) => {
-    const TEXT_NODE = 3
-    const ELEMENT_NODE = 1
-
-    const isEmptyText = (n: Node) => n.nodeType === TEXT_NODE && !/\S/.test(n.textContent || "")
-    const isEmptyBlock = (n: Node) => {
-      if (n.nodeType !== ELEMENT_NODE) return false
-      const tag = (n as Element).tagName.toUpperCase()
-      const isBlock = /^(P|DIV|H1|H2|H3|H4|H5|H6)$/i.test(tag)
-      const text = (n as Element).textContent || ""
-      const onlyWhitespace = text.replace(/\u00a0|\s/g, "") === ""
-      const isBr = tag === "BR"
-      return isBr || (isBlock && onlyWhitespace)
-    }
-
-    while (el.firstChild && (isEmptyText(el.firstChild) || isEmptyBlock(el.firstChild))) {
-      el.removeChild(el.firstChild)
-    }
-    while (el.lastChild && (isEmptyText(el.lastChild) || isEmptyBlock(el.lastChild))) {
-      el.removeChild(el.lastChild)
-    }
-  }
-
-  // Unwrap <p> inside table cells in-place and trim cell whitespace
-  const unwrapPsInCellsInPlace = (root: HTMLElement) => {
-    root.querySelectorAll("table td, table th").forEach((cell) => {
-      const ps = Array.from(cell.querySelectorAll("p"))
-      ps.forEach((p, i) => {
-        const frag = document.createDocumentFragment()
-        while (p.firstChild) frag.appendChild(p.firstChild)
-        if (i !== ps.length - 1) frag.appendChild(document.createElement("br"))
-        p.replaceWith(frag)
-      })
-      trimCellWhitespace(cell as HTMLElement)
-    })
-  }
-
-  // add near the other color consts
-const HEADER_BG = "#f5f5f5"; // White smoke
 
 
 
-
-
-
-
-
-  
-// replace your current stripeTables with this version
-const stripeTables = (html: string): string => {
-  if (!html) return html
-  const root = document.createElement("div")
-  root.innerHTML = html
-
-  const getChildRows = (seg: Element) =>
-    Array.from(seg.children).filter((el) => el.tagName.toUpperCase() === "TR") as HTMLTableRowElement[]
-
-  root.querySelectorAll("table").forEach((table) => {
-    const segments: Element[] = []
-    if (table.tHead) segments.push(table.tHead)
-    segments.push(...Array.from(table.tBodies))
-    if (table.tFoot) segments.push(table.tFoot)
-    if (segments.length === 0) segments.push(table)
-
-    let rowCounter = 0 // count across the whole table (not per segment)
-
-    segments.forEach((seg) => {
-      const rows = getChildRows(seg)
-      rows.forEach((tr) => {
-        const isHeader = rowCounter === 0
-        const rowColor = isHeader
-          ? HEADER_BG
-          : (rowCounter - 1) % 2 === 0
-          ? STRIPE_ODD
-          : STRIPE_EVEN
-
-        ;(tr as HTMLElement).setAttribute("bgcolor", rowColor)
-
-        Array.from(tr.children).forEach((cell) => {
-          if (!/^(TD|TH)$/i.test(cell.tagName)) return
-          const el = cell as HTMLElement
-
-          trimCellWhitespace(el)
-
-          // scrub conflicting styles, then apply ours
-          let next = stripBgDecls(el.getAttribute("style") || "")
-          next = stripDecl(next, "text-align")
-          next = stripDecl(next, "vertical-align")
-
-          next += (next ? "; " : "") + `background-color:${rowColor}; text-align:left; vertical-align:top`
-          el.setAttribute("style", next)
-          el.setAttribute("align", "left")
-          el.setAttribute("valign", "top")
-        })
-
-        rowCounter++
-      })
-    })
-  })
-
-  return root.innerHTML
-}
-
-
-  const stripInlineBackgrounds = (html: string) => {
-    if (!html) return ""
-    const root = document.createElement("div")
-    root.innerHTML = html
-    root.querySelectorAll("*").forEach((el) => {
-      const he = el as HTMLElement
-      const style = he.getAttribute("style") || ""
-      const next = style.replace(/background(?:-color)?\s*:\s*[^;]+;?/gi, "").trim()
-      if (next) he.setAttribute("style", next)
-      else he.removeAttribute("style")
-    })
-    root.querySelectorAll("mark").forEach((el) => {
-      const span = document.createElement("span")
-      span.innerHTML = (el as HTMLElement).innerHTML
-      el.replaceWith(span)
-    })
-    return root.innerHTML
-  }
-// Remove pixel/percent widths that can blow up the layout in email.
-// Keep tables at 100% and make images responsive.
-const clampWidthsForEmail = (html: string): string => {
-  if (!html) return html;
-  const root = document.createElement("div");
-  root.innerHTML = html;
-
-  // 1) Tables: force width=100%
-  root.querySelectorAll("table").forEach((t) => {
-    const el = t as HTMLElement;
-    el.style.width = "100%";
-    el.setAttribute("width", "100%");
-    // remove explicit px widths on table wrapper DIVs, if any parent is the immediate wrapper
-    el.removeAttribute("height");
-    el.style.removeProperty("max-width");
-    el.style.removeProperty("min-width");
-  });
-
-  // 2) Cells: strip fixed widths that can expand container
-  root.querySelectorAll("th, td").forEach((cell) => {
-    const el = cell as HTMLElement;
-    el.style.removeProperty("width");
-    el.removeAttribute("width");
-    el.style.removeProperty("min-width");
-    el.style.removeProperty("max-width");
-    // keep left/top alignment to reduce reflow surprises in Outlook
-    el.setAttribute("align", "left");
-    el.setAttribute("valign", "top");
-  });
-
-  // 3) Generic wrappers (div/span/p): remove fixed/min/max widths
-  root.querySelectorAll("div, span, p, section, article").forEach((n) => {
-    const el = n as HTMLElement;
-    el.style.removeProperty("width");
-    el.removeAttribute("width");
-    el.style.removeProperty("min-width");
-    el.style.removeProperty("max-width");
-    // kill floats/absolute positioning that can shift outside the 700px frame
-    el.style.removeProperty("float");
-    el.style.removeProperty("position");
-    el.style.removeProperty("left");
-    el.style.removeProperty("right");
-  });
-
-  // 4) Images inside content: make responsive
-  root.querySelectorAll("img").forEach((img) => {
-    const el = img as HTMLImageElement;
-    // keep attribute width if small; otherwise prefer CSS (more predictable in clients)
-    el.removeAttribute("height");
-    el.style.maxWidth = "100%";
-    el.style.height = "auto";
-    const s = (el.getAttribute("style") || "").trim();
-    if (!/max-width/i.test(s)) {
-      el.setAttribute("style", `${s ? s + ";" : ""}max-width:100%;height:auto`);
-    }
-  });
-
-  return root.innerHTML;
-};
-
-  // WidenTables
-const widenTables = (html: string): string => {
-  if (!html) return html;
-  const root = document.createElement("div");
-  root.innerHTML = html;
-
-  root.querySelectorAll("table").forEach((table) => {
-    const t = table as HTMLTableElement;
-
-    t.style.width = "100%";
-    t.setAttribute("width", "100%");
-    t.style.tableLayout = "fixed";
-    t.style.removeProperty("white-space"); // strip Confluence artifact
-
-    // Ensure 30/70 colgroup
-    let cg = t.querySelector("colgroup");
-    if (!cg) {
-      cg = document.createElement("colgroup");
-      cg.innerHTML = `<col style="width:${LEFT_COL}"><col style="width:${RIGHT_COL}">`;
-      t.insertBefore(cg, t.firstChild);
-    } else {
-      const cols = cg.querySelectorAll("col");
-      if (cols.length >= 2) {
-        (cols[0] as HTMLElement).style.width = LEFT_COL;
-        (cols[1] as HTMLElement).style.width = RIGHT_COL;
-      }
-    }
-
-    const segments: Element[] = [];
-    if (t.tHead) segments.push(t.tHead);
-    segments.push(...Array.from(t.tBodies));
-    if (t.tFoot) segments.push(t.tFoot);
-    if (!segments.length) segments.push(t);
-
-    segments.forEach((seg) => {
-      seg.querySelectorAll("tr").forEach((tr) => {
-        const cells = Array.from(tr.querySelectorAll("th,td"));
-        const hasColspan = cells.some((c) => (c as HTMLElement).hasAttribute("colspan"));
-        if (cells.length === 2 && !hasColspan) {
-          cells.forEach((cell, idx) => {
-            const el = cell as HTMLElement;
-            el.style.removeProperty("min-width");
-            el.style.removeProperty("white-space");
-
-            const w = idx === 0 ? LEFT_COL : RIGHT_COL;
-            el.style.width = w;
-            el.setAttribute("width", w);
-
-            el.style.verticalAlign = "top";
-            el.setAttribute("valign", "top");
-            el.style.textAlign = "left";
-            el.setAttribute("align", "left");
-          });
-        }
-      });
-    });
-  });
-
-  return root.innerHTML;
-};
-
-
-// End WidenTables
+// Keep tables at 100% and make images responsive.// WidenTables// End WidenTables
 
   
 const normalizeEditorHtml = (html: string) =>
@@ -1301,18 +1104,6 @@ function applyImported(d: {
 
 
 
-const processRichHtml = (html: string): string =>
-  widenTables(
-    stripeTables(
-      clampWidthsForEmail(
-        stripInlineBackgrounds(
-          unwrapParagraphsInTables(
-            sanitizeHtml(html)
-          )
-        )
-      )
-    )
-  );
 
 //
 // buildhtml section
@@ -1325,6 +1116,9 @@ const processRichHtml = (html: string): string =>
         return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
       })()
     : ""
+
+const audioUrl = cleanAudioUrl(data.audioMp3Url || "");
+const showAudio = audioUrl && isValidAudioUrl(audioUrl);
 
   
 const pill = (val: string) => {
@@ -1384,7 +1178,19 @@ const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CC
           </td>
         </tr>
 
-  
+ ${showAudio ? `
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="padding:16px;text-align:center;border:1px solid #CCCCCC;background:#ffffff;">
+        <a href="${escapeHtml(audioUrl)}"
+           style="display:inline-block;background:#111827;color:#fff;text-decoration:none;
+                  padding:12px 18px;border-radius:8px;font-weight:700;">
+          ▶︎ Listen to this report
+        </a>
+      </td>
+    </tr>
+  </table>` : ""}
+ 
 
         <!-- Status row -->
         <tr>
@@ -1517,6 +1323,42 @@ const fourColColgroup = `
     <col style="width:25%" width="25%">
   </colgroup>`;
 
+// ---- Email CTA generator (Outlook-safe) ----
+function getAudioCtaHtml(url: string, label = "▶︎ Listen to this report") {
+  const safe = escapeHtml(url);
+  // Button style variables
+  const bg = "#111827"; // near-black
+  const color = "#ffffff";
+  const radius = 8;
+  const padX = 18;
+  const padY = 12;
+  const font = "Arial, Helvetica, sans-serif";
+  const fs = 16;
+
+  // Table wrapper keeps width stable in many clients
+  return `
+  <!--[if mso]>
+  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${safe}" arcsize="${radius * 100/48}%"
+      strokecolor="${bg}" fillcolor="${bg}" style="height:${padY*2 + fs + 4}px;v-text-anchor:middle;width:300px;">
+    <w:anchorlock/>
+    <center style="color:${color};font-family:${font};font-size:${fs}px;font-weight:700;">
+      ${escapeHtml(label)}
+    </center>
+  </v:roundrect>
+  <![endif]-->
+  <!--[if !mso]><!-- -->
+  <a href="${safe}"
+     target="_blank"
+     style="display:inline-block;background:${bg};color:${color};text-decoration:none;font-family:${font};
+            font-size:${fs}px;font-weight:700;border-radius:${radius}px;padding:${padY}px ${padX}px;">
+     ${escapeHtml(label)}
+  </a>
+  <!--<![endif]-->`;
+}
+
+
+
+
 
 // buildEmailHtml Email Report email report
 //
@@ -1622,7 +1464,11 @@ const banner = getBannerHtml(true, opts, containerWidth);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
   const processedRisks           = processRichHtml(data.risksHtml);
   const processedResources       = processRichHtml(data.resourcesHtml);
-const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))
+  const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))
+const audioUrl = cleanAudioUrl(data.audioMp3Url || "");
+const showAudio = audioUrl && isValidAudioUrl(audioUrl);
+
+
 
   return `
 <!-- Fixed-width banner -->
@@ -1631,6 +1477,29 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
   
 
 </table>
+
+
+<!-- Banner (CID) -->
+<div style="text-align:center; margin:0 0 20px 0;">
+  <img src="cid:status_banner.png"
+       alt="Status Report Banner"
+       style="max-width:100%; height:auto; border-radius:6px; display:block; margin:0 auto;" />
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- Fixed-width outer container -->
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
@@ -1649,6 +1518,19 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
           </td>
         </tr>
       </table>
+
+
+<!-- Listen CTA (conditional) -->
+${showAudio ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="${cellCenter}" bgcolor="#ffffff" align="center" valign="middle">
+        ${getAudioCtaHtml(audioUrl)}
+      </td>
+    </tr>
+  </table>` : ""}
+
+
 
 
       <!--  Status table (use scaled)  Team -->
@@ -1773,6 +1655,13 @@ ${data.resourcesHtml ? `
     toast({ title: "Email required", description: "Please enter an email address first.", variant: "destructive" });
     return;
   }
+
+
+// If the audio URL is present but invalid, strip it before building the email
+if (formData.audioMp3Url && !isValidAudioUrl(formData.audioMp3Url)) {
+  updateFormData("audioMp3Url", ""); // drop it so the CTA won’t render
+}
+
 
   setIsEmailing(true);
   try {
@@ -2247,51 +2136,10 @@ useEffect(() => {
 }, [appTitle, onTitleChange])
 
 
-
-
-
-
-
-
-  return (
-<div
-  className="min-h-screen bg-gray-50 py-8 project-tint"
-  data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
->
-      {/* Sticky project header */}
-
-
-
-
-      <div className="max-w-[900px] mx-auto px-4">
-        {/* Header */}
-
-<div aria-hidden className="tint-bar" />
-
-        {/* Security Warnings */}
-        {securityWarnings.length > 0 && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h3 className="font-medium text-yellow-800">Security Notice</h3>
-                <ul className="mt-1 text-sm text-yellow-700">
-                  {securityWarnings.map((warning, i) => (
-                    <li key={i}>• {warning}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-{/* Current Project indicator & preview */}
-<div className="mb-6">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-    </div>
-
-
-  </div>
+return (
+    <div>STUB</div>
+  );
+ }
 
 
 
@@ -2300,58 +2148,11 @@ useEffect(() => {
 
 
 
-  {/* Banner preview */}
-  {designOptions.optBannerMode === "url" && designOptions.optBannerUrl ? (
-    <div className="mt-3 overflow-hidden rounded-lg border bg-white">
-      <img
-        src={designOptions.optBannerUrl}
-        alt={`${currentProjectLabel} banner`}
-        className="w-full h-32 object-cover"
-      />
-    </div>
-  ) : designOptions.optBannerMode !== "none" ? (
-    // Lightweight visual when using CID banners (no external URL to show)
-    <div className="mt-3 rounded-lg border bg-gradient-to-r from-gray-50 to-white p-4">
-      
-      <div className="text-lg font-semibold leading-tight">
-      {currentProjectLabel}
-      </div>
-      {designOptions.optBannerCaption ? (
-        <div className="text-sm text-gray-600 mt-0.5">
-       
-        </div>
-      ) : null}
-    </div>
-  ) : null}
-</div>
-<Card>
-  <CardHeader>
-    {/* Design Options */}
-    <CardTitle>Design Options</CardTitle>
-  </CardHeader>
-  <CardContent className="space-y-4">
-    {/* Project selector */}
-    <div>
-      <Label className="text-sm font-medium">Project</Label>
-      <Select
-        value={designOptions.optBannerId}
-        onValueChange={(v) => {
-          updateDesignOptions("optBannerId", v);
-          applyProjectProfile(v as BannerKey, "overwrite");
-        }}
-      >
-        <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {PROJECT_KEYS.map((k) => (
-            <SelectItem key={k} value={k}>
-              {BANNER_LABELS[k]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+
 
     {/* Banner mode */}
+ <Card>
+<CardContent>
     <div>
       <Label className="text-sm font-medium">Banner mode</Label>
       <Select
@@ -2366,7 +2167,6 @@ useEffect(() => {
         </SelectContent>
       </Select>
     </div>
-
     {/* Banner URL (only when mode=url) */}
     {designOptions.optBannerMode === "url" && (
       <div>
@@ -2380,39 +2180,114 @@ useEffect(() => {
       </div>
     )}
 
-<Card>
-  <CardHeader>
-    <CardTitle>Import from Google Doc / YAML</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <ImportFromDoc onPrefill={applyImported} />
-  </CardContent>
-</Card>
-
 
 
 
     {/* Apply defaults + explainer */}
-    <div className="flex items-start gap-3">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() =>
-          applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
-        }
-      >
-        Apply profile defaults (overwrite)
+{/* Apply defaults + explainer (force single row) */}
+<div className="flex items-center gap-2 [&>button]:shrink-0 [&>button]:!w-auto">
+  <Button
+    type="button"
+    variant="outline"
+    size="sm"
+    className="inline-flex !w-auto shrink-0"
+    onClick={() =>
+      applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
+    }
+  >
+    Apply defaults
+  </Button>
+
+  {/* add any other buttons here as siblings */}
+  {/* <Button type="button" size="sm" className="inline-flex !w-auto shrink-0">Another</Button> */}
+
+  <p className="m-0 text-xs text-gray-600 leading-5 flex-1 min-w-0 truncate">
+    Pulls values from profile saved in your project. For <strong>things that
+    don't change week to week </strong>(TPM, Sponsors, Program Summary, e.g.)
+  </p>
+</div>
+</CardContent>
+</Card>
+
+{/* Audio (optional) */}
+<Card className="mt-4" data-audio-card>
+  <CardHeader>
+    <CardTitle>Audio (optional)</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-2">
+    <Label className="text-sm font-medium">"Listen to this report" MP3 URL</Label>
+    <div className="flex gap-2">
+      <Input
+        value={formData.audioMp3Url}
+        onChange={(e) => {
+          updateFormData("audioMp3Url", cleanAudioUrl(e.target.value));
+          setAudioCheck("idle");        // ← reset status while typing
+          setAudioPlayable(null);       // ← reset player state
+        }}
+        onBlur={(e) => {
+          const cleaned = cleanAudioUrl(e.target.value);
+          const normalized = normalizeSharePointDownloadUrl(cleaned);
+          if (normalized !== formData.audioMp3Url) {
+            updateFormData("audioMp3Url", normalized);
+          }
+        }}
+        placeholder="https://microsoft-my.sharepoint.com/:u:/g/personal/.../<token>?download=1"
+        className="bg-white"
+      />
+      <Button type="button" variant="outline" onClick={validateAudioUrlNow}>
+        Validate link
       </Button>
-      <p className="text-xs text-gray-600 leading-5">
-        When you click <em>Apply profile defaults (overwrite)</em> we look up the currently
-        selected project’s profile (GNS, OBN, etc.) and overwrite your form fields (title,
-        summary, people, etc.) and design options (banner mode/id/url, accent, etc.) with that
-        project’s saved defaults. It’s the “reset to this project’s baseline” button.
-      </p>
     </div>
+
+    <p className="text-xs text-gray-500">
+      Paste a direct .mp3 URL or a SharePoint :u: link ending with <code>?download=1</code>.
+    </p>
+
+    {/* Validate & Test row */}
+    {audioCheck === "ok" && (
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <a
+          href={formData.audioMp3Url}
+          target="_blank"
+          rel="noreferrer"
+          className="underline text-sm"
+        >
+          Open link
+        </a>
+
+        <audio
+          key={formData.audioMp3Url || "empty"}
+          controls
+          className="h-8"
+          onCanPlay={() => setAudioPlayable(true)}
+          onError={() => setAudioPlayable(false)}
+        >
+          {formData.audioMp3Url ? <source src={formData.audioMp3Url} /> : null}
+        </audio>
+
+        {audioPlayable === true && (
+          <span className="text-xs text-green-700">Playable.</span>
+        )}
+        {audioPlayable === false && (
+          <span className="text-xs text-amber-700">
+            Couldn’t play inline (auth or content-type). Use “Open link”.
+          </span>
+        )}
+        {audioPlayable === null && (
+          <span className="text-xs text-gray-600">Press Play to test.</span>
+        )}
+      </div>
+    )}
+
+    {audioCheck === "error" && (
+      <div className="mt-2 text-xs text-red-700">{audioCheckMsg}</div>
+    )}
   </CardContent>
 </Card>
+
+{/* Listen-to Report (MP3 URL) */}
+
+
 
 <Card>
   <CardHeader>
@@ -2523,6 +2398,7 @@ useEffect(() => {
         className="bg-white mt-1"
       />
     </div>
+
   </CardContent>
 </Card>
 
