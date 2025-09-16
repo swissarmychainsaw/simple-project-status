@@ -19,9 +19,9 @@ import {
 } from "@/components/status-form/projectProfiles";
 
 import ImportFromDoc from "@/components/ImportFromDoc";
-import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
 
 
+import ProfilePills from "@/components/ProfilePills";
 
 
 
@@ -1632,6 +1632,41 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
 
 </table>
 
+
+<!-- Banner (CID) -->
+<div style="text-align:center; margin:0 0 20px 0;">
+  <img src="cid:status_banner.png"
+       alt="Status Report Banner"
+       style="max-width:100%; height:auto; border-radius:6px; display:block; margin:0 auto;" />
+</div>
+
+<!-- Listen button (bulletproof table) -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:20px auto;">
+  <tr>
+    <td bgcolor="#0078d4" style="border-radius:6px;">
+<a href="https://microsoft-my.sharepoint.com/:u:/g/personal/nadams_linkedin_biz/EZglvhhLJmpPnj6JNtg3RgEB4ahHQoNdUtOCdf8abmO5LQ?download=1"
+
+         style="font-family:Arial, sans-serif; font-size:16px; line-height:16px; color:#ffffff; text-decoration:none; padding:12px 22px; display:inline-block; font-weight:700;">
+        Listen to this report
+      </a>
+    </td>
+  </tr>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- Fixed-width outer container -->
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr>
@@ -2327,11 +2362,29 @@ useEffect(() => {
 <Card>
   <CardHeader>
     {/* Design Options */}
-    <CardTitle>Design Options</CardTitle>
+    <CardTitle></CardTitle> 
   </CardHeader>
   <CardContent className="space-y-4">
+
+
     {/* Project selector */}
-    <div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Select project</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Project selection — pills */}
+        <ProfilePills
+          name="project"
+          label="Project"
+          defaultValue={designOptions.optBannerId as BannerKey}
+          onChange={(key) => {
+            updateDesignOptions("optBannerId", key);
+            applyProjectProfile(key as BannerKey, "overwrite");
+          }}
+        />
+    {/* Dropdown stub (hidden for potential future use) */}
+    <div className="hidden">
       <Label className="text-sm font-medium">Project</Label>
       <Select
         value={designOptions.optBannerId}
@@ -2350,6 +2403,15 @@ useEffect(() => {
         </SelectContent>
       </Select>
     </div>
+
+
+      </CardContent>
+    </Card>
+
+
+
+
+
 
     {/* Banner mode */}
     <div>
@@ -2380,9 +2442,37 @@ useEffect(() => {
       </div>
     )}
 
+
+
+
+    {/* Apply defaults + explainer */}
+{/* Apply defaults + explainer (force single row) */}
+<div className="flex items-center gap-2 [&>button]:shrink-0 [&>button]:!w-auto">
+  <Button
+    type="button"
+    variant="outline"
+    size="sm"
+    className="inline-flex !w-auto shrink-0"
+    onClick={() =>
+      applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
+    }
+  >
+    Apply defaults
+  </Button>
+
+  {/* add any other buttons here as siblings */}
+  {/* <Button type="button" size="sm" className="inline-flex !w-auto shrink-0">Another</Button> */}
+
+  <p className="m-0 text-xs text-gray-600 leading-5 flex-1 min-w-0 truncate">
+    Pulls values from profile saved in your project. For <strong>things that
+    don't change week to week </strong>(TPM, Sponsors, Program Summary, e.g.)
+  </p>
+</div>
+
+
 <Card>
   <CardHeader>
-    <CardTitle>Import from Google Doc / YAML</CardTitle>
+    <CardTitle></CardTitle>
   </CardHeader>
   <CardContent>
     <ImportFromDoc onPrefill={applyImported} />
@@ -2392,27 +2482,10 @@ useEffect(() => {
 
 
 
-    {/* Apply defaults + explainer */}
-    <div className="flex items-start gap-3">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() =>
-          applyProjectProfile(designOptions.optBannerId as BannerKey, "overwrite")
-        }
-      >
-        Apply profile defaults (overwrite)
-      </Button>
-      <p className="text-xs text-gray-600 leading-5">
-        When you click <em>Apply profile defaults (overwrite)</em> we look up the currently
-        selected project’s profile (GNS, OBN, etc.) and overwrite your form fields (title,
-        summary, people, etc.) and design options (banner mode/id/url, accent, etc.) with that
-        project’s saved defaults. It’s the “reset to this project’s baseline” button.
-      </p>
-    </div>
   </CardContent>
 </Card>
+
+
 
 <Card>
   <CardHeader>
