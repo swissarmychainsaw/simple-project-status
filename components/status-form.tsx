@@ -100,11 +100,10 @@ interface FormData {
   risksTitle: string
   risksSectionTitle: string
   risksHtml: string
-
   resourcesTitle: string
   resourcesSectionTitle: string
   resourcesHtml: string
-
+  audioMp3Url: string
 }
 import {
   AlertTriangle,
@@ -381,6 +380,7 @@ const SAVE_FIELDS = [
   "sectionTitle",
   "updatesTitle",
   "emailTo",
+  "audioMp3Url",   
   "asOf",
   "milestonesTitle",
   "milestonesSectionTitle",
@@ -502,6 +502,7 @@ const initialFormData: FormData = {
   resourcesTitle: "Additional Resources",
   resourcesSectionTitle: "",
   resourcesHtml: "",
+  audioMp3Url: "",
 
 }
 // components/status-form.tsx
@@ -579,8 +580,86 @@ const handleHighlightsPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
   const [copyRenderedFeedback, setCopyRenderedFeedback] = useState("")
   const [isEmailing, setIsEmailing] = useState(false)
 
+
+type AudioCheck = "idle" | "checking" | "ok" | "error";
+const [audioCheck, setAudioCheck] = useState<AudioCheck>("idle");
+const [audioCheckMsg, setAudioCheckMsg] = useState("");
+const [audioPlayable, setAudioPlayable] = useState<boolean | null>(null); // null = not tried
+
+async function validateAudioUrlNow() {
+  const raw = cleanAudioUrl(formData.audioMp3Url || "");
+  // normalize if it's the sharepoint pattern (keeps only ?download=1)
+  const normalized = normalizeSharePointDownloadUrl(raw);
+  if (normalized !== formData.audioMp3Url) {
+    updateFormData("audioMp3Url", normalized);
+  }
+  if (!normalized) {
+    setAudioCheck("error");
+    setAudioCheckMsg("Add a URL first.");
+    return;
+  }
+  if (!isValidAudioUrl(normalized)) {
+    setAudioCheck("error");
+    setAudioCheckMsg("Use a .mp3 link or a SharePoint :u: link with ?download=1.");
+    return;
+  }
+  // For authenticated SharePoint links, server HEAD may not work; rely on heuristics.
+  setAudioCheck("ok");
+  setAudioCheckMsg("Looks good. Try the player below.");
+  setAudioPlayable(null); // reset the last player result
+}
+
+
+
+
+
+
+
+
   const [execLen, setExecLen] = useState(0)
   const [execOver, setExecOver] = useState(false)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const OPT_FIELDS = [
   "optFont",
@@ -930,6 +1009,57 @@ function listAwareTextToHtml(text: string): string {
       .filter(Boolean)
     return items.length ? `<ul>\n${items.map((i) => `  <li>${safeInline(i)}</li>`).join("\n")}\n</ul>` : ""
   }
+
+// ---- Audio URL validation helpers ----
+// ---- Audio URL validation helpers ----
+const isHttpLike = (s: string) => /^https?:\/\//i.test((s || "").trim());
+
+// Accept plain .mp3 URLs (with optional query)
+const looksLikeMp3 = (s: string) => /\.mp3(\?.*)?$/i.test((s || "").trim());
+
+// SharePoint “direct download” sharing link format we want to allow.
+// Examples we accept:
+//   https://microsoft-my.sharepoint.com/:u:/g/personal/<alias>/EZglv...?...download=1
+//   https://<tenant>.sharepoint.com/:u:/g/personal/<alias>/<token>?download=1
+function isSharePointDirectDownloadFormat(s: string): boolean {
+  try {
+    const u = new URL((s || "").trim());
+    const hostOk = /\.sharepoint\.com$/i.test(u.hostname);
+    const pathOk = /\/:u:\/g\/personal\//i.test(u.pathname); // ensure :u:/g/personal
+    const dl = u.searchParams.get("download");
+    return hostOk && pathOk && dl === "1";
+  } catch {
+    return false;
+  }
+}
+
+// Normalize a SharePoint :u: link to keep only ?download=1
+function normalizeSharePointDownloadUrl(s: string): string {
+  try {
+    const u = new URL((s || "").trim());
+    if (!/\.sharepoint\.com$/i.test(u.hostname)) return s;
+    if (!/\/:u:\/g\/personal\//i.test(u.pathname)) return s;
+    // strip all other params, force download=1
+    u.search = "";
+    u.searchParams.set("download", "1");
+    return u.toString();
+  } catch {
+    return s;
+  }
+}
+
+// Final client-side check used by builders and UI
+const isValidAudioUrl = (s: string) =>
+  isHttpLike(s) && (looksLikeMp3(s) || isSharePointDirectDownloadFormat(s));
+
+// Trim only
+const cleanAudioUrl = (s: string) => (s || "").trim();
+
+
+
+
+
+
 
   const sanitizeHtml = (html: string): string => {
     if (!html || typeof html !== "string") return ""
@@ -1326,6 +1456,9 @@ const processRichHtml = (html: string): string =>
       })()
     : ""
 
+const audioUrl = cleanAudioUrl(data.audioMp3Url || "");
+const showAudio = audioUrl && isValidAudioUrl(audioUrl);
+
   
 const pill = (val: string) => {
     const v = escapeHtml(val || "").toLowerCase()
@@ -1384,7 +1517,19 @@ const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CC
           </td>
         </tr>
 
-  
+ ${showAudio ? `
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="padding:16px;text-align:center;border:1px solid #CCCCCC;background:#ffffff;">
+        <a href="${escapeHtml(audioUrl)}"
+           style="display:inline-block;background:#111827;color:#fff;text-decoration:none;
+                  padding:12px 18px;border-radius:8px;font-weight:700;">
+          ▶︎ Listen to this report
+        </a>
+      </td>
+    </tr>
+  </table>` : ""}
+ 
 
         <!-- Status row -->
         <tr>
@@ -1517,6 +1662,42 @@ const fourColColgroup = `
     <col style="width:25%" width="25%">
   </colgroup>`;
 
+// ---- Email CTA generator (Outlook-safe) ----
+function getAudioCtaHtml(url: string, label = "▶︎ Listen to this report") {
+  const safe = escapeHtml(url);
+  // Button style variables
+  const bg = "#111827"; // near-black
+  const color = "#ffffff";
+  const radius = 8;
+  const padX = 18;
+  const padY = 12;
+  const font = "Arial, Helvetica, sans-serif";
+  const fs = 16;
+
+  // Table wrapper keeps width stable in many clients
+  return `
+  <!--[if mso]>
+  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${safe}" arcsize="${radius * 100/48}%"
+      strokecolor="${bg}" fillcolor="${bg}" style="height:${padY*2 + fs + 4}px;v-text-anchor:middle;width:300px;">
+    <w:anchorlock/>
+    <center style="color:${color};font-family:${font};font-size:${fs}px;font-weight:700;">
+      ${escapeHtml(label)}
+    </center>
+  </v:roundrect>
+  <![endif]-->
+  <!--[if !mso]><!-- -->
+  <a href="${safe}"
+     target="_blank"
+     style="display:inline-block;background:${bg};color:${color};text-decoration:none;font-family:${font};
+            font-size:${fs}px;font-weight:700;border-radius:${radius}px;padding:${padY}px ${padX}px;">
+     ${escapeHtml(label)}
+  </a>
+  <!--<![endif]-->`;
+}
+
+
+
+
 
 // buildEmailHtml Email Report email report
 //
@@ -1622,7 +1803,11 @@ const banner = getBannerHtml(true, opts, containerWidth);
   const processedKeyDecisions    = processRichHtml(data.keyDecisionsHtml);
   const processedRisks           = processRichHtml(data.risksHtml);
   const processedResources       = processRichHtml(data.resourcesHtml);
-const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))
+  const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtml))
+const audioUrl = cleanAudioUrl(data.audioMp3Url || "");
+const showAudio = audioUrl && isValidAudioUrl(audioUrl);
+
+
 
   return `
 <!-- Fixed-width banner -->
@@ -1640,18 +1825,6 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
        style="max-width:100%; height:auto; border-radius:6px; display:block; margin:0 auto;" />
 </div>
 
-<!-- Listen button (bulletproof table) -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:20px auto;">
-  <tr>
-    <td bgcolor="#0078d4" style="border-radius:6px;">
-<a href="https://microsoft-my.sharepoint.com/:u:/g/personal/nadams_linkedin_biz/EZglvhhLJmpPnj6JNtg3RgEB4ahHQoNdUtOCdf8abmO5LQ?download=1"
-
-         style="font-family:Arial, sans-serif; font-size:16px; line-height:16px; color:#ffffff; text-decoration:none; padding:12px 22px; display:inline-block; font-weight:700;">
-        Listen to this report
-      </a>
-    </td>
-  </tr>
-</table>
 
 
 
@@ -1684,6 +1857,19 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
           </td>
         </tr>
       </table>
+
+
+<!-- Listen CTA (conditional) -->
+${showAudio ? `
+  <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="${cellCenter}" bgcolor="#ffffff" align="center" valign="middle">
+        ${getAudioCtaHtml(audioUrl)}
+      </td>
+    </tr>
+  </table>` : ""}
+
+
 
 
       <!--  Status table (use scaled)  Team -->
@@ -1808,6 +1994,13 @@ ${data.resourcesHtml ? `
     toast({ title: "Email required", description: "Please enter an email address first.", variant: "destructive" });
     return;
   }
+
+
+// If the audio URL is present but invalid, strip it before building the email
+if (formData.audioMp3Url && !isValidAudioUrl(formData.audioMp3Url)) {
+  updateFormData("audioMp3Url", ""); // drop it so the CTA won’t render
+}
+
 
   setIsEmailing(true);
   try {
@@ -2288,11 +2481,6 @@ useEffect(() => {
 
 
 
-  return (
-<div
-  className="min-h-screen bg-gray-50 py-8 project-tint"
-  data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
->
       {/* Sticky project header */}
 
 
@@ -2414,6 +2602,8 @@ useEffect(() => {
 
 
     {/* Banner mode */}
+ <Card>
+<CardContent>
     <div>
       <Label className="text-sm font-medium">Banner mode</Label>
       <Select
@@ -2428,7 +2618,6 @@ useEffect(() => {
         </SelectContent>
       </Select>
     </div>
-
     {/* Banner URL (only when mode=url) */}
     {designOptions.optBannerMode === "url" && (
       <div>
@@ -2468,22 +2657,86 @@ useEffect(() => {
     don't change week to week </strong>(TPM, Sponsors, Program Summary, e.g.)
   </p>
 </div>
+</CardContent>
+</Card>
 
-
-<Card>
+{/* Audio (optional) */}
+<Card className="mt-4" data-audio-card>
   <CardHeader>
-    <CardTitle></CardTitle>
+    <CardTitle>Audio (optional)</CardTitle>
   </CardHeader>
-  <CardContent>
-    <ImportFromDoc onPrefill={applyImported} />
+  <CardContent className="space-y-2">
+    <Label className="text-sm font-medium">"Listen to this report" MP3 URL</Label>
+    <div className="flex gap-2">
+      <Input
+        value={formData.audioMp3Url}
+        onChange={(e) => {
+          updateFormData("audioMp3Url", cleanAudioUrl(e.target.value));
+          setAudioCheck("idle");        // ← reset status while typing
+          setAudioPlayable(null);       // ← reset player state
+        }}
+        onBlur={(e) => {
+          const cleaned = cleanAudioUrl(e.target.value);
+          const normalized = normalizeSharePointDownloadUrl(cleaned);
+          if (normalized !== formData.audioMp3Url) {
+            updateFormData("audioMp3Url", normalized);
+          }
+        }}
+        placeholder="https://microsoft-my.sharepoint.com/:u:/g/personal/.../<token>?download=1"
+        className="bg-white"
+      />
+      <Button type="button" variant="outline" onClick={validateAudioUrlNow}>
+        Validate link
+      </Button>
+    </div>
+
+    <p className="text-xs text-gray-500">
+      Paste a direct .mp3 URL or a SharePoint :u: link ending with <code>?download=1</code>.
+    </p>
+
+    {/* Validate & Test row */}
+    {audioCheck === "ok" && (
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <a
+          href={formData.audioMp3Url}
+          target="_blank"
+          rel="noreferrer"
+          className="underline text-sm"
+        >
+          Open link
+        </a>
+
+        <audio
+          key={formData.audioMp3Url || "empty"}
+          controls
+          className="h-8"
+          onCanPlay={() => setAudioPlayable(true)}
+          onError={() => setAudioPlayable(false)}
+        >
+          {formData.audioMp3Url ? <source src={formData.audioMp3Url} /> : null}
+        </audio>
+
+        {audioPlayable === true && (
+          <span className="text-xs text-green-700">Playable.</span>
+        )}
+        {audioPlayable === false && (
+          <span className="text-xs text-amber-700">
+            Couldn’t play inline (auth or content-type). Use “Open link”.
+          </span>
+        )}
+        {audioPlayable === null && (
+          <span className="text-xs text-gray-600">Press Play to test.</span>
+        )}
+      </div>
+    )}
+
+    {audioCheck === "error" && (
+      <div className="mt-2 text-xs text-red-700">{audioCheckMsg}</div>
+    )}
   </CardContent>
 </Card>
 
-
-
-
-  </CardContent>
-</Card>
+{/* Listen-to Report (MP3 URL) */}
 
 
 
@@ -2596,6 +2849,7 @@ useEffect(() => {
         className="bg-white mt-1"
       />
     </div>
+
   </CardContent>
 </Card>
 
