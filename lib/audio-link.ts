@@ -1,4 +1,16 @@
 // lib/audio-link.ts
+export type PlayerKind = "direct" | "sharepoint" | "gdrive" | "unknown";
+
+export interface AudioValidated {
+  normalized: string;       // the canonical URL to keep
+  playableUrl?: string;     // only for public/direct preview
+  gated?: boolean;          // true if sign-in is required
+  player?: PlayerKind;      // hint for your /listen page
+  message?: string;         // optional note from the API
+}
+
+
+
 export function normalizeSharePointUrl(input: string): string {
   try {
     const u = new URL(input.trim());

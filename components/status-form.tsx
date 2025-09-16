@@ -23,6 +23,23 @@ import {
 import ImportFromDoc from "@/components/ImportFromDoc";
 import RichHtmlEditor from "@/components/status-form/RichHtmlEditor";
 
+// components/status-form.tsx (top of file)
+type PlayerKind = "sharepoint" | "audio" | "";
+type AudioValidated = {
+  ok: boolean;
+  normalized?: string; // final URL to use for playback/CTA
+  player?: PlayerKind;
+  reason?: string;
+  authLikely?: boolean;
+};
+
+interface FormData {
+  // ...existing fields...
+  audioMp3Url: string;          // what the user typed
+  audioValidatedUrl: string;    // what the API tells us to use
+  audioPlayer: PlayerKind;      // "sharepoint" or "audio"
+}
+
 
 
 
@@ -521,6 +538,9 @@ export default function StatusForm(
     optCustomCss: "",
     optLogoMode: "none",
     optLogoUrl: "",
+  audioMp3Url: "",
+  audioValidatedUrl: "",
+  audioPlayer: "",
 
     // NEW defaults
     optBannerMode: "url",
@@ -702,6 +722,9 @@ if (field === "updatesHtml" || field === "milestonesHtml" || field === "execSumm
     safeLocalStorageSet(PERSIST_PREFIX + "highlightsHtml", normalized)
   }
 
+
+const updateFormData = <K extends keyof FormData>(key: K, val: FormData[K]) =>
+  setFormData((p) => ({ ...p, [key]: val }));
 
 
   
@@ -1536,6 +1559,11 @@ const buildEmailHtml = (data: FormData, opts: DesignOptions) => {
     : "";
 
 
+const APP_ORIGIN =
+  process.env.NEXT_PUBLIC_APP_ORIGIN ??
+  (typeof window !== "undefined" ? window.location.origin : "");
+
+const LISTEN_URL = `${APP_ORIGIN}/listen?src=${encodeURIComponent(formData.audioUrl || "")}`;
 
 
 
@@ -2440,17 +2468,55 @@ useEffect(() => {
 <Card>
     <CardContent>
     {/* Audio (Listen to this report) */}
-<div className="space-y-2">
-  <Label className="text-sm font-medium">Audio URL (optional)</Label>
-  <p className="text-xs text-gray-500">
-    Paste a direct-download MP3 link (e.g., SharePoint link ending with <code>?download=1</code>). We’ll validate it and show a player if valid.
-  </p>
 
-  <AudioUrlField
-    value={formData.audioUrl || ""}
-    onChange={(v) => updateFormData("audioUrl", v)}
-  />
-</div>
+<Card>
+  <CardHeader><CardTitle>Audio (Listen to this report)</CardTitle></CardHeader>
+  <CardContent className="space-y-2">
+    <p className="text-xs text-gray-500">
+      Paste a SharePoint/OneDrive/Google Drive link or a direct .mp3 URL, then click <em>Test audio</em>.
+    </p>
+
+    <AudioUrlField
+      value={formData.audioMp3Url}
+      onChange={(raw) => updateFormData("audioMp3Url", raw)}
+      onValidated={(v: AudioValidated) => {
+        // Prefer normalized URL if provided; fall back to what user typed
+        updateFormData("audioValidatedUrl", v.normalized || formData.audioMp3Url);
+        updateFormData("audioPlayer", (v.player || "") as PlayerKind);
+      }}
+    />
+
+
+
+    {/* Inline preview so they can confirm it plays */}
+    {formData.audioValidatedUrl ? (
+      formData.audioPlayer === "sharepoint" ? (
+        <div className="mt-2">
+          <iframe
+            title="SharePoint audio"
+            src={formData.audioValidatedUrl}
+            className="w-full h-24 border rounded"
+            allow="autoplay"
+          />
+          <p className="text-[11px] text-gray-500 mt-1">
+            SharePoint/OneDrive preview. Viewers must be signed in to your tenant.
+          </p>
+        </div>
+      ) : (
+        <audio controls className="mt-2 w-full">
+          <source src={formData.audioValidatedUrl} type="audio/mpeg" />
+          Your browser does not support the audio element.
+        </audio>
+      )
+    ) : null}
+
+    {/* (Optional) hidden inputs if you do a plain <form> submit somewhere */}
+    <input type="hidden" name="audioUrlRaw" value={formData.audioMp3Url} />
+    <input type="hidden" name="audioUrl" value={formData.audioValidatedUrl} />
+    <input type="hidden" name="audioPlayer" value={formData.audioPlayer} />
+  </CardContent>
+</Card>
+
 </CardContent>
 </Card>
 
