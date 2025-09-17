@@ -2476,15 +2476,14 @@ useEffect(() => {
       Paste a SharePoint/OneDrive/Google Drive link or a direct .mp3 URL, then click <em>Test audio</em>.
     </p>
 
-    <AudioUrlField
-      value={formData.audioMp3Url}
-      onChange={(raw) => updateFormData("audioMp3Url", raw)}
-      onValidated={(v: AudioValidated) => {
-        // Prefer normalized URL if provided; fall back to what user typed
-        updateFormData("audioValidatedUrl", v.normalized || formData.audioMp3Url);
-        updateFormData("audioPlayer", (v.player || "") as PlayerKind);
-      }}
-    />
+<AudioUrlField
+  value={formData.audioMp3Url || ""}                // always a string
+  onChange={(raw) => updateFormData("audioMp3Url", raw)}
+  onValidated={(v) => {
+    updateFormData("audioValidatedUrl", v.normalized || "");
+    updateFormData("audioPlayer", (v.player || "unknown") as any);
+  }}
+/>
 
 
 
