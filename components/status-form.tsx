@@ -687,61 +687,49 @@ const PROFILES: Record<
 
 
 
-  
 // Load persisted data on mount + seed example data if empty
 useEffect(() => {
   SAVE_FIELDS.forEach((field) => {
-    const value = safeLocalStorageGet(PERSIST_PREFIX + field)
-    if (value !== null) {
-if (field === "updatesHtml" || field === "milestonesHtml" || field === "execSummary" || field === "highlightsHtml") {
-  setFormData((prev) => ({ ...prev, [field]: normalizeEditorHtml(value) }))
-      } else if ((field as string).startsWith("opt")) {
-        setDesignOptions((prev) => ({ ...prev, [field as keyof DesignOptions]: value }))
-      } else {
-        setFormData((prev) => ({ ...prev, [field]: value }))
-      }
+    const value = safeLocalStorageGet(PERSIST_PREFIX + field);
+    if (value === null) return; // nothing stored for this key
+
+    if (
+      field === "updatesHtml" ||
+      field === "milestonesHtml" ||
+      field === "execSummary" ||
+      field === "highlightsHtml" // ← fixed typo
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: normalizeEditorHtml((value ?? "").toString()),
+      }));
+    } else if ((field as string).startsWith("opt")) {
+      // Only keep this branch if SAVE_FIELDS also contains opt* entries.
+      setDesignOptions((prev) => ({
+        ...prev,
+        [field as keyof DesignOptions]: value,
+      }));
+    } else if (field === "audioMp3Url" || field === "audioValidatedUrl") {
+      setFormData((prev) => ({ ...prev, [field]: (value ?? "").toString() }));
+    } else if (field === "audioPlayer") {
+      setFormData((prev) => ({
+        ...prev,
+        audioPlayer: (value as PlayerKind) ?? "unknown",
+      }));
+    } else {
+      // default: coerce to string so inputs stay controlled
+      setFormData((prev) => ({ ...prev, [field]: (value ?? "").toString() }));
     }
-  })
-// NEW: load design options
+  });
+
+  // NEW: load design options
   OPT_FIELDS.forEach((field) => {
-    const value = safeLocalStorageGet(PERSIST_PREFIX + field)
-    if (value !== null) {
-      setDesignOptions((prev) => ({ ...prev, [field]: value } as DesignOptions))
-    }
-  })
-
-
- // --- Migrate legacy 'lowlights' (plain text) to rich 'highlightsHtml' once ---
- // Read from localStorage directly to avoid race with setState above.
-  const savedHighlights = safeLocalStorageGet(PERSIST_PREFIX + "highlightsHtml")
-  const savedLowlights  = safeLocalStorageGet(PERSIST_PREFIX + "lowlights")
-  if (!savedHighlights && savedLowlights) {
-    const migrated = linesToList(savedLowlights)                  // you already have this helper
-    const normalized = normalizeEditorHtml(migrated)              // keeps sanitization consistent
-    setFormData((prev) => ({ ...prev, highlightsHtml: normalized }))
-    safeLocalStorageSet(PERSIST_PREFIX + "highlightsHtml", normalized)
-  }
-
-
-const updateFormData = <K extends keyof FormData>(key: K, val: FormData[K]) =>
-  setFormData((p) => ({ ...p, [key]: val }));
-
-
+    const value = safeLocalStorageGet(PERSIST_PREFIX + field);
+    if (value === null) return;
+    setDesignOptions((prev) => ({ ...prev, [field]: value } as DesignOptions));
+  });
+}, []);
   
-  // seed example data (unchanged)...
-  const savedSummary = safeLocalStorageGet(PERSIST_PREFIX + "programSummary")
-  if (!savedSummary) {
-    setFormData((prev) => ({
-      ...prev,
-      programSummary:
-        "The Global Network Services (GNS) team designs, builds, and manages LinkedIn's enterprise network, ensuring secure, reliable connectivity across on-prem and cloud.",
-      tpm: "Nick Adams",
-      engDri: "Antony Alexander",
-      bizSponsor: "Niha Mathur",
-      engSponsor: "Suchreet Dhaliwal",
-    }))
-  }
-}, [])
 
   
 
