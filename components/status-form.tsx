@@ -687,49 +687,44 @@ const PROFILES: Record<
 
 
 
-// Load persisted data on mount + seed example data if empty
+ // Load persisted data on mount + seed example data if empty
 useEffect(() => {
   SAVE_FIELDS.forEach((field) => {
     const value = safeLocalStorageGet(PERSIST_PREFIX + field);
-    if (value === null) return; // nothing stored for this key
+    if (value === null) return;
 
     if (
       field === "updatesHtml" ||
       field === "milestonesHtml" ||
       field === "execSummary" ||
-      field === "highlightsHtml" // ← fixed typo
+      field === "highlightsHtml"
     ) {
       setFormData((prev) => ({
         ...prev,
         [field]: normalizeEditorHtml((value ?? "").toString()),
       }));
     } else if ((field as string).startsWith("opt")) {
-      // Only keep this branch if SAVE_FIELDS also contains opt* entries.
-      setDesignOptions((prev) => ({
-        ...prev,
-        [field as keyof DesignOptions]: value,
-      }));
+      setDesignOptions((prev) => ({ ...prev, [field as keyof DesignOptions]: value }));
     } else if (field === "audioMp3Url" || field === "audioValidatedUrl") {
+      // keep inputs controlled
       setFormData((prev) => ({ ...prev, [field]: (value ?? "").toString() }));
     } else if (field === "audioPlayer") {
-      setFormData((prev) => ({
-        ...prev,
-        audioPlayer: (value as PlayerKind) ?? "unknown",
-      }));
+      // normalize enum-ish value
+      setFormData((prev) => ({ ...prev, audioPlayer: (value as PlayerKind) ?? "unknown" }));
     } else {
-      // default: coerce to string so inputs stay controlled
+      // default: coerce to string
       setFormData((prev) => ({ ...prev, [field]: (value ?? "").toString() }));
     }
   });
 
-  // NEW: load design options
+  // Load design options
   OPT_FIELDS.forEach((field) => {
     const value = safeLocalStorageGet(PERSIST_PREFIX + field);
     if (value === null) return;
     setDesignOptions((prev) => ({ ...prev, [field]: value } as DesignOptions));
   });
 }, []);
-  
+ 
 
   
 
@@ -2313,7 +2308,19 @@ useEffect(() => {
 
 
 
-
+// ---------- RENDER ----------
+return (
+  <div
+    className="min-h-screen bg-gray-50 py-8 project-tint"
+    data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
+  >
+    <div className="max-w-[900px] mx-auto px-4">
+      {/* TEMP: skeleton to verify parser health */}
+      <h1 className="sr-only">Status Form</h1>
+    </div>
+  </div>
+);
+} // ← end of StatusForm component
 
 
 
@@ -2489,18 +2496,13 @@ useEffect(() => {
             SharePoint/OneDrive preview. Viewers must be signed in to your tenant.
           </p>
         </div>
-      ) : (
-        <audio controls className="mt-2 w-full">
-          <source src={formData.audioValidatedUrl} type="audio/mpeg" />
-          Your browser does not support the audio element.
-        </audio>
-      )
     ) : null}
 
     {/* (Optional) hidden inputs if you do a plain <form> submit somewhere */}
-    <input type="hidden" name="audioUrlRaw" value={formData.audioMp3Url} />
-    <input type="hidden" name="audioUrl" value={formData.audioValidatedUrl} />
-    <input type="hidden" name="audioPlayer" value={formData.audioPlayer} />
+        <input type="hidden" name="audioUrlRaw" value={(formData.audioMp3Url ?? "").toString()} />
+        <input type="hidden" name="audioUrl"     value={(formData.audioValidatedUrl ?? "").toString()} />
+        <input type="hidden" name="audioPlayer"  value={(formData.audioPlayer ?? "unknown").toString()} />
+
   </CardContent>
 </Card>
 
