@@ -55,20 +55,33 @@ const Imports: React.FC = () => {
       }
 
       const {
-        sections: { executiveSummaryHtml, highlightsHtml, milestonesHtml },
+        sections: {
+          executiveSummaryHtml,
+          highlightsHtml,
+          milestonesHtml,
+          keyDecisionsHtml,
+          risksHtml,
+          resourcesHtml,
+        },
         html: fullHtml,
         docId,
       } = data;
 
+      // Persist imported sections
       writeFormData({
         execSummaryHtml: executiveSummaryHtml ?? "",
         highlightsHtml: highlightsHtml ?? "",
         milestonesHtml: milestonesHtml ?? "",
+        keyDecisionsHtml: keyDecisionsHtml ?? "",
+        risksHtml: risksHtml ?? "",
+        resourcesHtml: resourcesHtml ?? "",
         googleDocHtml: fullHtml ?? "",
         googleDocId: docId ?? "",
       });
 
-      setLastImportMsg("Imported Google Doc → Executive Summary, Highlights, Milestones.");
+      setLastImportMsg(
+        "Imported Google Doc → Executive Summary, Highlights, Milestones, Key Decisions, Risks, Resources."
+      );
     } catch (e: any) {
       setLastImportMsg(String(e?.message || e));
     } finally {
@@ -113,7 +126,7 @@ const Imports: React.FC = () => {
             onChange={(e) => writeFormData({ googleDocUrl: e.target.value })}
           />
           <p className="text-xs text-gray-500">
-            This importer preserves bold, italic, underline, bullets, and tables.
+            Preserves bold/italic/underline, bullets, tables. Uses Service Account if needed.
           </p>
         </div>
 
