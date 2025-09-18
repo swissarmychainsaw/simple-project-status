@@ -1,3 +1,4 @@
+// components/status-form/StatusForm.tsx
 import React from "react";
 import {
   StatusFormProvider,
@@ -5,6 +6,7 @@ import {
 } from "./context";
 import BasicsCard from "./sections/BasicsCard";
 import ControlPanel from "./sections/ControlPanel";
+import Imports from "./sections/Imports";
 import ExecSummary from "./sections/ExecSummary";
 import Highlights from "./sections/Highlights";
 import Milestones from "./sections/Milestones";
@@ -40,10 +42,17 @@ const InnerStatusForm: React.FC = () => {
           </div>
         </section>
 
-        {/* NEW: Control Panel (banner mode, URL, Apply defaults, Email To, Reset) */}
+        {/* Control Panel */}
         <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
           <div className="p-0">
             <ControlPanel />
+          </div>
+        </section>
+
+        {/* NEW: Imports */}
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-0">
+            <Imports />
           </div>
         </section>
 
