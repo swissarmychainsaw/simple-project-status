@@ -1,47 +1,90 @@
-// components/status-form/StatusForm.tsx
-"use client";
-
 import React from "react";
-import "../status-form.css"; // ← FIXED: was "./status-form.css"
-
-// provider & hook
-import { StatusFormProvider } from "./context";
-
-// sections — RELATIVE imports so path resolution is guaranteed
+import { useStatusForm } from "./context"; // your provider accessor
 import BasicsCard from "./sections/BasicsCard";
 import ExecSummary from "./sections/ExecSummary";
 import Highlights from "./sections/Highlights";
 import Milestones from "./sections/Milestones";
 import KeyDecisions from "./sections/KeyDecisions";
 import Risks from "./sections/Risks";
-import AdditionalResources from "./sections/AdditionalResources";
+import Resources from "./sections/Resources";
 import ActionsBar from "./sections/ActionsBar";
+import { themeFor } from "./theme";
+import type { BannerKey } from "./theme";
 
-type Props = { onTitleChange?: (t: string) => void };
+/**
+ * Thin composition + project theming.
+ * - Reads designOptions.optProjectId (BannerKey)
+ * - Applies background + header tint and subtle card border accents
+ */
+const StatusForm: React.FC = () => {
+  const ctx = useStatusForm() as any;
+  const optProjectId = (ctx?.designOptions?.optProjectId as BannerKey | undefined) ?? null;
+  const t = themeFor(optProjectId);
 
-export default function StatusForm({ onTitleChange }: Props) {
   return (
-    <StatusFormProvider onTitleChange={onTitleChange}>
-      <div className="min-h-screen bg-gray-50 py-8 project-tint">
-        <div className="max-w-[900px] mx-auto px-4 space-y-6">
-          <div aria-hidden className="tint-bar" />
-
-          {/* Basics (project, title, summary, date, status, email, etc.) */}
-          <BasicsCard />
-
-          {/* Required sections */}
-          <ExecSummary />
-          <Highlights />
-          <Milestones />
-          <KeyDecisions />
-          <Risks />
-          <AdditionalResources />
-
-          {/* Actions (Generate/Copy/Email) */}
-          <ActionsBar />
+    <div className={`min-h-screen ${t.containerBg} py-8`}>
+      {/* Header */}
+      <header className={`${t.headerBg} ${t.headerText} shadow-sm`}>
+        <div className="mx-auto max-w-5xl px-4 py-4">
+          <h1 className="text-xl font-semibold">Status Report Builder</h1>
+          {optProjectId ? (
+            <p className="text-sm opacity-90 mt-1">
+              Project theme active
+            </p>
+          ) : null}
         </div>
-      </div>
-    </StatusFormProvider>
+      </header>
+
+      {/* Content */}
+      <main className="mx-auto max-w-5xl px-4 mt-6 space-y-6">
+        {/* You can pass theme classes down if you want per-card accents */}
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-0">
+            <BasicsCard />
+          </div>
+        </section>
+
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-6">
+            <ExecSummary />
+          </div>
+        </section>
+
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-6">
+            <Highlights />
+          </div>
+        </section>
+
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-6">
+            <Milestones />
+          </div>
+        </section>
+
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-6">
+            <KeyDecisions />
+          </div>
+        </section>
+
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-6">
+            <Risks />
+          </div>
+        </section>
+
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-6">
+            <Resources />
+          </div>
+        </section>
+
+        <ActionsBar />
+      </main>
+    </div>
   );
-}
+};
+
+export default StatusForm;
 
