@@ -1,5 +1,5 @@
 // components/status-form/sections/Imports.tsx
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useStatusForm } from "../context";
 
 const Imports: React.FC = () => {
@@ -9,6 +9,9 @@ const Imports: React.FC = () => {
   const formData = (ctx && ctx.formData) || {};
   const googleDocUrl = (formData?.googleDocUrl as string | undefined) ?? "";
   const audioUrl = (formData?.audioUrl as string | undefined) ?? "";
+
+  const [busy, setBusy] = useState(false);
+  const [lastImportMsg, setLastImportMsg] = useState<string>("");
 
   // Writers (defensive across context shapes)
   const writeFormData = useCallback(
@@ -37,33 +40,54 @@ const Imports: React.FC = () => {
   const onImportGoogleDoc = useCallback(async () => {
     const url = (ctx?.formData?.googleDocUrl as string) || "";
     if (!url) {
-      // eslint-disable-next-line no-console
-      console.warn("No Google Doc URL provided.");
+      setLastImportMsg("Please paste a Google Doc link first.");
       return;
     }
-    // Prefer an app-supplied importer if available
-    if (typeof ctx?.importFromGoogleDoc === "function") {
-      try {
-        await ctx.importFromGoogleDoc(url);
-        return;
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("importFromGoogleDoc threw; URL saved only.", e);
+    setBusy(true);
+    setLastImportMsg("");
+    try {
+      const res = await fetch("/api/google/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `Import failed (${res.status}).`);
       }
+
+      const {
+        sections: { executiveSummaryHtml, highlightsHtml, milestonesHtml },
+        html: fullHtml,
+        docId,
+      } = data;
+
+      // Persist imported sections into your form fields
+      writeFormData({
+        execSummaryHtml: executiveSummaryHtml ?? "",
+        highlightsHtml: highlightsHtml ?? "",
+        milestonesHtml: milestonesHtml ?? "",
+        googleDocHtml: fullHtml ?? "",
+        googleDocId: docId ?? "",
+      });
+
+      setLastImportMsg("Imported Google Doc content into Executive Summary, Highlights, and Milestones.");
+    } catch (e: any) {
+      setLastImportMsg(`Import error: ${e?.message || e}`);
+    } finally {
+      setBusy(false);
     }
-    // Fallback: we’ve already persisted googleDocUrl; downstream can act on it.
-  }, [ctx]);
+  }, [ctx, writeFormData]);
 
   const onValidateAudio = useCallback(async () => {
     const url = (ctx?.formData?.audioUrl as string) || "";
     if (!url) return;
-    // If you have a validator in context, use it; otherwise noop
     if (typeof ctx?.validateAudioUrlNow === "function") {
       try {
         await ctx.validateAudioUrlNow(url);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("validateAudioUrlNow threw:", e);
+        setLastImportMsg("Audio link validated.");
+      } catch (e: any) {
+        setLastImportMsg(`Audio validation error: ${e?.message || e}`);
       }
     }
   }, [ctx]);
@@ -72,6 +96,7 @@ const Imports: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Imports</h2>
+        <div className="text-sm text-gray-500">{busy ? "Importing…" : lastImportMsg}</div>
       </div>
 
       {/* Google Doc Import */}
@@ -89,15 +114,16 @@ const Imports: React.FC = () => {
             onChange={(e) => writeFormData({ googleDocUrl: e.target.value })}
           />
           <p className="text-xs text-gray-500">
-            Paste a public or authorized Doc link to import content into this report.
+            Tip: ensure the Doc link is accessible (or “Anyone with the link”).
           </p>
         </div>
 
         <div className="flex gap-3 md:justify-end">
           <button
             type="button"
+            disabled={busy}
             onClick={onImportGoogleDoc}
-            className="px-3 py-2 rounded-md border text-sm bg-gray-900 text-white"
+            className="px-3 py-2 rounded-md border text-sm bg-gray-900 text-white disabled:opacity-50"
             title="Import content from the Google Doc into this report"
           >
             Import from Doc
@@ -140,8 +166,9 @@ const Imports: React.FC = () => {
         <div className="flex gap-3 md:justify-end">
           <button
             type="button"
+            disabled={busy}
             onClick={onValidateAudio}
-            className="px-3 py-2 rounded-md border text-sm bg-white hover:bg-gray-50"
+            className="px-3 py-2 rounded-md border text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
           >
             Validate
           </button>
