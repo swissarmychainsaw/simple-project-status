@@ -5,7 +5,6 @@ import { useStatusForm } from "../context";
 const Imports: React.FC = () => {
   const ctx = useStatusForm() as any;
 
-  // Safe reads
   const formData = (ctx && ctx.formData) || {};
   const googleDocUrl = (formData?.googleDocUrl as string | undefined) ?? "";
   const audioUrl = (formData?.audioUrl as string | undefined) ?? "";
@@ -13,7 +12,6 @@ const Imports: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [lastImportMsg, setLastImportMsg] = useState<string>("");
 
-  // Writers (defensive across context shapes)
   const writeFormData = useCallback(
     (patch: Record<string, unknown>) => {
       if (typeof ctx?.updateFormData === "function") {
@@ -31,8 +29,6 @@ const Imports: React.FC = () => {
         }));
         return;
       }
-      // eslint-disable-next-line no-console
-      console.warn("No update function for form data; change not persisted:", patch);
     },
     [ctx]
   );
@@ -52,8 +48,10 @@ const Imports: React.FC = () => {
         body: JSON.stringify({ url }),
       });
       const data = await res.json();
+
       if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || `Import failed (${res.status}).`);
+        const detail = data?.detail ? JSON.stringify(data.detail, null, 2) : "";
+        throw new Error(`${data?.error || `Import failed (${res.status})`}${detail ? `\n${detail}` : ""}`);
       }
 
       const {
@@ -62,7 +60,6 @@ const Imports: React.FC = () => {
         docId,
       } = data;
 
-      // Persist imported sections into your form fields
       writeFormData({
         execSummaryHtml: executiveSummaryHtml ?? "",
         highlightsHtml: highlightsHtml ?? "",
@@ -71,9 +68,9 @@ const Imports: React.FC = () => {
         googleDocId: docId ?? "",
       });
 
-      setLastImportMsg("Imported Google Doc content into Executive Summary, Highlights, and Milestones.");
+      setLastImportMsg("Imported Google Doc → Executive Summary, Highlights, Milestones.");
     } catch (e: any) {
-      setLastImportMsg(`Import error: ${e?.message || e}`);
+      setLastImportMsg(String(e?.message || e));
     } finally {
       setBusy(false);
     }
@@ -96,7 +93,9 @@ const Imports: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Imports</h2>
-        <div className="text-sm text-gray-500">{busy ? "Importing…" : lastImportMsg}</div>
+        <pre className="text-[11px] md:text-xs text-gray-600 whitespace-pre-wrap max-w-[60ch]">
+          {busy ? "Importing…" : lastImportMsg}
+        </pre>
       </div>
 
       {/* Google Doc Import */}
@@ -114,7 +113,7 @@ const Imports: React.FC = () => {
             onChange={(e) => writeFormData({ googleDocUrl: e.target.value })}
           />
           <p className="text-xs text-gray-500">
-            Tip: ensure the Doc link is accessible (or “Anyone with the link”).
+            This importer preserves bold, italic, underline, bullets, and tables.
           </p>
         </div>
 
@@ -147,12 +146,7 @@ const Imports: React.FC = () => {
           />
           {audioUrl ? (
             <p className="text-xs">
-              <a
-                href={audioUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
+              <a href={audioUrl} target="_blank" rel="noreferrer" className="underline">
                 Open audio link
               </a>
             </p>
