@@ -1,42 +1,75 @@
 // components/status-form/sections/Risks.tsx
-"use client";
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useStatusForm } from "@/components/status-form/hooks/useStatusForm";
+import React, { useState, useCallback } from "react";
+import { useStatusForm } from "../context";
 
-export default function Risks() {
-  const { formData, update } = useStatusForm();
-  return (
-    <Card>
-      <CardHeader><CardTitle>Risks &amp; Issue Mitigation Plan</CardTitle></CardHeader>
-      <CardContent className="space-y-3">
-        <Input
-          value={formData.risksTitle}
-          onChange={(e) => update("risksTitle", e.target.value)}
-          placeholder="Risks & Issue Mitigation Plan"
-          className="bg-white"
-        />
-        <div>
-          <Label className="text-xs text-gray-600">Section Subtitle (optional)</Label>
-          <Input
-            value={formData.risksSectionTitle}
-            onChange={(e) => update("risksSectionTitle", e.target.value)}
-            placeholder="Mitigation owners, timelines, status…"
-            className="bg-white mt-1"
-          />
-        </div>
-        <Textarea
-          rows={8}
-          value={formData.risksHtml}
-          onChange={(e) => update("risksHtml", e.target.value)}
-          className="bg-white"
-          placeholder="Risks, impact, likelihood, mitigations…"
-        />
-      </CardContent>
-    </Card>
+const Risks: React.FC = () => {
+  const ctx = useStatusForm() as any;
+  const formData = (ctx && ctx.formData) || {};
+  const valueHtml = (formData?.risksHtml as string | undefined) ?? "";
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(valueHtml);
+
+  const writeFormData = useCallback(
+    (patch: Record<string, unknown>) => {
+      if (typeof ctx?.updateFormData === "function") {
+        Object.entries(patch).forEach(([k, v]) => ctx.updateFormData(k, v));
+        return;
+      }
+      if (typeof ctx?.setFormData === "function") {
+        ctx.setFormData((prev: any) => ({ ...(prev || {}), ...patch }));
+        return;
+      }
+      if (typeof ctx?.setState === "function") {
+        ctx.setState((prev: any) => ({
+          ...(prev || {}),
+          formData: { ...(prev?.formData || {}), ...patch },
+        }));
+      }
+    },
+    [ctx]
   );
-}
+
+  const save = useCallback(() => {
+    writeFormData({ risksHtml: draft });
+    setEditing(false);
+  }, [draft, writeFormData]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold">Risks &amp; Issue Mitigation Plan</h3>
+        <button
+          type="button"
+          onClick={() => (editing ? save() : (setDraft(valueHtml), setEditing(true)))}
+          className="text-sm text-gray-600 hover:text-gray-900 underline"
+        >
+          {editing ? "Save" : "Edit HTML"}
+        </button>
+      </div>
+
+      {!editing ? (
+        <div
+          className="rounded-md border bg-white p-4 text-sm leading-6 prose max-w-none
+                     [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+                     [&_table]:table-auto [&_th]:font-semibold [&_th]:text-left [&_td]:align-top"
+          // Render rich HTML (readable) instead of showing markup
+          dangerouslySetInnerHTML={{
+            __html: valueHtml || "<p class='text-gray-500'>No content.</p>",
+          }}
+        />
+      ) : (
+        <textarea
+          className="w-full rounded-md border bg-white p-3 text-sm font-mono"
+          rows={10}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          spellCheck={false}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Risks;
 

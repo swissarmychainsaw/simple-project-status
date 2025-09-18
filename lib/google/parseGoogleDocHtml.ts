@@ -8,6 +8,8 @@ export function parseGoogleDocHtml(html: string): {
   resourcesHtml: string;
 } {
   const src = (html || "").replace(/\r/g, "");
+// broaden risk heading detection:
+{ key: "risksHtml", re: /\b(risks?|top\s*risks?|risk[s]?\s*&?\s*issue[s]?\s*mitigation(?:\s*plan)?|mitigation\s*plan)\b/i },
 
   const wanted = [
     { key: "executiveSummaryHtml", re: /\b(executive\s*summary|summary)\b/i },
