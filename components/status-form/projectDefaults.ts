@@ -3,15 +3,15 @@ import type { BannerKey } from "./projectProfiles";
 import { PROJECT_PROFILES, DEFAULT_EMAIL } from "./projectProfiles";
 
 /**
- * Infer a banner config (mode + url) from a project profile.
- * Supported shapes in PROJECT_PROFILES[project]:
- *  - banner: { mode: "cid" | "url", url?: string }
- *  - bannerMode: "cid" | "url"
- *  - bannerUrl: string
- *  - assets.banner: string
- *  - cidBanner: boolean (implies "cid")
+ * Infer banner config from PROJECT_PROFILES with priority:
+ *  1) profile.banner.{mode,url}
+ *  2) profile.bannerMode / profile.bannerUrl
+ *  3) profile.web (your canonical public path like "/banners/gns-banner.png")
+ *  4) profile.assets.banner
+ *  5) profile.cid (implies "cid")
+ * Fallback (rare): "/banners/<project>-banner.png"
  *
- * Fallback if none provided: URL "/banners/<project>.png" (served from /public).
+ * Note: If both URL-ish data and CID exist, we prefer URL by default so the Control Panel shows a concrete path.
  */
 export function inferBannerFromProfile(project: BannerKey | null) {
   if (!project) return { mode: "cid" as const, url: "" };
@@ -26,30 +26,32 @@ export function inferBannerFromProfile(project: BannerKey | null) {
         }
       : null;
 
-  const mode: "cid" | "url" | undefined =
-    fromObj?.mode ??
-    (typeof p.bannerMode === "string" ? (p.bannerMode as "cid" | "url") : undefined) ??
-    (p.cidBanner ? "cid" : undefined) ??
-    (p.bannerUrl || p?.assets?.banner ? "url" : undefined);
-
-  const url: string | undefined =
+  const urlFromProfile =
     fromObj?.url ??
     (typeof p.bannerUrl === "string" ? p.bannerUrl : undefined) ??
+    (typeof p.web === "string" ? p.web : undefined) ??
     (typeof p?.assets?.banner === "string" ? p.assets.banner : undefined);
 
-  if (mode === "url") {
-    return { mode: "url" as const, url: url || `/banners/${project}.png` };
+  const modeFromProfile: "cid" | "url" | undefined =
+    fromObj?.mode ??
+    (typeof p.bannerMode === "string" ? (p.bannerMode as "cid" | "url") : undefined) ??
+    (urlFromProfile ? "url" : undefined) ??
+    (p.cid ? "cid" : undefined);
+
+  if (modeFromProfile === "url") {
+    return { mode: "url" as const, url: urlFromProfile || `/banners/${project}-banner.png` };
   }
-  if (mode === "cid") {
+  if (modeFromProfile === "cid") {
     return { mode: "cid" as const, url: "" };
   }
-  return { mode: "url" as const, url: `/banners/${project}.png` };
+  // Fallback: assume conventional "<project>-banner.png"
+  return { mode: "url" as const, url: `/banners/${project}-banner.png` };
 }
 
 /**
  * Apply key defaults from the selected project into context state.
- * - Always applies banner mode/url (from profile or sensible fallback)
- * - Prefills formData.toEmail with DEFAULT_EMAIL if it's empty/undefined
+ * - Always applies banner mode/url (from profile, prioritizing `web`)
+ * - Prefills formData.toEmail with DEFAULT_EMAIL if empty/undefined
  */
 export function applyProjectDefaults(ctx: any, project: BannerKey | null) {
   if (!ctx) return;

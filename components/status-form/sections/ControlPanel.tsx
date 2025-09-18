@@ -1,7 +1,7 @@
 // components/status-form/sections/ControlPanel.tsx
 import React, { useMemo, useCallback, useEffect } from "react";
 import { useStatusForm } from "../context";
-import { BANNER_LABELS, DEFAULT_EMAIL } from "../projectProfiles";
+import { BANNER_LABELS, PROJECT_PROFILES, DEFAULT_EMAIL } from "../projectProfiles";
 import type { BannerKey } from "../projectProfiles";
 import { applyProjectDefaults } from "../projectDefaults";
 
@@ -76,6 +76,10 @@ const ControlPanel: React.FC = () => {
     }
   }, [toEmail, writeFormData]);
 
+  const examplePath =
+    (optProjectId && (PROJECT_PROFILES as any)[optProjectId]?.web) ||
+    (optProjectId ? `/banners/${optProjectId}-banner.png` : "/banners/example-banner.png");
+
   const onApplyDefaults = useCallback(() => {
     // Prefer app helper if available; fallback to our util.
     if (typeof ctx?.applyProjectProfile === "function" && optProjectId) {
@@ -141,7 +145,7 @@ const ControlPanel: React.FC = () => {
             id="banner-url"
             type="text"
             className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            placeholder="/banners/azure.png"
+            placeholder={examplePath}
             value={bannerUrl}
             onChange={(e) => writeDesignOpt("optBannerUrl", e.target.value)}
             disabled={bannerMode !== "url"}
@@ -150,7 +154,7 @@ const ControlPanel: React.FC = () => {
             <p className="text-xs text-gray-400">Switch to “External URL” to edit.</p>
           ) : (
             <p className="text-xs text-gray-500">
-              Example: <code className="font-mono">/banners/azure.png</code>
+              Example: <code className="font-mono">{examplePath}</code>
             </p>
           )}
         </div>
