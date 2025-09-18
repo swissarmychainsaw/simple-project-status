@@ -1,7 +1,7 @@
 // components/status-form/sections/ControlPanel.tsx
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import { useStatusForm } from "../context";
-import { BANNER_LABELS } from "../projectProfiles";
+import { BANNER_LABELS, DEFAULT_EMAIL } from "../projectProfiles";
 import type { BannerKey } from "../projectProfiles";
 import { applyProjectDefaults } from "../projectDefaults";
 
@@ -30,6 +30,7 @@ const ControlPanel: React.FC = () => {
         }));
         return;
       }
+      // eslint-disable-next-line no-console
       console.warn("No update function for design options; change not persisted:", key);
     },
     [ctx]
@@ -52,6 +53,7 @@ const ControlPanel: React.FC = () => {
         }));
         return;
       }
+      // eslint-disable-next-line no-console
       console.warn("No update function for form data; change not persisted:", patch);
     },
     [ctx]
@@ -67,12 +69,19 @@ const ControlPanel: React.FC = () => {
   const bannerUrl = (designOptions?.optBannerUrl as string | undefined) ?? "";
   const toEmail = (formData?.toEmail as string | undefined) ?? "";
 
+  // Prefill Email “To” with DEFAULT_EMAIL if empty (non-destructive)
+  useEffect(() => {
+    if (!toEmail || String(toEmail).trim() === "") {
+      writeFormData({ toEmail: DEFAULT_EMAIL });
+    }
+  }, [toEmail, writeFormData]);
+
   const onApplyDefaults = useCallback(() => {
     // Prefer app helper if available; fallback to our util.
     if (typeof ctx?.applyProjectProfile === "function" && optProjectId) {
       try {
         ctx.applyProjectProfile(optProjectId, "overwrite");
-      } catch (e) {
+      } catch {
         applyProjectDefaults(ctx, optProjectId);
       }
     } else {
@@ -90,7 +99,7 @@ const ControlPanel: React.FC = () => {
       return;
     }
     // Manual minimal reset for fields this card controls
-    writeFormData({ toEmail: "" });
+    writeFormData({ toEmail: DEFAULT_EMAIL });
     writeDesignOpt("optBannerMode", "cid");
     writeDesignOpt("optBannerUrl", "");
   }, [ctx, writeDesignOpt, writeFormData]);

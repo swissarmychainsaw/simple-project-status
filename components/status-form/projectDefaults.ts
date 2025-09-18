@@ -1,6 +1,6 @@
 // components/status-form/projectDefaults.ts
 import type { BannerKey } from "./projectProfiles";
-import { PROJECT_PROFILES } from "./projectProfiles";
+import { PROJECT_PROFILES, DEFAULT_EMAIL } from "./projectProfiles";
 
 /**
  * Infer a banner config (mode + url) from a project profile.
@@ -48,8 +48,8 @@ export function inferBannerFromProfile(project: BannerKey | null) {
 
 /**
  * Apply key defaults from the selected project into context state.
- * Currently applies: banner mode/url.
- * Extend here to copy more profile-driven fields later.
+ * - Always applies banner mode/url (from profile or sensible fallback)
+ * - Prefills formData.toEmail with DEFAULT_EMAIL if it's empty/undefined
  */
 export function applyProjectDefaults(ctx: any, project: BannerKey | null) {
   if (!ctx) return;
@@ -70,11 +70,36 @@ export function applyProjectDefaults(ctx: any, project: BannerKey | null) {
       }));
       return;
     }
-    // no-op if nothing available
   };
 
+  const writeFormData = (patch: Record<string, unknown>) => {
+    if (typeof ctx?.updateFormData === "function") {
+      Object.entries(patch).forEach(([k, v]) => ctx.updateFormData(k, v));
+      return;
+    }
+    if (typeof ctx?.setFormData === "function") {
+      ctx.setFormData((prev: any) => ({ ...(prev || {}), ...patch }));
+      return;
+    }
+    if (typeof ctx?.setState === "function") {
+      ctx.setState((prev: any) => ({
+        ...(prev || {}),
+        formData: { ...(prev?.formData || {}), ...patch },
+      }));
+      return;
+    }
+  };
+
+  // 1) Banner defaults
   const inferred = inferBannerFromProfile(project);
   writeDesignOpt("optBannerMode", inferred.mode);
   writeDesignOpt("optBannerUrl", inferred.mode === "url" ? inferred.url : "");
+
+  // 2) Email default (only if empty/undefined)
+  const currentTo =
+    (ctx?.formData && (ctx.formData.toEmail as string | undefined)) ?? undefined;
+  if (!currentTo || String(currentTo).trim() === "") {
+    writeFormData({ toEmail: DEFAULT_EMAIL });
+  }
 }
 
