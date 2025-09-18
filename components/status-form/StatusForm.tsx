@@ -2,8 +2,9 @@ import React from "react";
 import {
   StatusFormProvider,
   useStatusForm,
-} from "./context"; // NOTE: this must export StatusFormProvider and useStatusForm
+} from "./context";
 import BasicsCard from "./sections/BasicsCard";
+import ControlPanel from "./sections/ControlPanel";
 import ExecSummary from "./sections/ExecSummary";
 import Highlights from "./sections/Highlights";
 import Milestones from "./sections/Milestones";
@@ -14,9 +15,7 @@ import ActionsBar from "./sections/ActionsBar";
 import { themeFor } from "./theme";
 import type { BannerKey } from "./theme";
 
-/**
- * Inner component that assumes the provider is present.
- */
+/** Inner assumes provider exists */
 const InnerStatusForm: React.FC = () => {
   const ctx = useStatusForm() as any;
   const optProjectId = (ctx?.designOptions?.optProjectId as BannerKey | undefined) ?? null;
@@ -34,9 +33,17 @@ const InnerStatusForm: React.FC = () => {
 
       {/* Content */}
       <main className="mx-auto max-w-5xl px-4 mt-6 space-y-6">
+        {/* Basics */}
         <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
           <div className="p-0">
             <BasicsCard />
+          </div>
+        </section>
+
+        {/* NEW: Control Panel (banner mode, URL, Apply defaults, Email To, Reset) */}
+        <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
+          <div className="p-0">
+            <ControlPanel />
           </div>
         </section>
 
@@ -82,11 +89,7 @@ const InnerStatusForm: React.FC = () => {
   );
 };
 
-/**
- * Export a self-contained component that always provides context.
- * If you already wrap StatusForm in <StatusFormProvider> elsewhere (e.g., app/page.tsx),
- * remove that outer wrapper to avoid double-providing/resetting state.
- */
+/** Export self-contained component that provides context */
 const StatusForm: React.FC = () => {
   return (
     <StatusFormProvider>
