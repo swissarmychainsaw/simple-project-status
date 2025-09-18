@@ -1,86 +1,79 @@
-import React, { useMemo } from "react";
-import type { BannerKey } from "../projectProfiles";
-import { BANNER_LABELS } from "../projectProfiles";
+import React, { useMemo, useCallback } from "react";
 import { useStatusForm } from "../context";
-
-/**
- * A defensive util that writes into designOptions regardless of which setter your
- * context actually exposes (updateDesignOptions, setDesignOptions, or setState).
- */
-function useDesignOptionsWriter(ctx: any) {
-  return (key: string, value: unknown) => {
-    if (typeof ctx?.updateDesignOptions === "function") {
-      ctx.updateDesignOptions(key, value);
-      return;
-    }
-    if (typeof ctx?.setDesignOptions === "function") {
-      ctx.setDesignOptions((prev: any) => ({ ...(prev || {}), [key]: value }));
-      return;
-    }
-    if (typeof ctx?.setState === "function") {
-      ctx.setState((prev: any) => ({
-        ...(prev || {}),
-        designOptions: { ...(prev?.designOptions || {}), [key]: value },
-      }));
-      return;
-    }
-    console.warn("No update function for design options; change not persisted:", key);
-  };
-}
-
-/**
- * Same idea for formData (email to, etc.)
- */
-function useFormDataWriter(ctx: any) {
-  return (patch: Record<string, unknown>) => {
-    if (typeof ctx?.updateFormData === "function") {
-      Object.entries(patch).forEach(([k, v]) => ctx.updateFormData(k, v));
-      return;
-    }
-    if (typeof ctx?.setFormData === "function") {
-      ctx.setFormData((prev: any) => ({ ...(prev || {}), ...patch }));
-      return;
-    }
-    if (typeof ctx?.setState === "function") {
-      ctx.setState((prev: any) => ({
-        ...(prev || {}),
-        formData: { ...(prev?.formData || {}), ...patch },
-      }));
-      return;
-    }
-    console.warn("No update function for form data; change not persisted:", patch);
-  };
-}
+import { BANNER_LABELS } from "../projectProfiles";
+import type { BannerKey } from "../projectProfiles";
 
 const ControlPanel: React.FC = () => {
   const ctx = useStatusForm() as any;
 
-  const designOptions = ctx?.designOptions || {};
-  const formData = ctx?.formData || {};
-  const writeDesignOpt = useDesignOptionsWriter(ctx);
-  const writeFormData = useFormDataWriter(ctx);
+  // Safe reads
+  const designOptions = (ctx && ctx.designOptions) || {};
+  const formData = (ctx && ctx.formData) || {};
+
+  // Writers (defensive: support multiple context shapes)
+  const writeDesignOpt = useCallback(
+    (key: string, value: unknown) => {
+      if (typeof ctx?.updateDesignOptions === "function") {
+        ctx.updateDesignOptions(key, value);
+        return;
+      }
+      if (typeof ctx?.setDesignOptions === "function") {
+        ctx.setDesignOptions((prev: any) => ({ ...(prev || {}), [key]: value }));
+        return;
+      }
+      if (typeof ctx?.setState === "function") {
+        ctx.setState((prev: any) => ({
+          ...(prev || {}),
+          designOptions: { ...(prev?.designOptions || {}), [key]: value },
+        }));
+        return;
+      }
+      // eslint-disable-next-line no-console
+      console.warn("No update function for design options; change not persisted:", key);
+    },
+    [ctx]
+  );
+
+  const writeFormData = useCallback(
+    (patch: Record<string, unknown>) => {
+      if (typeof ctx?.updateFormData === "function") {
+        Object.entries(patch).forEach(([k, v]) => ctx.updateFormData(k, v));
+        return;
+      }
+      if (typeof ctx?.setFormData === "function") {
+        ctx.setFormData((prev: any) => ({ ...(prev || {}), ...patch }));
+        return;
+      }
+      if (typeof ctx?.setState === "function") {
+        ctx.setState((prev: any) => ({
+          ...(prev || {}),
+          formData: { ...(prev?.formData || {}), ...patch },
+        }));
+        return;
+      }
+      // eslint-disable-next-line no-console
+      console.warn("No update function for form data; change not persisted:", patch);
+    },
+    [ctx]
+  );
 
   const optProjectId = (designOptions?.optProjectId as BannerKey | undefined) ?? null;
-
-  // Friendly label for current project
-  const projectLabel = useMemo(() => {
-    if (!optProjectId) return "No project selected";
-    return BANNER_LABELS[optProjectId] || optProjectId;
-  }, [optProjectId]);
+  const projectLabel = useMemo(
+    () => (optProjectId ? BANNER_LABELS[optProjectId] || optProjectId : "No project selected"),
+    [optProjectId]
+  );
 
   const bannerMode = (designOptions?.optBannerMode as "cid" | "url" | undefined) ?? "cid";
   const bannerUrl = (designOptions?.optBannerUrl as string | undefined) ?? "";
+  const toEmail = (formData?.toEmail as string | undefined) ?? "";
 
-  // Click handlers
-  const onApplyDefaults = () => {
-    // If your context exposes an exact helper, use it.
-    // We try several possible names to avoid compile/runtime churn.
+  const onApplyDefaults = useCallback(() => {
     if (typeof ctx?.applyProjectProfile === "function" && optProjectId) {
-      // “overwrite” is a common option you’ve used previously
       try {
         ctx.applyProjectProfile(optProjectId, "overwrite");
         return;
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.warn("applyProjectProfile threw; falling back.", e);
       }
     }
@@ -89,14 +82,15 @@ const ControlPanel: React.FC = () => {
         ctx.applyDefaults();
         return;
       } catch (e) {
-        console.warn("applyDefaults threw; ignoring.", e);
+        // eslint-disable-next-line no-console
+        console.warn("applyDefaults threw.", e);
       }
     }
-    // Last resort: no-op with toast/log; we don’t have structure for profiles here.
+    // eslint-disable-next-line no-console
     console.warn("No defaults function available in context; nothing applied.");
-  };
+  }, [ctx, optProjectId]);
 
-  const onReset = () => {
+  const onReset = useCallback(() => {
     if (typeof ctx?.resetAll === "function") {
       ctx.resetAll();
       return;
@@ -105,24 +99,23 @@ const ControlPanel: React.FC = () => {
       ctx.resetForm();
       return;
     }
-    // Manual, conservative reset of the fields we control
+    // Manual minimal reset for fields this card controls
     writeFormData({ toEmail: "" });
     writeDesignOpt("optBannerMode", "cid");
     writeDesignOpt("optBannerUrl", "");
-  };
+  }, [ctx, writeDesignOpt, writeFormData]);
 
   return (
-    <section className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-      <header className="flex items-center justify-between">
+    <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Control panel</h2>
         <div className="text-sm text-gray-500">
           {optProjectId ? `Project: ${projectLabel}` : "No project selected"}
         </div>
-      </header>
+      </div>
 
-      {/* Banner mode + Apply defaults row */}
+      {/* Banner mode + URL */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        {/* Banner mode select */}
         <div className="space-y-2">
           <label htmlFor="banner-mode" className="text-sm font-medium">
             Banner mode
@@ -137,11 +130,71 @@ const ControlPanel: React.FC = () => {
             <option value="url">External URL</option>
           </select>
           <p className="text-xs text-gray-500">
-            Banners load from your public folder when using an external URL.
+            External banners are served from your{" "}
+            <code className="font-mono">/public</code> folder.
           </p>
         </div>
 
-        {/* Banner URL (only when mode=url) */}
         <div className="space-y-2 md:col-span-2">
           <label htmlFor="banner-url" className="text-sm font-medium">
+            Banner URL (public)
+          </label>
+          <input
+            id="banner-url"
+            type="text"
+            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+            placeholder="/banners/azure.png"
+            value={bannerUrl}
+            onChange={(e) => writeDesignOpt("optBannerUrl", e.target.value)}
+            disabled={bannerMode !== "url"}
+          />
+          {bannerMode !== "url" ? (
+            <p className="text-xs text-gray-400">Switch to “External URL” to edit.</p>
+          ) : (
+            <p className="text-xs text-gray-500">
+              Example: <code className="font-mono">/banners/azure.png</code>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Email To + Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="space-y-2 md:col-span-2">
+          <label htmlFor="to-email" className="text-sm font-medium">
+            Email “To”
+          </label>
+          <input
+            id="to-email"
+            type="email"
+            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+            placeholder="owner@example.com"
+            value={toEmail}
+            onChange={(e) => writeFormData({ toEmail: e.target.value })}
+          />
+        </div>
+
+        <div className="flex gap-3 md:justify-end">
+          <button
+            type="button"
+            onClick={onApplyDefaults}
+            className="px-3 py-2 rounded-md border text-sm bg-gray-900 text-white"
+            title="Pull values from the selected project’s profile (TPM, Sponsors, Program Summary, etc.)"
+          >
+            Apply defaults
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="px-3 py-2 rounded-md border text-sm bg-white hover:bg-gray-50"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ControlPanel;
 
