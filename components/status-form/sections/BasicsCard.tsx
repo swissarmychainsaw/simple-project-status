@@ -1,45 +1,65 @@
-import React from "react";
+// components/status-form/sections/BasicsCard.tsx
+import React, { useCallback } from "react";
 import ProjectPills from "./ProjectPills";
+import { useStatusForm } from "../context";
 import type { BannerKey } from "../projectProfiles";
-import { useStatusForm } from "../context"; // accessor from context
+import { applyProjectDefaults } from "../projectDefaults";
 
 /**
  * BasicsCard
  * - Project pill selector (single select)
  * - Persists to designOptions.optProjectId
- * - No helper text beneath the pills (per request)
+ * - Immediately applies project defaults (e.g., banner) on selection
  */
 const BasicsCard: React.FC = () => {
   const ctx = useStatusForm() as any;
 
-  // Defensive reads so we don't crash if shape changes
   const designOptions = (ctx && ctx.designOptions) || {};
-  const setDesignOptions = ctx && ctx.setDesignOptions;
-  const updateDesignOptions = ctx && ctx.updateDesignOptions;
-  const setState = ctx && ctx.setState; // last-resort generic setter some apps use
+  const selected = (designOptions?.optProjectId as BannerKey | undefined) ?? null;
 
-  const safeUpdateDesignOption = (key: string, value: unknown) => {
-    if (typeof updateDesignOptions === "function") {
-      updateDesignOptions(key, value);
-      return;
-    }
-    if (typeof setDesignOptions === "function") {
-      setDesignOptions((prev: any) => ({ ...(prev || {}), [key]: value }));
-      return;
-    }
-    if (typeof setState === "function") {
-      setState((prev: any) => ({
-        ...(prev || {}),
-        designOptions: { ...(prev?.designOptions || {}), [key]: value },
-      }));
-      return;
-    }
-    console.warn("No update function for design options; selection not persisted.");
-  };
+  const safeUpdateDesignOption = useCallback(
+    (key: string, value: unknown) => {
+      if (typeof ctx?.updateDesignOptions === "function") {
+        ctx.updateDesignOptions(key, value);
+        return;
+      }
+      if (typeof ctx?.setDesignOptions === "function") {
+        ctx.setDesignOptions((prev: any) => ({ ...(prev || {}), [key]: value }));
+        return;
+      }
+      if (typeof ctx?.setState === "function") {
+        ctx.setState((prev: any) => ({
+          ...(prev || {}),
+          designOptions: { ...(prev?.designOptions || {}), [key]: value },
+        }));
+        return;
+      }
+      // eslint-disable-next-line no-console
+      console.warn("No update function for design options; selection not persisted.");
+    },
+    [ctx]
+  );
 
-  const handleSelectProject = (key: BannerKey) => {
-    safeUpdateDesignOption("optProjectId", key);
-  };
+  const handleSelectProject = useCallback(
+    (key: BannerKey) => {
+      // 1) Save selection
+      safeUpdateDesignOption("optProjectId", key);
+
+      // 2) Apply project-driven defaults immediately (banner, etc.)
+      // Try an app-provided helper first if present, otherwise our local util.
+      if (typeof ctx?.applyProjectProfile === "function") {
+        try {
+          ctx.applyProjectProfile(key, "overwrite");
+        } catch {
+          // Fall back to minimal defaults
+          applyProjectDefaults(ctx, key);
+        }
+      } else {
+        applyProjectDefaults(ctx, key);
+      }
+    },
+    [ctx, safeUpdateDesignOption]
+  );
 
   return (
     <section className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
@@ -51,7 +71,7 @@ const BasicsCard: React.FC = () => {
       <div className="space-y-2">
         <label className="text-sm font-medium">Project</label>
         <ProjectPills
-          selectedKey={(designOptions?.optProjectId as BannerKey | undefined) ?? null}
+          selectedKey={selected}
           onSelect={handleSelectProject}
         />
       </div>

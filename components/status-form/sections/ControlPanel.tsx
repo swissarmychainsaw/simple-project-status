@@ -1,58 +1,9 @@
 // components/status-form/sections/ControlPanel.tsx
 import React, { useMemo, useCallback } from "react";
 import { useStatusForm } from "../context";
-import { BANNER_LABELS, PROJECT_PROFILES } from "../projectProfiles";
+import { BANNER_LABELS } from "../projectProfiles";
 import type { BannerKey } from "../projectProfiles";
-
-/**
- * Try to infer a banner config (mode + url) from a project profile.
- * We support a few common shapes so you don't have to refactor existing data:
- *
- * Supported profile shapes (any of these can exist):
- * - profile.banner = { mode: "cid" | "url", url?: string }
- * - profile.bannerMode = "cid" | "url"
- * - profile.bannerUrl = "/banners/azure.png"
- * - profile.assets?.banner = "/banners/azure.png"
- * - profile.cidBanner === true  (implies CID)
- *
- * Fallback if nothing is present: URL banner at `/banners/<project>.png`
- * (served from your /public folder).
- */
-function inferBannerFromProfile(project: BannerKey | null) {
-  if (!project) {
-    return { mode: "cid" as const, url: "" };
-  }
-  const p: any = (PROJECT_PROFILES as any)?.[project] || {};
-
-  const fromObj =
-    p?.banner && typeof p.banner === "object"
-      ? {
-          mode: (p.banner.mode as "cid" | "url" | undefined) ?? undefined,
-          url: (p.banner.url as string | undefined) ?? undefined,
-        }
-      : null;
-
-  const mode: "cid" | "url" | undefined =
-    fromObj?.mode ??
-    (typeof p.bannerMode === "string" ? (p.bannerMode as "cid" | "url") : undefined) ??
-    (p.cidBanner ? "cid" : undefined) ??
-    (p.bannerUrl || p?.assets?.banner ? "url" : undefined);
-
-  const url: string | undefined =
-    fromObj?.url ??
-    (typeof p.bannerUrl === "string" ? p.bannerUrl : undefined) ??
-    (typeof p?.assets?.banner === "string" ? p.assets.banner : undefined);
-
-  if (mode === "url") {
-    return { mode: "url" as const, url: url || `/banners/${project}.png` };
-  }
-  if (mode === "cid") {
-    // CID banners are embedded; control panel doesn't need a URL for CID
-    return { mode: "cid" as const, url: "" };
-  }
-  // Fallback: assume a URL banner in /public/banners
-  return { mode: "url" as const, url: `/banners/${project}.png` };
-}
+import { applyProjectDefaults } from "../projectDefaults";
 
 const ControlPanel: React.FC = () => {
   const ctx = useStatusForm() as any;
@@ -61,7 +12,7 @@ const ControlPanel: React.FC = () => {
   const designOptions = (ctx && ctx.designOptions) || {};
   const formData = (ctx && ctx.formData) || {};
 
-  // Writers (defensive: support multiple context shapes)
+  // Writers
   const writeDesignOpt = useCallback(
     (key: string, value: unknown) => {
       if (typeof ctx?.updateDesignOptions === "function") {
@@ -79,7 +30,6 @@ const ControlPanel: React.FC = () => {
         }));
         return;
       }
-      // eslint-disable-next-line no-console
       console.warn("No update function for design options; change not persisted:", key);
     },
     [ctx]
@@ -102,7 +52,6 @@ const ControlPanel: React.FC = () => {
         }));
         return;
       }
-      // eslint-disable-next-line no-console
       console.warn("No update function for form data; change not persisted:", patch);
     },
     [ctx]
@@ -119,24 +68,17 @@ const ControlPanel: React.FC = () => {
   const toEmail = (formData?.toEmail as string | undefined) ?? "";
 
   const onApplyDefaults = useCallback(() => {
-    // 1) Apply profile-wide defaults if you expose a helper
+    // Prefer app helper if available; fallback to our util.
     if (typeof ctx?.applyProjectProfile === "function" && optProjectId) {
       try {
         ctx.applyProjectProfile(optProjectId, "overwrite");
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("applyProjectProfile threw; continuing to banner defaults.", e);
+        applyProjectDefaults(ctx, optProjectId);
       }
+    } else {
+      applyProjectDefaults(ctx, optProjectId);
     }
-
-    // 2) Apply BANNER defaults specifically from projectProfiles
-    const inferred = inferBannerFromProfile(optProjectId);
-    writeDesignOpt("optBannerMode", inferred.mode);
-    writeDesignOpt("optBannerUrl", inferred.mode === "url" ? inferred.url : "");
-
-    // If you later want to apply more fields (subject prefix, owners, etc.),
-    // we can extend this block to pull from PROJECT_PROFILES[optProjectId].
-  }, [ctx, optProjectId, writeDesignOpt]);
+  }, [ctx, optProjectId]);
 
   const onReset = useCallback(() => {
     if (typeof ctx?.resetAll === "function") {
