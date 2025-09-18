@@ -1,5 +1,8 @@
 import React from "react";
-import { useStatusForm } from "./context"; // your provider accessor
+import {
+  StatusFormProvider,
+  useStatusForm,
+} from "./context"; // NOTE: this must export StatusFormProvider and useStatusForm
 import BasicsCard from "./sections/BasicsCard";
 import ExecSummary from "./sections/ExecSummary";
 import Highlights from "./sections/Highlights";
@@ -12,11 +15,9 @@ import { themeFor } from "./theme";
 import type { BannerKey } from "./theme";
 
 /**
- * Thin composition + project theming.
- * - Reads designOptions.optProjectId (BannerKey)
- * - Applies background + header tint and subtle card border accents
+ * Inner component that assumes the provider is present.
  */
-const StatusForm: React.FC = () => {
+const InnerStatusForm: React.FC = () => {
   const ctx = useStatusForm() as any;
   const optProjectId = (ctx?.designOptions?.optProjectId as BannerKey | undefined) ?? null;
   const t = themeFor(optProjectId);
@@ -27,17 +28,12 @@ const StatusForm: React.FC = () => {
       <header className={`${t.headerBg} ${t.headerText} shadow-sm`}>
         <div className="mx-auto max-w-5xl px-4 py-4">
           <h1 className="text-xl font-semibold">Status Report Builder</h1>
-          {optProjectId ? (
-            <p className="text-sm opacity-90 mt-1">
-              Project theme active
-            </p>
-          ) : null}
+          {optProjectId ? <p className="text-sm opacity-90 mt-1">Project theme active</p> : null}
         </div>
       </header>
 
       {/* Content */}
       <main className="mx-auto max-w-5xl px-4 mt-6 space-y-6">
-        {/* You can pass theme classes down if you want per-card accents */}
         <section className={`rounded-xl border ${t.cardBorder} bg-white shadow-sm`}>
           <div className="p-0">
             <BasicsCard />
@@ -83,6 +79,19 @@ const StatusForm: React.FC = () => {
         <ActionsBar />
       </main>
     </div>
+  );
+};
+
+/**
+ * Export a self-contained component that always provides context.
+ * If you already wrap StatusForm in <StatusFormProvider> elsewhere (e.g., app/page.tsx),
+ * remove that outer wrapper to avoid double-providing/resetting state.
+ */
+const StatusForm: React.FC = () => {
+  return (
+    <StatusFormProvider>
+      <InnerStatusForm />
+    </StatusFormProvider>
   );
 };
 
