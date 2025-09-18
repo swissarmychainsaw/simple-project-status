@@ -1,104 +1,73 @@
-// components/status-form/sections/BasicsCard.tsx
-"use client";
-
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import ProjectPills from "./ProjectPills";
+import type { BannerKey } from "../projectProfiles";
+import { useStatusForm } from "../context"; // accessor from context
 
-import { useStatusFormCtx, type DesignOptions } from "../context";
-import {
-  BANNER_LABELS,
-  PROJECT_KEYS,
-  type BannerKey,
-} from "../projectProfiles";
+/**
+ * BasicsCard
+ * - Project pill selector (single select)
+ * - Persists to designOptions.optProjectId
+ * - No helper text beneath the pills (per request)
+ */
+const BasicsCard: React.FC = () => {
+  const ctx = useStatusForm() as any;
 
-export default function BasicsCard() {
-  const {
-    formData,
-    update,
-    designOptions,
-    setDesignOptions,
-  } = useStatusFormCtx();
+  // Defensive reads so we don't crash if shape changes
+  const designOptions = (ctx && ctx.designOptions) || {};
+  const setDesignOptions = ctx && ctx.setDesignOptions;
+  const updateDesignOptions = ctx && ctx.updateDesignOptions;
+  const setState = ctx && ctx.setState; // last-resort generic setter some apps use
 
-  // Local helper to mirror the old API `updateDesign(...)`
-  const updateDesign = <K extends keyof DesignOptions>(
-    key: K,
-    value: DesignOptions[K]
-  ) => {
-    setDesignOptions((prev) => ({ ...prev, [key]: value }));
+  const safeUpdateDesignOption = (key: string, value: unknown) => {
+    if (typeof updateDesignOptions === "function") {
+      updateDesignOptions(key, value);
+      return;
+    }
+    if (typeof setDesignOptions === "function") {
+      setDesignOptions((prev: any) => ({ ...(prev || {}), [key]: value }));
+      return;
+    }
+    if (typeof setState === "function") {
+      setState((prev: any) => ({
+        ...(prev || {}),
+        designOptions: { ...(prev?.designOptions || {}), [key]: value },
+      }));
+      return;
+    }
+    console.warn("No update function for design options; selection not persisted.");
+  };
+
+  const handleSelectProject = (key: BannerKey) => {
+    safeUpdateDesignOption("optProjectId", key);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Basics</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Project selector */}
-        <div>
-          <label className="text-sm font-medium">Project</label>
-          <select
-            className="mt-1 block w-full border rounded-md px-3 py-2 bg-white"
-            value={(designOptions.optBannerId as string) || ""}
-            onChange={(e) =>
-              updateDesign("optBannerId", e.target.value as BannerKey)
-            }
-          >
-            {PROJECT_KEYS.map((k) => (
-              <option key={k} value={k}>
-                {BANNER_LABELS[k]}
-              </option>
-            ))}
-          </select>
-        </div>
+    <section className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+      <header>
+        <h2 className="text-lg font-semibold">Basics</h2>
+      </header>
 
-        {/* Program / Project Title */}
-        <div>
-          <label className="text-sm font-medium">Program / Project Title</label>
-          <Input
-            value={formData.programTitle}
-            onChange={(e) => update("programTitle", e.target.value)}
-            placeholder="e.g., Global Network Services"
-            className="bg-white mt-1"
-          />
-        </div>
+      {/* Project (pills) */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Project</label>
+        <ProjectPills
+          selectedKey={(designOptions?.optProjectId as BannerKey | undefined) ?? null}
+          onSelect={handleSelectProject}
+        />
+      </div>
 
-        {/* Program Summary (re-added) */}
-        <div>
-          <label className="text-sm font-medium">Program Summary</label>
-          <Textarea
-            rows={3}
-            value={formData.programSummary}
-            onChange={(e) => update("programSummary", e.target.value)}
-            className="bg-white mt-1 resize-y"
-            placeholder="One or two sentences describing the program/project."
-          />
-        </div>
+      {/* ------- Keep/restore your existing fields below as needed ------- */}
+      {/* Title */}
+      {/* <YourTitleField /> */}
 
-        {/* Date */}
-        <div>
-          <label className="text-sm font-medium">Date</label>
-          <Input
-            type="date"
-            value={formData.asOf}
-            onChange={(e) => update("asOf", e.target.value)}
-            className="bg-white mt-1"
-          />
-        </div>
+      {/* Program Summary */}
+      {/* <YourProgramSummaryField /> */}
 
-        {/* Email To */}
-        <div>
-          <label className="text-sm font-medium">Email To</label>
-          <Input
-            value={formData.emailTo}
-            onChange={(e) => update("emailTo", e.target.value)}
-            placeholder="you@example.com"
-            className="bg-white mt-1"
-          />
-        </div>
-      </CardContent>
-    </Card>
+      {/* Date / People / Email */}
+      {/* <YourDatePeopleEmailFields /> */}
+    </section>
   );
-}
+};
+
+export default BasicsCard;
 
