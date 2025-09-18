@@ -1,36 +1,46 @@
+// components/status-form/StatusForm.tsx
 "use client";
-import React, { useEffect } from "react";
-import "./status-form.css";
-import { StatusFormProvider, useStatusFormCtx } from "./context";
+
+import React from "react";
+import "../status-form.css"; // ← FIXED: was "./status-form.css"
+
+// provider & hook
+import { StatusFormProvider } from "./context";
+
+// sections — RELATIVE imports so path resolution is guaranteed
 import BasicsCard from "./sections/BasicsCard";
 import ExecSummary from "./sections/ExecSummary";
+import Highlights from "./sections/Highlights";
+import Milestones from "./sections/Milestones";
+import KeyDecisions from "./sections/KeyDecisions";
+import Risks from "./sections/Risks";
+import AdditionalResources from "./sections/AdditionalResources";
 import ActionsBar from "./sections/ActionsBar";
-import { normalizeBannerKey, type BannerKey } from "./projectProfiles";
 
-function Shell({ onTitleChange }: { onTitleChange?: (t: string) => void }) {
-  const { appTitle, designOptions } = useStatusFormCtx();
+type Props = { onTitleChange?: (t: string) => void };
 
-  useEffect(() => onTitleChange?.(appTitle), [appTitle, onTitleChange]);
-
+export default function StatusForm({ onTitleChange }: Props) {
   return (
-    <div
-      className="min-h-screen bg-gray-50 py-8 project-tint"
-      data-project={normalizeBannerKey(designOptions.optBannerId as BannerKey)}
-    >
-      <div className="max-w-[900px] mx-auto px-4 space-y-6">
-        <div aria-hidden className="tint-bar" />
-        <BasicsCard />
-        <ExecSummary />
-        <ActionsBar />
+    <StatusFormProvider onTitleChange={onTitleChange}>
+      <div className="min-h-screen bg-gray-50 py-8 project-tint">
+        <div className="max-w-[900px] mx-auto px-4 space-y-6">
+          <div aria-hidden className="tint-bar" />
+
+          {/* Basics (project, title, summary, date, status, email, etc.) */}
+          <BasicsCard />
+
+          {/* Required sections */}
+          <ExecSummary />
+          <Highlights />
+          <Milestones />
+          <KeyDecisions />
+          <Risks />
+          <AdditionalResources />
+
+          {/* Actions (Generate/Copy/Email) */}
+          <ActionsBar />
+        </div>
       </div>
-    </div>
-  );
-}
-
-export default function StatusForm({ onTitleChange }: { onTitleChange?: (t: string) => void }) {
-  return (
-    <StatusFormProvider>
-      <Shell onTitleChange={onTitleChange} />
     </StatusFormProvider>
   );
 }
