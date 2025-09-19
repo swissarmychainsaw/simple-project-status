@@ -1,154 +1,107 @@
 // lib/google/parseGoogleDocHtml.ts
-import { load } from "cheerio";
+// Drop-in parser for Google Doc exported HTML.
+// - Splits by <h1>…</h1> sections
+// - Preserves inner HTML formatting of each section
+// - Maps headings to your known form keys
+//
+// Returns an object with keys:
+//   executiveSummaryHtml, highlightsHtml, milestonesHtml,
+//   keyDecisionsHtml, risksHtml
+//
+// Exports BOTH named and default.
+
+export type ParsedSections = {
+  executiveSummaryHtml?: string;
+  highlightsHtml?: string;
+  milestonesHtml?: string;
+  keyDecisionsHtml?: string;
+  risksHtml?: string;
+};
+
+function textOnly(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeHeading(s: string): string {
+  const t = s
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s/]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return t;
+}
+
+function headingToKey(h: string): keyof ParsedSections | undefined {
+  const n = normalizeHeading(h);
+
+  // Exact/straightforward matches first
+  if (n === "executive summary") return "executiveSummaryHtml";
+  if (n === "highlights" || n === "highlights accomplishments" || n === "top accomplishments")
+    return "highlightsHtml";
+  if (n === "milestones" || n === "upcoming milestones") return "milestonesHtml";
+  if (n === "key decisions" || n === "decisions") return "keyDecisionsHtml";
+  if (n === "risks" || n === "risks and issue mitigation plan" || n === "risk and issue mitigation plan")
+    return "risksHtml";
+
+  // Fallbacks: contains checks (kept minimal; you said no fancy handling needed)
+  if (n.includes("executive") && n.includes("summary")) return "executiveSummaryHtml";
+  if (n.includes("highlight") || n.includes("accomplishment")) return "highlightsHtml";
+  if (n.includes("milestone")) return "milestonesHtml";
+  if (n.includes("decision")) return "keyDecisionsHtml";
+  if (n.includes("risk")) return "risksHtml";
+
+  return undefined;
+}
 
 /**
- * Google Doc HTML → section HTML (rich).
- * Walks the DOM and captures everything between section headings (H1–H6)
- * and the next heading, preserving formatting (lists, tables, bold/italic, links).
- *
- * Headings matched (case-insensitive):
- *  - Executive Summary (also “Exec Summary”, “Summary”)
- *  - Highlights
- *  - Milestones
- *  - Key Decisions (also “Decisions”, “Decision Log”, “Decisions & Actions”)
- *  - Risks (also “Top Risks”, “Risks & Issue Mitigation Plan”, “Mitigation Plan”)
- *  - Resources (also “Links”, “References”)
+ * Parse Google Doc export HTML into section HTMLs keyed by known headings.
  */
-export function parseGoogleDocHtml(html: string): {
-  executiveSummaryHtml: string;
-  highlightsHtml: string;
-  milestonesHtml: string;
-  keyDecisionsHtml: string;
-  risksHtml: string;
-  resourcesHtml: string;
-} {
-  const out = blankOut();
+export function parseGoogleDocHtml(html: string | undefined | null): ParsedSections {
+  const out: ParsedSections = {};
   if (!html) return out;
 
-  // Load full HTML; keep entities and inline styles as-is.
-  const $ = load(html, { decodeEntities: false });
+  const src = String(html);
 
-  // We’ll linearize the document into block nodes. Include containers that can
-  // hold meaningful content (paragraphs, lists, tables, divs) and headings.
-  const BLOCKS = "h1,h2,h3,h4,h5,h6,p,div,ul,ol,table";
-
-  const blocks = $("body")
-    .find(BLOCKS)
-    .toArray()
-    .map((el) => {
-      const tag = el.tagName.toLowerCase();
-      const text = normalize($(el).text());
-      const htmlOuter = $.html(el); // includes wrapper tag
-      return { el, tag, text, htmlOuter };
+  // Find all H1s with their positions
+  const h1Re = /<h1\b[^>]*>([\s\S]*?)<\/h1>/gi;
+  const heads: { start: number; end: number; labelHtml: string; labelText: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = h1Re.exec(src))) {
+    const labelHtml = m[1];
+    const labelText = textOnly(labelHtml);
+    heads.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      labelHtml,
+      labelText,
     });
-
-  // Define sections + heading synonyms
-  type Key =
-    | "executiveSummaryHtml"
-    | "highlightsHtml"
-    | "milestonesHtml"
-    | "keyDecisionsHtml"
-    | "risksHtml"
-    | "resourcesHtml";
-
-  const targets: Array<{ key: Key; names: string[] }> = [
-    { key: "executiveSummaryHtml", names: ["executive summary", "exec summary", "summary"] },
-    { key: "highlightsHtml",       names: ["highlights", "highlight"] },
-    { key: "milestonesHtml",       names: ["milestones", "milestone"] },
-    { key: "keyDecisionsHtml",     names: ["key decisions", "decisions", "decision log", "decisions and actions", "decisions & actions"] },
-    { key: "risksHtml",            names: ["risks", "top risks", "risks & issue mitigation plan", "risk & issue mitigation plan", "mitigation plan"] },
-    { key: "resourcesHtml",        names: ["resources", "links", "references"] },
-  ];
-
-  // Find heading indices (prefer actual H1–H6; ignore P/DIV matches to avoid false positives)
-  const headingIdx: Array<{ idx: number; key: Key }> = [];
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (!/^h[1-6]$/.test(b.tag)) continue; // your doc uses H1 for section titles
-    const match = targets.find((t) => matchesHeading(b.text, t.names));
-    if (match) headingIdx.push({ idx: i, key: match.key });
   }
-  if (headingIdx.length === 0) return out; // nothing matched
 
-  // For each heading, capture content until next heading
-  for (let i = 0; i < headingIdx.length; i++) {
-    const cur = headingIdx[i];
-    const next = i + 1 < headingIdx.length ? headingIdx[i + 1].idx : blocks.length;
+  if (heads.length === 0) {
+    // No H1s found — nothing to do (don’t try to be clever per your note)
+    return out;
+  }
 
-    const parts: string[] = [];
-    for (let j = cur.idx + 1; j < next; j++) {
-      // Skip empty/whitespace-only nodes after sanitization
-      const chunk = sanitize(blocks[j].htmlOuter);
-      if (hasMeaningfulText(chunk)) parts.push(chunk);
+  // Slice content between each H1 and the next H1 (or end of doc)
+  for (let i = 0; i < heads.length; i++) {
+    const cur = heads[i];
+    const next = heads[i + 1];
+    const contentStart = cur.end;
+    const contentEnd = next ? next.start : src.length;
+    const sectionHtml = src.slice(contentStart, contentEnd).trim();
+
+    const key = headingToKey(cur.labelText);
+    if (!key) continue;
+
+    // Keep the HTML as-is; the email builder will do gentle cleanup/normalization
+    if (!out[key]) {
+      out[key] = sectionHtml;
     }
-
-    (out as any)[cur.key] = parts.join("");
   }
 
   return out;
 }
 
-/* ---------------- helpers ---------------- */
-
-function blankOut() {
-  return {
-    executiveSummaryHtml: "",
-    highlightsHtml: "",
-    milestonesHtml: "",
-    keyDecisionsHtml: "",
-    risksHtml: "",
-    resourcesHtml: "",
-  };
-}
-
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\r/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, " and ")
-    .replace(/[\u2013\u2014]/g, "-") // en/em dash → hyphen
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function matchesHeading(textNorm: string, names: string[]): boolean {
-  // Allow exact match or match with trailing punctuation (":" or "—" or "-").
-  return names.some((n) => {
-    const t = normalize(n);
-    return (
-      textNorm === t ||
-      textNorm === `${t}:` ||
-      textNorm === `${t}-` ||
-      textNorm === `${t} —` ||
-      textNorm.startsWith(`${t}: `) ||
-      textNorm.startsWith(`${t} - `) ||
-      textNorm.startsWith(`${t} — `)
-    );
-  });
-}
-
-function sanitize(s: string): string {
-  // Remove head/meta/style (occasionally present in export slices), and empty wrappers.
-  let out = s
-    .replace(/<!DOCTYPE[^>]*>/gi, "")
-    .replace(/<head[\s\S]*?<\/head>/gi, "")
-    .replace(/<meta[^>]*>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "");
-
-  // Remove fully empty paragraphs/divs/lists/tables that Google sometimes emits
-  out = out.replace(/<(p|div)>\s*<\/\1>/gi, "");
-  out = out.replace(/<(ul|ol)>\s*<\/\1>/gi, "");
-  out = out.replace(/<table>\s*<\/table>/gi, "");
-  return out.trim();
-}
-
-function hasMeaningfulText(html: string): boolean {
-  const txt = html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return txt.length > 0;
-}
+export default parseGoogleDocHtml;
 

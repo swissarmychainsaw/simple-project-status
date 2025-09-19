@@ -1,5 +1,6 @@
 // components/status-form/buildEmailHtml.ts
-// Email-safe HTML with centered tables, ordered columns, and emphasis preservation.
+// Email-safe HTML with emphasis preservation, centered tables, ordered columns,
+// and ROBUST aliasing so "Executive summary" never goes missing.
 // Exports BOTH a named and default buildEmailHtml.
 
 import { buildResourcesHtml, ResourceItem } from "@/lib/status-form/applyProfileDefaults";
@@ -17,6 +18,23 @@ function escapeAttr(s: string): string {
   return String(s).replace(/"/g, "&quot;");
 }
 
+/** Prefer HTML fields; if only plain text exists, wrap it in <p> */
+function pickSectionHtml(fd: FormData, keysHtml: string[], keysPlain: string[]): string {
+  for (const k of keysHtml) {
+    const v = (fd as any)[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  for (const k of keysPlain) {
+    const v = (fd as any)[k];
+    if (typeof v === "string" && v.trim()) {
+      // If it already looks like HTML, pass-through; otherwise wrap/escape
+      if (/[<][a-zA-Z!]/.test(v)) return v;
+      return `<p>${escapeHtml(v)}</p>`;
+    }
+  }
+  return "";
+}
+
 /**
  * Clean Google Docs HTML but keep emphasis.
  * - Drops font-family/font-size/line-height noise
@@ -25,22 +43,16 @@ function escapeAttr(s: string): string {
  */
 function cleanImportedHtml(html?: string): string {
   if (!html) return "";
-
   let out = String(html);
 
-  // Normalize bold spans → <strong>
   out = out.replace(
     /<span([^>]*?)style="([^"]*?)font-weight\s*:\s*(700|bold)[^"]*?"([^>]*)>(.*?)<\/span>/gis,
     (_, a1, _s, _w, a2, inner) => `<strong${a1}${a2}>${inner}</strong>`
   );
-
-  // Normalize italic spans → <em>
   out = out.replace(
     /<span([^>]*?)style="([^"]*?)font-style\s*:\s*italic[^"]*?"([^>]*)>(.*?)<\/span>/gis,
     (_, a1, _s, a2, inner) => `<em${a1}${a2}>${inner}</em>`
   );
-
-  // Normalize underline spans → <u>
   out = out.replace(
     /<span([^>]*?)style="([^"]*?)text-decoration[^"]*underline[^"]*?"([^>]*)>(.*?)<\/span>/gis,
     (_, a1, _s, a2, inner) => `<u${a1}${a2}>${inner}</u>`
@@ -48,15 +60,13 @@ function cleanImportedHtml(html?: string): string {
 
   // Remove leftover style noise on any tag (but keep other attributes)
   out = out.replace(/\sstyle="[^"]*?(font-family|font-size|line-height)[^"]*?"/gi, (m) => {
-    // If the style contains ONLY the noisy props, drop the whole style attr
     const styles = m.slice(7, -1).split(";").map(s => s.trim()).filter(Boolean);
     const keep = styles.filter(s => !/(^|\s)(font-family|font-size|line-height)\s*:/i.test(s));
     return keep.length ? ` style="${keep.join("; ")}"` : "";
   });
 
-  // Trim empty spans produced by replacements
+  // Trim empty spans
   out = out.replace(/<span(?:\s[^>]*)?>\s*<\/span>/gi, "");
-
   return out;
 }
 
@@ -95,8 +105,7 @@ function statusColors(statusRaw: string | undefined) {
   return { bg, color, label };
 }
 function chip(label: string, bg: string, color: string) {
-  const st =
-    "display:inline-block;padding:8px 14px;border-radius:9999px;font-weight:700;font-size:14px;";
+  const st = "display:inline-block;padding:8px 14px;border-radius:9999px;font-weight:700;font-size:14px;";
   return `<span style="${st}background:${bg};color:${color}">${escapeHtml(label)}</span>`;
 }
 
@@ -119,7 +128,6 @@ function statusAndPeople(fd: FormData) {
   const { bg: trBg, color: trColor, label: trLabel } = statusColors(fd.statusTrending);
   const dateVal = formatDateMaybe(fd.date || fd.reportDate || fd.programDate);
 
-  // table with two header rows: statuses then people — centered cells
   return `
   <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
     <tr style="background:#f3f4f6">
@@ -161,8 +169,8 @@ function statusAndPeople(fd: FormData) {
   <div style="height:16px"></div>`;
 }
 
-function sectionBlock(title: string, html?: string) {
-  const cleaned = cleanImportedHtml(html);
+function sectionBlock(title: string, rawHtml?: string) {
+  const cleaned = cleanImportedHtml(rawHtml);
   if (!cleaned.trim()) return "";
   return `
   <tr>
@@ -195,6 +203,17 @@ export function buildEmailHtml(fd: FormData): string {
   const title = String(fd.programTitle || "Your Program/Project Title here");
   const summary = cleanImportedHtml(String(fd.programSummary || ""));
 
+  // Titles (normalize updates -> Highlights / Accomplishments)
+  const execTitle =
+    (fd.execSummaryTitle as string) ||
+    (fd.executiveSummaryTitle as string) ||
+    "Executive Summary";
+
+  let updatesTitle = (fd.updatesTitle as string) || "Highlights / Accomplishments";
+  if (/^\s*Top Accomplishments\s*$/i.test(updatesTitle)) {
+    updatesTitle = "Highlights / Accomplishments";
+  }
+
   const baseCss = `
   body{margin:0;padding:0;background:#ffffff}
   a{color:#0369a1}
@@ -203,6 +222,21 @@ export function buildEmailHtml(fd: FormData): string {
   em,i{font-style:italic}
   u{text-decoration:underline}
   `;
+
+  // Robust section resolution: HTML fields first, then plain-text fallbacks
+  const execHtml = pickSectionHtml(
+    fd,
+    ["executiveSummaryHtml", "execSummaryHtml", "summaryHtml"],
+    ["executiveSummary", "execSummary", "summary"]
+  );
+  const highlightsHtml = pickSectionHtml(
+    fd,
+    ["highlightsHtml", "updatesHtml", "accomplishmentsHtml"],
+    ["highlights", "updates", "accomplishments"]
+  );
+  const milestonesHtml = pickSectionHtml(fd, ["milestonesHtml"], ["milestones"]);
+  const decisionsHtml  = pickSectionHtml(fd, ["keyDecisionsHtml", "decisionsHtml"], ["keyDecisions", "decisions"]);
+  const risksHtml      = pickSectionHtml(fd, ["risksHtml", "riskHtml"], ["risks", "risk"]);
 
   const parts: string[] = [];
   parts.push(headerBar(title));
@@ -218,12 +252,12 @@ export function buildEmailHtml(fd: FormData): string {
   }
   parts.push(`<tr><td>${statusAndPeople(fd)}</td></tr>`);
 
-  // Rich sections
-  parts.push(sectionBlock(fd.execSummaryTitle || "Executive Summary", fd.executiveSummaryHtml));
-  parts.push(sectionBlock(fd.updatesTitle || "Highlights", fd.highlightsHtml));
-  parts.push(sectionBlock(fd.milestonesTitle || "Milestones", fd.milestonesHtml));
-  parts.push(sectionBlock(fd.keyDecisionsTitle || "Key Decisions", fd.keyDecisionsHtml));
-  parts.push(sectionBlock(fd.risksTitle || "Risks & Issue Mitigation Plan", fd.risksHtml));
+  // Ordered sections
+  parts.push(sectionBlock(execTitle,        execHtml));                       // Executive Summary
+  parts.push(sectionBlock(updatesTitle,     highlightsHtml));                 // Highlights / Accomplishments
+  parts.push(sectionBlock(fd.milestonesTitle   || "Milestones",              milestonesHtml));
+  parts.push(sectionBlock(fd.keyDecisionsTitle || "Key Decisions",           decisionsHtml));
+  parts.push(sectionBlock(fd.risksTitle        || "Risks & Issue Mitigation Plan", risksHtml));
   parts.push(resourcesBlock(fd));
 
   const body = parts.filter(Boolean).join("\n");
