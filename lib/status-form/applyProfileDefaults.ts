@@ -1,5 +1,5 @@
 // lib/status-form/applyProfileDefaults.ts
-// Drop-in replacement that reads from PROJECT_PROFILES[projectKey].defaults
+// Reads defaults from PROJECT_PROFILES[projectKey].defaults and applies them to formData.
 
 import { PROJECT_THEME } from "@/components/status-form/sections/labels";
 import { PROJECT_PROFILES, DEFAULT_EMAIL } from "@/components/status-form/projectProfiles";
@@ -52,7 +52,11 @@ function buildResourcesFromProfile(base: any, profileFallback?: any): ResourceIt
       value: `cid:${banner.cid}`,
     });
   }
-  const resArr = Array.isArray(base?.resources) ? base.resources : Array.isArray(profileFallback?.resources) ? profileFallback.resources : [];
+  const resArr = Array.isArray(base?.resources)
+    ? base.resources
+    : Array.isArray(profileFallback?.resources)
+    ? profileFallback.resources
+    : [];
   for (const r of resArr) {
     list.push({
       id: r.id ?? `res-${list.length + 1}`,
@@ -114,8 +118,10 @@ export function applyProfileDefaultsByKey(
   const statusCurrent = (sd.current ?? sd.now ?? prevFormData.statusCurrent ?? "Green") as string;
   const statusTrending = (sd.trending ?? sd.trend ?? prevFormData.statusTrending ?? "Green") as string;
 
-  // EMAIL / BANNER
-  const emailTo = (prevFormData.emailTo ?? base.emailTo ?? profile.emailTo ?? DEFAULT_EMAIL) as string;
+  // EMAIL default — treat empty string as missing so we fallback properly
+  const emailTo = nonEmpty(prevFormData.emailTo)
+    ? (prevFormData.emailTo as string)
+    : ((base.emailTo ?? profile.emailTo ?? DEFAULT_EMAIL) as string);
 
   // ADDITIONAL RESOURCES
   // Prefer HTML in defaults (your case), then top-level profile, else build from banner/resources[]
