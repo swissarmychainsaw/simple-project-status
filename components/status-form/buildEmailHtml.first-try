@@ -1,0 +1,226 @@
+// components/status-form/buildEmailHtml.ts
+// Rich, email-safe HTML with full formatting and inline styles.
+// Exports BOTH a named and default buildEmailHtml so either import style works.
+
+import { buildResourcesHtml, ResourceItem } from "@/lib/status-form/applyProfileDefaults";
+
+type FormData = Record<string, any>;
+
+function escapeHtml(s: string): string {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(s: string): string {
+  return String(s).replace(/"/g, "&quot;");
+}
+
+function renderBanner(fd: FormData): string {
+  const mode = (fd.optBannerMode as "cid" | "web") ?? (fd.bannerCid ? "cid" : "web");
+  const alt = (fd.bannerAlt as string) || "Project banner";
+  const style =
+    "display:block;width:100%;height:auto;border:0;outline:0;text-decoration:none;";
+
+  if (mode === "cid" && fd.bannerCid) {
+    // Requires the sender to attach an image with contentId === bannerCid
+    return `<img src="cid:${fd.bannerCid}" alt="${escapeHtml(alt)}" style="${style}" />`;
+  }
+  if (fd.bannerWeb) {
+    // For external recipients, make sure this is absolute in the send step.
+    return `<img src="${escapeAttr(fd.bannerWeb)}" alt="${escapeHtml(alt)}" style="${style}" />`;
+  }
+  return "";
+}
+
+function statusColors(statusRaw: string | undefined) {
+  const s = String(statusRaw || "").trim().toLowerCase();
+  // default grey pill
+  let bg = "#e5e7eb", color = "#111827", label = statusRaw || "—";
+  if (s.startsWith("g")) { bg = "#22c55e"; color = "#ffffff"; label = "Green"; }
+  else if (s.startsWith("y") || s.includes("amber")) { bg = "#f59e0b"; color = "#111827"; label = "Yellow"; }
+  else if (s.startsWith("r")) { bg = "#ef4444"; color = "#ffffff"; label = "Red"; }
+  return { bg, color, label };
+}
+
+function pill(label: string, bg: string, color: string) {
+  const st =
+    "display:inline-block;padding:6px 10px;border-radius:9999px;font-weight:600;font-size:13px;";
+  return `<span style="${st}background:${bg};color:${color}">${escapeHtml(label)}</span>`;
+}
+
+function row(label: string, value: string) {
+  const l =
+    "font-size:12px;line-height:16px;color:#6b7280;margin:0 0 4px 0;font-weight:600;letter-spacing:.02em;text-transform:uppercase";
+  const v =
+    "font-size:14px;line-height:20px;color:#111827;margin:0;font-weight:500";
+  return `<p style="${l}">${escapeHtml(label)}</p><p style="${v}">${escapeHtml(value)}</p>`;
+}
+
+function renderPeople(fd: FormData) {
+  const cells: string[] = [];
+  if (fd.tpm) cells.push(cell(row("TPM", String(fd.tpm))));
+  if (fd.engDri || fd.engineeringDri) cells.push(cell(row("Engineering DRI", String(fd.engDri || fd.engineeringDri))));
+  if (fd.businessSponsor || fd.bizSponsor) cells.push(cell(row("Business Sponsor", String(fd.businessSponsor || fd.bizSponsor))));
+  if (fd.engineeringSponsor || fd.engSponsor) cells.push(cell(row("Engineering Sponsor", String(fd.engineeringSponsor || fd.engSponsor))));
+  if (!cells.length) return "";
+  return `
+  <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;margin-top:12px">
+    <tr>${cells.join("")}</tr>
+  </table>`;
+}
+
+function cell(innerHtml: string) {
+  return `<td style="padding:8px 12px;border:1px solid #e5e7eb;border-left:0;border-top:0">${innerHtml}</td>`;
+}
+
+function section(title: string, html?: string) {
+  if (!html || !String(html).trim()) return "";
+  const head =
+    "margin:0 0 8px 0;font-size:16px;line-height:24px;color:#111827;font-weight:700";
+  const body =
+    "font-size:14px;line-height:21px;color:#111827;margin:0";
+  // allow lists/links to keep basic formatting; most clients support these tags
+  return `
+  <tr>
+    <td style="padding:16px 20px;border:1px solid #e5e7eb;border-radius:12px">
+      <h3 style="${head}">${escapeHtml(title)}</h3>
+      <div style="${body}">
+        ${html}
+      </div>
+    </td>
+  </tr>
+  <tr><td style="height:12px"></td></tr>`;
+}
+
+function renderResources(fd: FormData): string {
+  const resHtml =
+    (fd.resourcesHtml as string | undefined)?.trim() ||
+    (fd.additionalResourcesHtml as string | undefined)?.trim() ||
+    "";
+  let html = resHtml;
+  if (!html && Array.isArray(fd.resources)) {
+    html = buildResourcesHtml(fd.resources as ResourceItem[]);
+  }
+  if (!html) return "";
+  return section(fd.resourcesTitle || "Additional Resources", html);
+}
+
+export function buildEmailHtml(fd: FormData): string {
+  const banner = renderBanner(fd);
+
+  const title = String(fd.programTitle || "Status Report");
+  const summary = String(fd.programSummary || "").trim();
+
+  const { bg: curBg, color: curColor, label: curLabel } = statusColors(fd.statusCurrent);
+  const { bg: lastBg, color: lastColor, label: lastLabel } = statusColors(fd.statusLast);
+  const { bg: trendBg, color: trendColor, label: trendLabel } = statusColors(fd.statusTrending);
+
+  // Status row (3 chips)
+  const statusRow = `
+  <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;margin-top:12px">
+    <tr>
+      <td style="padding:12px 12px;border:1px solid #e5e7eb;border-radius:12px">
+        <table role="presentation" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;width:100%">
+          <tr>
+            <td style="width:33.33%;vertical-align:top;padding-right:8px">
+              <p style="margin:0 0 6px 0;font-size:12px;line-height:16px;color:#6b7280;font-weight:700;letter-spacing:.02em;text-transform:uppercase">Current status</p>
+              ${pill(curLabel, curBg, curColor)}
+            </td>
+            <td style="width:33.33%;vertical-align:top;padding:0 8px">
+              <p style="margin:0 0 6px 0;font-size:12px;line-height:16px;color:#6b7280;font-weight:700;letter-spacing:.02em;text-transform:uppercase">Last status</p>
+              ${pill(lastLabel, lastBg, lastColor)}
+            </td>
+            <td style="width:33.33%;vertical-align:top;padding-left:8px">
+              <p style="margin:0 0 6px 0;font-size:12px;line-height:16px;color:#6b7280;font-weight:700;letter-spacing:.02em;text-transform:uppercase">Trending</p>
+              ${pill(trendLabel, trendBg, trendColor)}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+
+  // Build content sections
+  const sections: string[] = [];
+
+  // Executive summary at top if present
+  if (fd.executiveSummaryHtml) {
+    sections.push(section(fd.execSummaryTitle || "Executive summary", fd.executiveSummaryHtml));
+  }
+
+  // Optional summary paragraph from profile
+  if (summary) {
+    sections.push(`
+    <tr>
+      <td style="padding:16px 20px;border:1px solid #e5e7eb;border-radius:12px">
+        <div style="font-size:14px;line-height:21px;color:#111827;margin:0">${escapeHtml(summary)}</div>
+      </td>
+    </tr>
+    <tr><td style="height:12px"></td></tr>`);
+  }
+
+  // People grid if any present
+  const peopleBlock = renderPeople(fd);
+  if (peopleBlock) {
+    sections.push(`
+    <tr>
+      <td style="padding:0">${peopleBlock}</td>
+    </tr>
+    <tr><td style="height:12px"></td></tr>`);
+  }
+
+  // Other rich sections
+  if (fd.highlightsHtml)     sections.push(section(fd.updatesTitle      || "Top Accomplishments",        fd.highlightsHtml));
+  if (fd.milestonesHtml)     sections.push(section(fd.milestonesTitle   || "Upcoming Milestones",        fd.milestonesHtml));
+  if (fd.keyDecisionsHtml)   sections.push(section(fd.keyDecisionsTitle || "Key Decisions",              fd.keyDecisionsHtml));
+  if (fd.risksHtml)          sections.push(section(fd.risksTitle        || "Risks & Issue Mitigation",   fd.risksHtml));
+
+  // Additional resources (prefers provided HTML)
+  sections.push(renderResources(fd));
+
+  const body = sections.filter(Boolean).join("\n");
+
+  // Container width max 680px for good readability
+  // Minimal <style> for safe resets + links; most clients accept this small block.
+  const baseCss = `
+  body{margin:0;padding:0;background:#ffffff}
+  a{color:#0369a1}
+  @media (prefers-color-scheme: dark){
+    body{background:#0b0f14}
+  }`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charSet="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>${escapeHtml(title)}</title>
+<style>${baseCss}</style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse">
+    <tr>
+      <td align="center" style="padding:0">
+        <table role="presentation" width="680" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;width:680px;max-width:100%">
+          ${banner ? `<tr><td style="padding:0">${banner}</td></tr>` : ""}
+          <tr><td style="height:16px"></td></tr>
+          <tr>
+            <td style="padding:0 4px">
+              <h1 style="margin:0 0 4px 0;font-size:22px;line-height:28px;color:#0f172a;font-weight:800">${escapeHtml(title)}</h1>
+              ${statusRow}
+              <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;margin-top:16px">
+                ${body}
+              </table>
+              <div style="height:24px"></div>
+            </td>
+          </tr>
+          <tr><td style="height:1px;background:#e5e7eb"></td></tr>
+          <tr><td style="height:24px"></td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export default buildEmailHtml;
+

@@ -7,8 +7,10 @@ const Resources: React.FC = () => {
   const ctx = useStatusForm() as any;
   const fd = (ctx?.formData as any) ?? {};
 
-  const resourcesHtml = (fd.resourcesHtml as string | undefined)?.trim() ?? "";
-  const hasHtml = resourcesHtml.length > 0;
+  const resourcesHtml =
+    (fd.resourcesHtml as string | undefined)?.trim() ||
+    (fd.additionalResourcesHtml as string | undefined)?.trim() ||
+    "";
 
   return (
     <section className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
@@ -16,7 +18,7 @@ const Resources: React.FC = () => {
         <h3 className="text-base font-semibold">{fd.resourcesTitle || "Additional resources"}</h3>
       </header>
 
-      {hasHtml ? (
+      {resourcesHtml ? (
         <div
           className="prose prose-sm max-w-none
                      [&_ul]:list-disc [&_ul]:pl-5

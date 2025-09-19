@@ -1,10 +1,10 @@
 // lib/status-form/applyProfileDefaults.ts
-// Reads defaults from PROJECT_PROFILES[projectKey].defaults and applies them to formData.
+// Drop-in: ensures programTitle/programSummary come from projectProfiles.defaults,
+// fixes resourcesHtml, banner, people, status, and theme utilities.
 
-import { PROJECT_THEME } from "@/components/status-form/sections/labels";
+import { PROJECT_THEME, BANNERS } from "@/components/status-form/sections/labels";
 import { PROJECT_PROFILES, DEFAULT_EMAIL } from "@/components/status-form/projectProfiles";
 
-/** UI list item for the Additional resources card (fallback list) */
 export type ResourceItem = {
   id: string;
   label: string;
@@ -13,13 +13,10 @@ export type ResourceItem = {
   note?: string;
 };
 
-/* ---------------- helpers ---------------- */
-
 function nonEmpty(v: any): boolean {
   return v !== undefined && v !== null && String(v).trim() !== "";
 }
 
-/** Accepts: string | {name, email} | Array<same>. Returns a display string. */
 function normalizePerson(v: any): string {
   if (!nonEmpty(v)) return "";
   if (Array.isArray(v)) return v.map(normalizePerson).filter(Boolean).join("; ");
@@ -33,10 +30,13 @@ function normalizePerson(v: any): string {
   return String(v).trim();
 }
 
-/** Build a simple list from banner + resources[] (used when resourcesHtml not provided) */
-function buildResourcesFromProfile(base: any, profileFallback?: any): ResourceItem[] {
+function buildResourcesFromProfile(
+  base: any,
+  profileFallback?: any,
+  bannerSrc?: { web?: string; cid?: string; alt?: string }
+): ResourceItem[] {
   const list: ResourceItem[] = [];
-  const banner = base?.banner ?? profileFallback?.banner;
+  const banner = base?.banner ?? profileFallback?.banner ?? bannerSrc;
   if (banner?.web) {
     list.push({
       id: "banner-web",
@@ -46,11 +46,7 @@ function buildResourcesFromProfile(base: any, profileFallback?: any): ResourceIt
     });
   }
   if (banner?.cid) {
-    list.push({
-      id: "banner-cid",
-      label: "Banner (CID)",
-      value: `cid:${banner.cid}`,
-    });
+    list.push({ id: "banner-cid", label: "Banner (CID)", value: `cid:${banner.cid}` });
   }
   const resArr = Array.isArray(base?.resources)
     ? base.resources
@@ -69,25 +65,21 @@ function buildResourcesFromProfile(base: any, profileFallback?: any): ResourceIt
   return list;
 }
 
-/** Public: used by email builders to generate a plain list if needed */
 export function buildResourcesHtml(list: ResourceItem[]): string {
   if (!list?.length) return "";
   const li = list
     .map((r) => {
-      const right =
-        r.href
-          ? `<a href="${r.href}" target="_blank" rel="noreferrer">${r.href}</a>`
-          : r.value
-          ? `<code>${r.value}</code>`
-          : "";
+      const right = r.href
+        ? `<a href="${r.href}" target="_blank" rel="noreferrer">${r.href}</a>`
+        : r.value
+        ? `<code>${r.value}</code>`
+        : "";
       const note = r.note ? ` <span style="color:#6b7280">${r.note}</span>` : "";
       return `<li><strong>${r.label}:</strong> ${right}${note}</li>`;
     })
     .join("");
   return `<ul>${li}</ul>`;
 }
-
-/* --------------- main: apply defaults from projectProfiles.defaults --------------- */
 
 export function applyProfileDefaultsByKey(
   key: string | undefined,
@@ -97,52 +89,64 @@ export function applyProfileDefaultsByKey(
   const profile = (PROJECT_PROFILES as any)[key];
   if (!profile) return {};
 
-  // IMPORTANT: your data lives under `defaults`
   const base = profile.defaults ?? profile;
 
-  // PEOPLE — your exact keys (with optional base.people.* aliases)
-  const tpm = normalizePerson(base.tpm ?? base.people?.tpm);
-  const engDri = normalizePerson(
-    base.engDri ?? base.people?.engDri ?? base.engineeringDri ?? base.people?.engineeringDri
-  );
-  const businessSponsor = normalizePerson(
-    base.bizSponsor ?? base.people?.bizSponsor ?? base.businessSponsor ?? base.people?.businessSponsor
-  );
-  const engineeringSponsor = normalizePerson(
-    base.engSponsor ?? base.people?.engSponsor ?? base.engineeringSponsor ?? base.people?.engineeringSponsor
-  );
+  // PROGRAM METADATA (🔴 NEW: explicitly map these so email header/summary always fill)
+  const programTitle =
+    base.programTitle ?? profile.programTitle ?? prevFormData.programTitle ?? "";
+  const programSummary =
+    base.programSummary ?? profile.programSummary ?? prevFormData.programSummary ?? "";
 
-  // STATUS defaults (optional; can be under base.statusDefaults / base.status)
+  // PEOPLE
+  const tpm = normalizePerson(base.tpm ?? base.people?.tpm);
+  const engDri = normalizePerson(base.engDri ?? base.people?.engDri ?? base.engineeringDri ?? base.people?.engineeringDri);
+  const businessSponsor = normalizePerson(base.bizSponsor ?? base.people?.bizSponsor ?? base.businessSponsor ?? base.people?.businessSponsor);
+  const engineeringSponsor = normalizePerson(base.engSponsor ?? base.people?.engSponsor ?? base.engineeringSponsor ?? base.people?.engineeringSponsor);
+
+  // STATUS
   const sd = base.statusDefaults ?? base.status ?? profile.statusDefaults ?? profile.status ?? {};
   const statusLast = (sd.last ?? sd.previous ?? prevFormData.statusLast ?? "Green") as string;
   const statusCurrent = (sd.current ?? sd.now ?? prevFormData.statusCurrent ?? "Green") as string;
   const statusTrending = (sd.trending ?? sd.trend ?? prevFormData.statusTrending ?? "Green") as string;
 
-  // EMAIL default — treat empty string as missing so we fallback properly
+  // EMAIL
   const emailTo = nonEmpty(prevFormData.emailTo)
     ? (prevFormData.emailTo as string)
     : ((base.emailTo ?? profile.emailTo ?? DEFAULT_EMAIL) as string);
 
-  // ADDITIONAL RESOURCES
-  // Prefer HTML in defaults (your case), then top-level profile, else build from banner/resources[]
+  // BANNER (canonical map)
+  const bannerSrc = base.banner ?? profile.banner ?? (BANNERS as any)[key] ?? {};
+  const bannerCid = bannerSrc.cid ?? "";
+  const bannerWeb = bannerSrc.web ?? "";
+  const bannerAlt = bannerSrc.alt ?? "Project banner";
+
+  const fromDesign = base.design ?? profile.design ?? {};
+  const optBannerMode: "cid" | "web" =
+    (fromDesign.optBannerMode as any) ??
+    ((bannerCid && !bannerWeb) ? "cid" : (bannerWeb ? "web" : (bannerCid ? "cid" : "web")));
+
+  // RESOURCES
   const resourcesHtmlFromProfile =
     (base.resourcesHtml as string | undefined)?.trim() ??
     (profile.resourcesHtml as string | undefined)?.trim() ??
     "";
-  const resourcesList = buildResourcesFromProfile(base, profile);
+  const resourcesList = buildResourcesFromProfile(base, profile, bannerSrc);
   const resourcesHtml =
     resourcesHtmlFromProfile.length > 0 ? resourcesHtmlFromProfile : buildResourcesHtml(resourcesList);
 
-  // SECTION TITLES (optional)
+  // TITLES
   const updatesTitle = base.updatesTitle ?? prevFormData.updatesTitle;
   const milestonesTitle = base.milestonesTitle ?? prevFormData.milestonesTitle;
   const keyDecisionsTitle = base.keyDecisionsTitle ?? prevFormData.keyDecisionsTitle;
   const risksTitle = base.risksTitle ?? prevFormData.risksTitle;
   const resourcesTitle = base.resourcesTitle ?? prevFormData.resourcesTitle;
 
-  // Final patch (writes both canonical and alias keys so UI always reads them)
   return {
     optProjectId: key,
+
+    // 🔴 program meta used by email header + on-screen header
+    programTitle,
+    programSummary,
 
     // people
     tpm: tpm || prevFormData.tpm || "",
@@ -161,11 +165,18 @@ export function applyProfileDefaultsByKey(
     // email
     emailTo,
 
-    // resources
+    // banner
+    optBannerMode,
+    bannerCid,
+    bannerWeb,
+    bannerAlt,
+
+    // resources (write alias for safety)
     resources: resourcesList,
     resourcesHtml,
+    additionalResourcesHtml: resourcesHtml,
 
-    // optional section titles
+    // section titles
     updatesTitle,
     milestonesTitle,
     keyDecisionsTitle,
@@ -174,7 +185,6 @@ export function applyProfileDefaultsByKey(
   };
 }
 
-/** Tint page background + expose accent CSS var. Call on selection and on mount (client only). */
 export function applyThemeForProject(key: string | undefined) {
   if (typeof window === "undefined") return;
   const theme = key ? PROJECT_THEME[key] : undefined;

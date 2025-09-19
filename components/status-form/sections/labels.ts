@@ -1,4 +1,6 @@
 // components/status-form/sections/labels.ts
+// Drop-in replacement: includes BANNER_LABELS, PROJECT_KEYS, pill colors, page theme, and the canonical BANNERS map.
+
 export const BANNER_LABELS: Record<string, string> = {
   gns: "GNS",
   azure: "Azure Odyssey",
@@ -20,7 +22,7 @@ export const PILL_ACTIVE_CLASSES: Record<string, { bg: string; border: string; t
   ipv6:  { bg: "bg-lime-700",    border: "border-lime-700",    text: "text-white" },
 };
 
-/** Page theme */
+/** Page theme (background tint + accent) */
 export const PROJECT_THEME: Record<string, { accent: string; bg: string }> = {
   gns:   { accent: "#059669", bg: "#ecfdf5" }, // emerald
   azure: { accent: "#0284c7", bg: "#e0f2fe" }, // sky
@@ -29,4 +31,14 @@ export const PROJECT_THEME: Record<string, { accent: string; bg: string }> = {
   azlens:{ accent: "#4f46e5", bg: "#eef2ff" }, // indigo
   ipv6:  { accent: "#3f6212", bg: "#ecfccb" }, // lime
 };
+
+/** Canonical banner sources (use these, don't guess paths) */
+export const BANNERS = {
+  gns:   { web: "/banners/gns-banner.png",      cid: "banner-gns",   alt: "GNS — Global Network Services" },
+  azure: { web: "/banners/azure-banner.png",    cid: "banner-azure", alt: "Azure Odyssey - Program Status" },
+  cie:   { web: "/banners/cie-banner.png",      cid: "banner-cie",   alt: "Core Infrastructure Engineering — Program Status" },
+  obn:   { web: "/banners/obn-banner.png",      cid: "banner-obn",   alt: "One Big Network Migration — Project Status" },
+  azlens:{ web: "/banners/azurelens-banner.png",cid: "banner-azlens",alt: "Azure Lens — Project Status" },
+  ipv6:  { web: "/banners/ipv6-banner.png",     cid: "banner-ipv6",  alt: "IPv6 Network — Project Status" },
+} as const;
 

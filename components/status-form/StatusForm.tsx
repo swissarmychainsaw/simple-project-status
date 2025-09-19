@@ -12,32 +12,16 @@ import KeyDecisions from "./sections/KeyDecisions";
 import Risks from "./sections/Risks";
 import Resources from "./sections/Resources";
 import ActionsBar from "./sections/ActionsBar";
+import DebugFormData from "./sections/DebugFormData"; // ⬅️ add this
 import { PROJECT_THEME } from "./sections/labels";
-import { applyProfileDefaultsByKey, applyThemeForProject } from "@/lib/status-form/applyProfileDefaults";
-import { commitFormPatch } from "@/lib/status-form/commit";
+import { applyThemeForProject } from "@/lib/status-form/applyProfileDefaults";
 
 const StatusFormBody: React.FC = () => {
   const ctx = useStatusForm() as any;
   const fd = (ctx?.formData as any) ?? {};
   const key: string | undefined = fd.optProjectId;
 
-  // Background tint stays in sync
-  useEffect(() => {
-    applyThemeForProject(key);
-  }, [key]);
-
-  // Backfill ONLY emailTo if it's empty after selecting a project (non-destructive)
-  useEffect(() => {
-    if (!key) return;
-    const cur = (fd.emailTo ?? "").toString().trim();
-    if (cur.length === 0) {
-      const patch = applyProfileDefaultsByKey(key, fd);
-      if (patch.emailTo) {
-        commitFormPatch(ctx, { emailTo: patch.emailTo });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, fd.emailTo]);
+  useEffect(() => { applyThemeForProject(key); }, [key]);
 
   const bg = (key && PROJECT_THEME[key]?.bg) ?? "#f8fafc";
   return (
@@ -45,6 +29,7 @@ const StatusFormBody: React.FC = () => {
       <div className="max-w-5xl mx-auto p-6 space-y-6">
         <BasicsCard />
         <ControlPanel />
+        <DebugFormData />  {/* ⬅️ temp debug */}
         <Imports />
 
         <ExecSummary />
