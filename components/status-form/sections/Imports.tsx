@@ -111,6 +111,27 @@ const Imports: React.FC = () => {
         </pre>
       </div>
 
+
+
+<div className="mt-3">
+  <a
+    href="https://docs.google.com/document/d/1YkOAcLxtmwkH-JUW9UVqdS3ayt2je22SLlYMK-ARxq0/copy?tab=t.0"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-gray-50"
+  >
+    Copy Google Doc Template
+  </a>
+</div>
+<p className="text-base text-gray-500">
+You can edit your text in google docs, then import them here (great for group edits of the content)
+
+            </p>
+
+
+
+
+
       {/* Google Doc Import */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <div className="md:col-span-2 space-y-2">

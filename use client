@@ -1,0 +1,34 @@
+"use client";
+
+import React from "react";
+
+// Sections
+import BasicsCard from "./sections/BasicsCard";
+import ProgramSummary from "./sections/ProgramSummary";
+import ExecSummary from "./sections/ExecSummary";
+import Highlights from "./sections/Highlights";
+import Milestones from "./sections/Milestones";
+import KeyDecisions from "./sections/KeyDecisions";
+import Risks from "./sections/Risks";
+import AdditionalResources from "./sections/AdditionalResources";
+
+// Shows the "Use this Google Doc Template" link under Basics
+import ImportsCard from "./sections/ImportsCard";
+
+export default function StatusForm() {
+  return (
+    <div className="space-y-6">
+      <BasicsCard />
+      <ImportsCard />
+
+      <ProgramSummary />
+      <ExecSummary />
+      <Highlights />
+      <Milestones />
+      <KeyDecisions />
+      <Risks />
+      <AdditionalResources />
+    </div>
+  );
+}
+
