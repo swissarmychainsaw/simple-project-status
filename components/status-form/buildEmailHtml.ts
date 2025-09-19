@@ -1,12 +1,10 @@
 // components/status-form/buildEmailHtml.ts
-// Email-safe HTML with emphasis preservation, centered tables, ordered columns,
-// and ROBUST aliasing so "Executive summary" never goes missing.
-// Exports BOTH a named and default buildEmailHtml.
+// Max width 900. Additional Resources is now explicitly selected and rendered
+// in the same card style as other sections.
 
 import { buildResourcesHtml, ResourceItem } from "@/lib/status-form/applyProfileDefaults";
 
 type FormData = Record<string, any>;
-
 const BASE_FONT =
   "system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue','Noto Sans',Arial,'Apple Color Emoji','Segoe UI Emoji'";
 
@@ -17,9 +15,8 @@ function escapeHtml(s: string): string {
 function escapeAttr(s: string): string {
   return String(s).replace(/"/g, "&quot;");
 }
-
 /** Prefer HTML fields; if only plain text exists, wrap it in <p> */
-function pickSectionHtml(fd: FormData, keysHtml: string[], keysPlain: string[]): string {
+function pickSectionHtml(fd: FormData, keysHtml: string[], keysPlain: string[] = []): string {
   for (const k of keysHtml) {
     const v = (fd as any)[k];
     if (typeof v === "string" && v.trim()) return v;
@@ -27,7 +24,6 @@ function pickSectionHtml(fd: FormData, keysHtml: string[], keysPlain: string[]):
   for (const k of keysPlain) {
     const v = (fd as any)[k];
     if (typeof v === "string" && v.trim()) {
-      // If it already looks like HTML, pass-through; otherwise wrap/escape
       if (/[<][a-zA-Z!]/.test(v)) return v;
       return `<p>${escapeHtml(v)}</p>`;
     }
@@ -35,37 +31,35 @@ function pickSectionHtml(fd: FormData, keysHtml: string[], keysPlain: string[]):
   return "";
 }
 
-/**
- * Clean Google Docs HTML but keep emphasis.
- * - Drops font-family/font-size/line-height noise
- * - Normalizes common emphasis spans to <strong>, <em>, <u>
- * - Keeps lists/links
- */
+/** Clean Google Docs HTML while preserving emphasis and links/lists. */
 function cleanImportedHtml(html?: string): string {
   if (!html) return "";
   let out = String(html);
 
+  // Normalize <span style="font-weight:bold|700"> → <strong>
   out = out.replace(
     /<span([^>]*?)style="([^"]*?)font-weight\s*:\s*(700|bold)[^"]*?"([^>]*)>(.*?)<\/span>/gis,
     (_, a1, _s, _w, a2, inner) => `<strong${a1}${a2}>${inner}</strong>`
   );
+  // Italic spans → <em>
   out = out.replace(
     /<span([^>]*?)style="([^"]*?)font-style\s*:\s*italic[^"]*?"([^>]*)>(.*?)<\/span>/gis,
     (_, a1, _s, a2, inner) => `<em${a1}${a2}>${inner}</em>`
   );
+  // Underline spans → <u>
   out = out.replace(
     /<span([^>]*?)style="([^"]*?)text-decoration[^"]*underline[^"]*?"([^>]*)>(.*?)<\/span>/gis,
     (_, a1, _s, a2, inner) => `<u${a1}${a2}>${inner}</u>`
   );
 
-  // Remove leftover style noise on any tag (but keep other attributes)
+  // Remove noisy font rules but keep other styles
   out = out.replace(/\sstyle="[^"]*?(font-family|font-size|line-height)[^"]*?"/gi, (m) => {
     const styles = m.slice(7, -1).split(";").map(s => s.trim()).filter(Boolean);
     const keep = styles.filter(s => !/(^|\s)(font-family|font-size|line-height)\s*:/i.test(s));
     return keep.length ? ` style="${keep.join("; ")}"` : "";
   });
 
-  // Trim empty spans
+  // Drop empty spans
   out = out.replace(/<span(?:\s[^>]*)?>\s*<\/span>/gi, "");
   return out;
 }
@@ -86,13 +80,8 @@ function renderBanner(fd: FormData): string {
   const mode = (fd.optBannerMode as "cid" | "web") ?? (fd.bannerCid ? "cid" : "web");
   const alt = (fd.bannerAlt as string) || "Project banner";
   const style = "display:block;width:100%;height:auto;border:0;outline:0;text-decoration:none;";
-  if (mode === "cid" && fd.bannerCid) {
-    // remember to attach the image with contentId === bannerCid
-    return `<img src="cid:${fd.bannerCid}" alt="${escapeHtml(alt)}" style="${style}" />`;
-  }
-  if (fd.bannerWeb) {
-    return `<img src="${escapeAttr(fd.bannerWeb)}" alt="${escapeHtml(alt)}" style="${style}" />`;
-  }
+  if (mode === "cid" && fd.bannerCid) return `<img src="cid:${fd.bannerCid}" alt="${escapeHtml(alt)}" style="${style}" />`;
+  if (fd.bannerWeb) return `<img src="${escapeAttr(fd.bannerWeb)}" alt="${escapeHtml(alt)}" style="${style}" />`;
   return "";
 }
 
@@ -152,18 +141,10 @@ function statusAndPeople(fd: FormData) {
       <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-top:1px solid #e5e7eb">Engineering Sponsor</th>
     </tr>
     <tr>
-      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">
-        <span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.tpm || "")}</span>
-      </td>
-      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">
-        <span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engDri || fd.engineeringDri || "")}</span>
-      </td>
-      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">
-        <span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.businessSponsor || fd.bizSponsor || "")}</span>
-      </td>
-      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb">
-        <span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engineeringSponsor || fd.engSponsor || "")}</span>
-      </td>
+      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.tpm || "")}</span></td>
+      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engDri || fd.engineeringDri || "")}</span></td>
+      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.businessSponsor || fd.bizSponsor || "")}</span></td>
+      <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engineeringSponsor || fd.engSponsor || "")}</span></td>
     </tr>
   </table>
   <div style="height:16px"></div>`;
@@ -184,17 +165,52 @@ function sectionBlock(title: string, rawHtml?: string) {
   <tr><td style="height:12px"></td></tr>`;
 }
 
-function resourcesBlock(fd: FormData): string {
-  const resHtml =
-    (fd.resourcesHtml as string | undefined)?.trim() ||
-    (fd.additionalResourcesHtml as string | undefined)?.trim() ||
-    "";
-  let html = cleanImportedHtml(resHtml);
-  if (!html && Array.isArray(fd.resources)) {
-    html = buildResourcesHtml(fd.resources as ResourceItem[]);
-  }
+/** Normalize any resources markup (links, tables, line breaks) into a clean <ul> list. */
+function normalizeResourcesHtml(raw: string): string {
+  let html = cleanImportedHtml(raw).trim();
   if (!html) return "";
-  return sectionBlock(fd.resourcesTitle || "Additional Resources", html);
+
+  // If there are anchor tags, turn them into bullets with visible text
+  const links = Array.from(html.matchAll(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gis));
+  if (links.length) {
+    const items = links.map((m) => {
+      const href = m[1];
+      const text = m[2].replace(/<[^>]+>/g, "").trim() || href;
+      return `<li><a href="${escapeAttr(href)}" target="_blank" rel="noreferrer">${escapeHtml(text)}</a></li>`;
+    });
+    return `<ul style="margin:0 0 0 20px;padding:0">${items.join("")}</ul>`;
+  }
+
+  // Handle tables → extract cell text as bullets
+  if (/<table\b/i.test(html)) {
+    const cells = Array.from(html.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi))
+      .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+    if (cells.length) {
+      return `<ul style="margin:0 0 0 20px;padding:0">${cells.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`;
+    }
+    html = html.replace(/<\/?(table|thead|tbody|tr|t[hd])[^>]*>/gi, "");
+  }
+
+  // Convert line breaks to bullets if no <li> already
+  const textish = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<p[^>]*>/gi, "")
+    .replace(/<div[^>]*>/gi, "")
+    .replace(/<\/div>/gi, "\n")
+    .trim();
+
+  const lines = textish.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  if (lines.length > 1 && !/<li\b/i.test(html)) {
+    return `<ul style="margin:0 0 0 20px;padding:0">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>`;
+  }
+
+  // Ensure any existing UL has normalized margins
+  if (/<ul\b/i.test(html) && !/style="/i.test(html)) {
+    html = html.replace(/<ul(\b[^>]*)?>/gi, (_m, attrs = "") => `<ul${attrs} style="margin:0 0 0 20px;padding:0">`);
+  }
+  return html;
 }
 
 /* ----------------- main ----------------- */
@@ -203,16 +219,10 @@ export function buildEmailHtml(fd: FormData): string {
   const title = String(fd.programTitle || "Your Program/Project Title here");
   const summary = cleanImportedHtml(String(fd.programSummary || ""));
 
-  // Titles (normalize updates -> Highlights / Accomplishments)
-  const execTitle =
-    (fd.execSummaryTitle as string) ||
-    (fd.executiveSummaryTitle as string) ||
-    "Executive Summary";
-
+  // Titles
+  const execTitle = (fd.execSummaryTitle as string) || (fd.executiveSummaryTitle as string) || "Executive Summary";
   let updatesTitle = (fd.updatesTitle as string) || "Highlights / Accomplishments";
-  if (/^\s*Top Accomplishments\s*$/i.test(updatesTitle)) {
-    updatesTitle = "Highlights / Accomplishments";
-  }
+  if (/^\s*Top Accomplishments\s*$/i.test(updatesTitle)) updatesTitle = "Highlights / Accomplishments";
 
   const baseCss = `
   body{margin:0;padding:0;background:#ffffff}
@@ -223,20 +233,19 @@ export function buildEmailHtml(fd: FormData): string {
   u{text-decoration:underline}
   `;
 
-  // Robust section resolution: HTML fields first, then plain-text fallbacks
-  const execHtml = pickSectionHtml(
-    fd,
-    ["executiveSummaryHtml", "execSummaryHtml", "summaryHtml"],
-    ["executiveSummary", "execSummary", "summary"]
-  );
-  const highlightsHtml = pickSectionHtml(
-    fd,
-    ["highlightsHtml", "updatesHtml", "accomplishmentsHtml"],
-    ["highlights", "updates", "accomplishments"]
-  );
+  // Sections (HTML first, then plain)
+  const execHtml       = pickSectionHtml(fd, ["executiveSummaryHtml","execSummaryHtml","summaryHtml"], ["executiveSummary","execSummary","summary"]);
+  const highlightsHtml = pickSectionHtml(fd, ["highlightsHtml","updatesHtml","accomplishmentsHtml"], ["highlights","updates","accomplishments"]);
   const milestonesHtml = pickSectionHtml(fd, ["milestonesHtml"], ["milestones"]);
-  const decisionsHtml  = pickSectionHtml(fd, ["keyDecisionsHtml", "decisionsHtml"], ["keyDecisions", "decisions"]);
-  const risksHtml      = pickSectionHtml(fd, ["risksHtml", "riskHtml"], ["risks", "risk"]);
+  const decisionsHtml  = pickSectionHtml(fd, ["keyDecisionsHtml","decisionsHtml"], ["keyDecisions","decisions"]);
+  const risksHtml      = pickSectionHtml(fd, ["risksHtml","riskHtml"], ["risks","risk"]);
+
+  // 🔴 NEW: explicitly pick resources HTML (supports both resourcesHtml & additionalResourcesHtml and plain keys)
+  const resourcesRaw   = pickSectionHtml(fd, ["resourcesHtml","additionalResourcesHtml"], ["resources","additionalResources"]);
+  let normalizedResources = normalizeResourcesHtml(resourcesRaw);
+  if (!normalizedResources && Array.isArray(fd.resources)) {
+    normalizedResources = normalizeResourcesHtml(buildResourcesHtml(fd.resources as ResourceItem[]));
+  }
 
   const parts: string[] = [];
   parts.push(headerBar(title));
@@ -253,12 +262,14 @@ export function buildEmailHtml(fd: FormData): string {
   parts.push(`<tr><td>${statusAndPeople(fd)}</td></tr>`);
 
   // Ordered sections
-  parts.push(sectionBlock(execTitle,        execHtml));                       // Executive Summary
-  parts.push(sectionBlock(updatesTitle,     highlightsHtml));                 // Highlights / Accomplishments
-  parts.push(sectionBlock(fd.milestonesTitle   || "Milestones",              milestonesHtml));
-  parts.push(sectionBlock(fd.keyDecisionsTitle || "Key Decisions",           decisionsHtml));
+  parts.push(sectionBlock(execTitle,        execHtml));
+  parts.push(sectionBlock(updatesTitle,     highlightsHtml));
+  parts.push(sectionBlock(fd.milestonesTitle   || "Milestones",                    milestonesHtml));
+  parts.push(sectionBlock(fd.keyDecisionsTitle || "Key Decisions",                 decisionsHtml));
   parts.push(sectionBlock(fd.risksTitle        || "Risks & Issue Mitigation Plan", risksHtml));
-  parts.push(resourcesBlock(fd));
+  if (normalizedResources) {
+    parts.push(sectionBlock(fd.resourcesTitle || "Additional Resources", normalizedResources));
+  }
 
   const body = parts.filter(Boolean).join("\n");
 
@@ -274,7 +285,7 @@ export function buildEmailHtml(fd: FormData): string {
   <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse">
     <tr>
       <td align="center" style="padding:0">
-        <table role="presentation" width="980" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;width:980px;max-width:100%">
+        <table role="presentation" width="900" cellPadding="0" cellSpacing="0" style="border-collapse:collapse;width:900px;max-width:100%">
           ${body}
           <tr><td style="height:24px"></td></tr>
         </table>
