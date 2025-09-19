@@ -1,19 +1,35 @@
+// components/status-form/sections/Resources.tsx
 "use client";
-
 import React from "react";
-import RichSection from "./RichSection";
+import { useStatusForm } from "../context";
 
-export default function Resources() {
+const Resources: React.FC = () => {
+  const ctx = useStatusForm() as any;
+  const fd = (ctx?.formData as any) ?? {};
+
+  const resourcesHtml = (fd.resourcesHtml as string | undefined)?.trim() ?? "";
+  const hasHtml = resourcesHtml.length > 0;
+
   return (
-    <RichSection
-      label="Additional Resources"
-      titleKey="resourcesTitle"
-      subtitleKey="resourcesSectionTitle"
-      htmlKey="resourcesHtml"
-      titlePlaceholder="Additional Resources"
-      subtitlePlaceholder="Links, docs, references, owners, etc."
-      htmlPlaceholder='<ul><li><a href="https://…">Spec</a></li><li>Runbook …</li></ul>'
-    />
+    <section className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      <header className="flex items-center justify-between">
+        <h3 className="text-base font-semibold">{fd.resourcesTitle || "Additional resources"}</h3>
+      </header>
+
+      {hasHtml ? (
+        <div
+          className="prose prose-sm max-w-none
+                     [&_ul]:list-disc [&_ul]:pl-5
+                     [&_ol]:list-decimal [&_ol]:pl-5
+                     [&_a]:underline"
+          dangerouslySetInnerHTML={{ __html: resourcesHtml }}
+        />
+      ) : (
+        <p className="text-sm text-gray-500">No resources yet. Pick a project or use Apply defaults.</p>
+      )}
+    </section>
   );
-}
+};
+
+export default Resources;
 

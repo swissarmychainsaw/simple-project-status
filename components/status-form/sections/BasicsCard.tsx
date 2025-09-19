@@ -1,90 +1,28 @@
 // components/status-form/sections/BasicsCard.tsx
-import React, { useCallback } from "react";
+import React from "react";
 import ProjectPills from "./ProjectPills";
-import { useStatusForm } from "../context";
-import type { BannerKey } from "../projectProfiles";
-import { applyProjectDefaults } from "../projectDefaults";
+import Statuses from "./Statuses";
+import People from "./People";
+import { BANNER_LABELS } from "./labels"; // keep available if other bits need it later
 
-/**
- * BasicsCard
- * - Project pill selector (single select)
- * - Persists to designOptions.optProjectId
- * - Immediately applies project defaults (e.g., banner) on selection
- */
 const BasicsCard: React.FC = () => {
-  const ctx = useStatusForm() as any;
-
-  const designOptions = (ctx && ctx.designOptions) || {};
-  const selected = (designOptions?.optProjectId as BannerKey | undefined) ?? null;
-
-  const safeUpdateDesignOption = useCallback(
-    (key: string, value: unknown) => {
-      if (typeof ctx?.updateDesignOptions === "function") {
-        ctx.updateDesignOptions(key, value);
-        return;
-      }
-      if (typeof ctx?.setDesignOptions === "function") {
-        ctx.setDesignOptions((prev: any) => ({ ...(prev || {}), [key]: value }));
-        return;
-      }
-      if (typeof ctx?.setState === "function") {
-        ctx.setState((prev: any) => ({
-          ...(prev || {}),
-          designOptions: { ...(prev?.designOptions || {}), [key]: value },
-        }));
-        return;
-      }
-      // eslint-disable-next-line no-console
-      console.warn("No update function for design options; selection not persisted.");
-    },
-    [ctx]
-  );
-
-  const handleSelectProject = useCallback(
-    (key: BannerKey) => {
-      // 1) Save selection
-      safeUpdateDesignOption("optProjectId", key);
-
-      // 2) Apply project-driven defaults immediately (banner, etc.)
-      // Try an app-provided helper first if present, otherwise our local util.
-      if (typeof ctx?.applyProjectProfile === "function") {
-        try {
-          ctx.applyProjectProfile(key, "overwrite");
-        } catch {
-          // Fall back to minimal defaults
-          applyProjectDefaults(ctx, key);
-        }
-      } else {
-        applyProjectDefaults(ctx, key);
-      }
-    },
-    [ctx, safeUpdateDesignOption]
-  );
-
   return (
     <section className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-      <header>
+      <header className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Basics</h2>
       </header>
 
-      {/* Project (pills) */}
+      {/* Project selector */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Project</label>
-        <ProjectPills
-          selectedKey={selected}
-          onSelect={handleSelectProject}
-        />
+        <ProjectPills />
       </div>
 
-      {/* ------- Keep/restore your existing fields below as needed ------- */}
-      {/* Title */}
-      {/* <YourTitleField /> */}
+      {/* Status block (Date, Last, Current, Trending) */}
+      <Statuses />
 
-      {/* Program Summary */}
-      {/* <YourProgramSummaryField /> */}
-
-      {/* Date / People / Email */}
-      {/* <YourDatePeopleEmailFields /> */}
+      {/* People block (TPM, Eng DRI, Sponsors) */}
+      <People />
     </section>
   );
 };

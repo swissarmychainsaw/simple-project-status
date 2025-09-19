@@ -1,98 +1,54 @@
+// components/status-form/sections/ProjectPills.tsx
+"use client";
 import React from "react";
-import type { BannerKey } from "../projectProfiles";
-import { BANNER_LABELS } from "../projectProfiles";
+import { useStatusForm } from "../context";
+import { applyProfileDefaultsByKey, applyThemeForProject } from "@/lib/status-form/applyProfileDefaults";
+import { commitFormPatch } from "@/lib/status-form/commit";
+import { BANNER_LABELS, PROJECT_KEYS, PILL_ACTIVE_CLASSES } from "./labels";
 
-/**
- * Color map per BannerKey.
- * - Unselected: light filled chip
- * - Selected: strong filled chip
- */
-const PILL_COLOR: Record<
-  BannerKey,
-  {
-    idle: string;      // light fill
-    selected: string;  // strong fill
-    border: string;    // border color to keep shape crisp
-    focus: string;     // focus ring color
-  }
-> = {
-  gns:   {
-    idle: "bg-emerald-100 text-emerald-900",
-    selected: "bg-emerald-600 text-white",
-    border: "border-emerald-300",
-    focus: "focus-visible:ring-emerald-300",
-  },
-  azure: {
-    idle: "bg-sky-100 text-sky-900",
-    selected: "bg-sky-600 text-white",
-    border: "border-sky-300",
-    focus: "focus-visible:ring-sky-300",
-  },
-  cie:   {
-    idle: "bg-violet-100 text-violet-900",
-    selected: "bg-violet-600 text-white",
-    border: "border-violet-300",
-    focus: "focus-visible:ring-violet-300",
-  },
-  obn:   {
-    idle: "bg-indigo-100 text-indigo-900",
-    selected: "bg-indigo-600 text-white",
-    border: "border-indigo-300",
-    focus: "focus-visible:ring-indigo-300",
-  },
-  azlens:{
-    idle: "bg-cyan-100 text-cyan-900",
-    selected: "bg-cyan-600 text-white",
-    border: "border-cyan-300",
-    focus: "focus-visible:ring-cyan-300",
-  },
-  ipv6:  {
-    idle: "bg-lime-100 text-lime-900",
-    selected: "bg-lime-600 text-white",
-    border: "border-lime-300",
-    focus: "focus-visible:ring-lime-300",
-  },
+const Pill: React.FC<{
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  colorKey: string;
+}> = ({ active, onClick, children, colorKey }) => {
+  const c = PILL_ACTIVE_CLASSES[colorKey] ?? PILL_ACTIVE_CLASSES.gns;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "px-3 py-1.5 rounded-full text-sm border transition",
+        active ? `${c.bg} ${c.border} ${c.text}` : "bg-white border-gray-300 text-gray-700 hover:shadow-sm",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
 };
 
-interface ProjectPillsProps {
-  selectedKey?: BannerKey | null;
-  onSelect: (key: BannerKey) => void;
-  className?: string;
-}
+const ProjectPills: React.FC = () => {
+  const ctx = useStatusForm() as any;
+  const sel = (ctx?.formData?.optProjectId as string | undefined) ?? undefined;
 
-/**
- * Tailwind-only lozenge (pill) selector for projects.
- * - Single select
- * - Filled color in both states (lighter when idle, strong when selected)
- */
-const ProjectPills: React.FC<ProjectPillsProps> = ({ selectedKey, onSelect, className }) => {
-  const keys = Object.keys(BANNER_LABELS) as BannerKey[];
+  const pick = (key: string) => {
+    // 1) store selection
+    commitFormPatch(ctx, { optProjectId: key });
+    // 2) compute defaults using current state as fallback (won't clobber existing edits)
+    const patch = applyProfileDefaultsByKey(key, ctx?.formData || {});
+    // 3) commit atomically
+    commitFormPatch(ctx, patch);
+    // 4) background tint
+    applyThemeForProject(key);
+  };
 
   return (
-    <div className={["flex flex-wrap gap-2", className || ""].join(" ").trim()}>
-      {keys.map((key) => {
-        const selected = selectedKey === key;
-        const label = BANNER_LABELS[key] ?? key;
-        const palette = PILL_COLOR[key];
-
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onSelect(key)}
-            className={[
-              "px-3 py-1.5 rounded-full border text-sm transition whitespace-nowrap",
-              selected ? palette.selected : palette.idle,
-              palette.border,
-              "focus:outline-none focus-visible:ring focus-visible:ring-offset-2",
-              palette.focus,
-            ].join(" ")}
-            aria-pressed={selected}
-          >
-            {label}
-          </button>
-        );
-      })}
+    <div className="flex gap-2 flex-wrap">
+      {PROJECT_KEYS.map((k) => (
+        <Pill key={k} active={sel === k} onClick={() => pick(k)} colorKey={k}>
+          {BANNER_LABELS[k] ?? k}
+        </Pill>
+      ))}
     </div>
   );
 };
