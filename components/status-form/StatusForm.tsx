@@ -1,9 +1,13 @@
-// components/status-form/StatusForm.tsx
 "use client";
+
 import React, { useEffect } from "react";
 import { StatusFormProvider, useStatusForm } from "./context";
+
 import BasicsCard from "./sections/BasicsCard";
 import ControlPanel from "./sections/ControlPanel";
+import StatusAndPeopleCard from "./sections/StatusAndPeopleCard"; // ⬅️ NEW: consolidated Date/Statuses/People card
+
+// (keep the rest of your existing sections)
 import Imports from "./sections/Imports";
 import ExecSummary from "./sections/ExecSummary";
 import Highlights from "./sections/Highlights";
@@ -12,26 +16,47 @@ import KeyDecisions from "./sections/KeyDecisions";
 import Risks from "./sections/Risks";
 import Resources from "./sections/Resources";
 import ActionsBar from "./sections/ActionsBar";
-import DebugFormData from "./sections/DebugFormData"; // ⬅️ add this
+import DebugFormData from "./sections/DebugFormData";
+
+// theme support
 import { PROJECT_THEME } from "./sections/labels";
 import { applyThemeForProject } from "@/lib/status-form/applyProfileDefaults";
 
+/**
+ * Main form body. We render a single consolidated "Status & Team" card
+ * directly under the Control Panel; we no longer render the separate
+ * Statuses or People sections to avoid duplication.
+ */
 const StatusFormBody: React.FC = () => {
   const ctx = useStatusForm() as any;
   const fd = (ctx?.formData as any) ?? {};
-  const key: string | undefined = fd.optProjectId;
+  const projectKey: string | undefined = fd.optProjectId;
 
-  useEffect(() => { applyThemeForProject(key); }, [key]);
+  useEffect(() => {
+    applyThemeForProject(projectKey);
+  }, [projectKey]);
 
-  const bg = (key && PROJECT_THEME[key]?.bg) ?? "#f8fafc";
+  const bg = (projectKey && PROJECT_THEME[projectKey]?.bg) ?? "#f8fafc";
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: bg }}>
       <div className="max-w-5xl mx-auto p-6 space-y-6">
+        {/* Header / basics */}
         <BasicsCard />
+
+        {/* Controls at the top */}
         <ControlPanel />
-        <DebugFormData />  {/* ⬅️ temp debug */}
+
+        {/* NEW: Consolidated Date + Statuses + People card */}
+        <StatusAndPeopleCard />
+
+        {/* Optional: leave this visible while iterating; remove/hide for prod */}
+        <DebugFormData />
+
+        {/* Imports / Google Doc / etc */}
         <Imports />
 
+        {/* Content sections */}
         <ExecSummary />
         <Highlights />
         <Milestones />
@@ -39,6 +64,7 @@ const StatusFormBody: React.FC = () => {
         <Risks />
         <Resources />
 
+        {/* Actions (build email, copy, send, etc.) */}
         <ActionsBar />
       </div>
     </div>

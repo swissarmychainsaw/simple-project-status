@@ -59,52 +59,46 @@ const ControlPanel: React.FC = () => {
       "statusCurrent",
       "statusTrending",
       "tpm",
-      "engDri",
       "engineeringDri",
+      "engDri",
       "businessSponsor",
       "bizSponsor",
       "engineeringSponsor",
       "engSponsor",
-    ]) delete next[k];
+      "programSummary",
+      "execSummary",
+      "executiveSummary",
+      "milestones",
+      "keyDecisions",
+      "risks",
+    ]) {
+      delete next[k];
+    }
     if (keep) next.optProjectId = keep;
     commitFormPatch(ctx, next);
-  }, [ctx, fd, key]);
+  }, [ctx, fd]);
 
-  const mode: "cid" | "web" = (fd.optBannerMode as any) ?? "cid";
-  const cid = (fd.bannerCid as string) ?? canonicalBanner?.cid ?? "";
-  const web = (fd.bannerWeb as string) ?? canonicalBanner?.web ?? "";
-  const alt = (fd.bannerAlt as string) ?? canonicalBanner?.alt ?? "Project banner";
+  const mode: "cid" | "web" = (fd.optBannerMode as any) ?? (fd.bannerCid ? "cid" : "web");
+  const cid = (fd.bannerCid as string) || "";
+  const web = (fd.bannerWeb as string) || currentProfile?.bannerWeb || "";
+  const alt = (fd.bannerAlt as string) || currentProfile?.bannerAlt || "";
+  const email = (fd.emailTo as string) || currentProfile?.emailTo || "";
 
-  // show a preview image even in CID mode (use canonical web path)
+  // Preview: if CID mode, show canonical web image for this project; otherwise show provided web URL
   const previewUrl = mode === "web" ? web : (canonicalBanner?.web ?? "");
 
   return (
     <section className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-      <header className="flex items-center justify-between">
+      {/* Header with actions on the right */}
+      <header className="flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold">Control panel</h2>
-        <div className="text-sm text-gray-500">{busy ? "Working…" : null}</div>
-      </header>
-
-      {/* Email */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div className="md:col-span-2 space-y-2">
-          <label htmlFor="email-to" className="text-sm font-medium">Email to</label>
-          <input
-            id="email-to"
-            type="email"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            placeholder="name@contoso.com"
-            value={(fd.emailTo as string) ?? ""}
-            onChange={(e) => write({ emailTo: e.target.value })}
-          />
-          <p className="text-xs text-gray-500">Populated from the selected project profile.</p>
-        </div>
-        <div className="flex gap-2 md:justify-end">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={applyDefaults}
             disabled={busy || !key}
             className="px-3 py-2 rounded-md border text-sm bg-gray-900 text-white disabled:opacity-50"
+            title={key ? "Apply defaults from selected project profile" : "Select a project first"}
           >
             Apply defaults
           </button>
@@ -113,10 +107,26 @@ const ControlPanel: React.FC = () => {
             onClick={reset}
             disabled={busy}
             className="px-3 py-2 rounded-md border text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
+            title="Clear most fields (keeps selected project)"
           >
             Reset
           </button>
+          {busy ? <span className="text-sm text-gray-500">Working…</span> : null}
         </div>
+      </header>
+
+      {/* Email */}
+      <div className="space-y-2">
+        <label htmlFor="email-to" className="text-sm font-medium">Email to</label>
+        <input
+          id="email-to"
+          type="email"
+          className="w-full rounded-md border bg-white px-3 py-2 text-sm"
+          placeholder="name@company.com"
+          value={email}
+          onChange={(e) => write({ emailTo: e.target.value })}
+        />
+        <p className="text-xs text-gray-500">Populated from the selected project profile.</p>
       </div>
 
       {/* Banner */}
@@ -141,12 +151,14 @@ const ControlPanel: React.FC = () => {
                 value={cid}
                 onChange={(e) => write({ bannerCid: e.target.value })}
               />
-              <p className="text-xs text-gray-500">Attach an image with <code>Content-ID</code> matching this. Email HTML uses <code>src="cid:{cid}"</code>.</p>
+              <p className="text-xs text-gray-500">
+                Attach an image with <code className="font-mono">Content-ID</code> matching this. Email HTML uses <code className="font-mono">src="cid:banner-gns"</code>.
+              </p>
             </div>
             <div className="space-y-2">
-              <label htmlFor="banner-alt-cid" className="text-sm font-medium">Alt text</label>
+              <label htmlFor="banner-alt" className="text-sm font-medium">Alt text</label>
               <input
-                id="banner-alt-cid"
+                id="banner-alt"
                 type="text"
                 className="w-full rounded-md border bg-white px-3 py-2 text-sm"
                 placeholder="Project banner"

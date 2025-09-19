@@ -1,68 +1,80 @@
-// components/status-form/sections/People.tsx
 "use client";
-import React from "react";
-import { useStatusForm } from "../context";
-import { commitFormPatch } from "@/lib/status-form/commit";
 
+import React from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import useStatusForm from "@/components/status-form/hooks/useStatusForm";
+
+/**
+ * Compact "People" card shown under the Control Panel.
+ * Uses the status-form context's read/write helpers so we don't touch form wiring.
+ */
 const People: React.FC = () => {
-  const ctx = useStatusForm() as any;
-  const fd = (ctx?.formData as any) ?? {};
-  const write = (patch: Record<string, any>) => commitFormPatch(ctx, patch);
+  const { formData, write } = useStatusForm();
+
+  const setVal = (key: string, v: string) => write(key, v);
+
+  // keep both keys in sync for compatibility with email builder
+  const setEngDri = (v: string) => {
+    write("engineeringDri", v);
+    write("engDri", v);
+  };
+
+  const setBizSponsor = (v: string) => {
+    write("businessSponsor", v);
+    write("bizSponsor", v);
+  };
+
+  const setEngSponsor = (v: string) => {
+    write("engineeringSponsor", v);
+    write("engSponsor", v);
+  };
 
   return (
-    <section className="bg-gray-50 rounded-xl border p-6 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div>
-          <label htmlFor="tpm" className="text-sm font-medium block mb-2">TPM</label>
-          <input
-            id="tpm" type="text"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            value={(fd.tpm as string) ?? ""}
-            onChange={(e) => write({ tpm: e.target.value })}
-          />
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Team</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">TPM</label>
+            <Input
+              value={formData?.tpm ?? ""}
+              onChange={(e) => setVal("tpm", e.target.value)}
+              placeholder="TPM name(s)"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="engDri" className="text-sm font-medium block mb-2">Engineering DRI</label>
-          <input
-            id="engDri" type="text"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            value={(fd.engDri as string) ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              // keep both in sync so readers of either key see it
-              write({ engDri: v, engineeringDri: v });
-            }}
-          />
-        </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Engineering DRI</label>
+            <Input
+              value={formData?.engineeringDri ?? formData?.engDri ?? ""}
+              onChange={(e) => setEngDri(e.target.value)}
+              placeholder="Engineering DRI"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="businessSponsor" className="text-sm font-medium block mb-2">Business Sponsor</label>
-          <input
-            id="businessSponsor" type="text"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            value={(fd.businessSponsor as string) ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              write({ businessSponsor: v, bizSponsor: v });
-            }}
-          />
-        </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Business Sponsor</label>
+            <Input
+              value={formData?.businessSponsor ?? formData?.bizSponsor ?? ""}
+              onChange={(e) => setBizSponsor(e.target.value)}
+              placeholder="Business Sponsor"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="engineeringSponsor" className="text-sm font-medium block mb-2">Engineering Sponsor</label>
-          <input
-            id="engineeringSponsor" type="text"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            value={(fd.engineeringSponsor as string) ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              write({ engineeringSponsor: v, engSponsor: v });
-            }}
-          />
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Engineering Sponsor</label>
+            <Input
+              value={formData?.engineeringSponsor ?? formData?.engSponsor ?? ""}
+              onChange={(e) => setEngSponsor(e.target.value)}
+              placeholder="Engineering Sponsor"
+            />
+          </div>
         </div>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 };
 

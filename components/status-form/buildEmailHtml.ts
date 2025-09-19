@@ -1,9 +1,5 @@
 // components/status-form/buildEmailHtml.ts
-// Version: combined-risks-resources+audio-v1
-// - One outer wrapper table (900px).
-// - "Additional Resources" is merged into the Risks card.
-// - People (TPM/DRIs) table preserved.
-// - Adds a centered "Listen to this report" button (MSFT Blue) when fd.audioLink (or audioUrl/audio) exists.
+// Version: combined-risources+audio-v3 (fix Resources links: normalize hrefs + auto-link lines/cells)
 
 import { buildResourcesHtml, ResourceItem } from "@/lib/status-form/applyProfileDefaults";
 
@@ -77,6 +73,26 @@ function formatDateMaybe(v: any): string {
   }
 }
 
+/* ----------------- link normalization ----------------- */
+function normalizeHref(raw: string): string {
+  let h = (raw || "").trim();
+
+  // Fix common typos: http//, https//, http:/, https:/
+  h = h.replace(/^http\/\//i, "http://")
+       .replace(/^https\/\//i, "https://")
+       .replace(/^http:\//i, "http://")
+       .replace(/^https:\//i, "https://");
+
+  // If it's already absolute, keep it
+  if (/^https?:\/\//i.test(h)) return h;
+
+  // Corporate shortlinks or bare hosts
+  if (/^go\//i.test(h)) return `https://${h}`;
+  if (/^www\./i.test(h)) return `https://${h}`;
+
+  return h;
+}
+
 /* ----------------- helpers ----------------- */
 function statusColors(statusRaw: string | undefined) {
   const s = String(statusRaw || "").trim().toLowerCase();
@@ -86,117 +102,145 @@ function statusColors(statusRaw: string | undefined) {
   else if (s.startsWith("r")) { bg = "#ef4444"; color = "#ffffff"; label = "Red"; }
   return { bg, color, label };
 }
+// Smaller chip (compact)
 function chip(label: string, bg: string, color: string) {
-  const st = "display:inline-block;padding:8px 14px;border-radius:9999px;font-weight:700;font-size:14px;";
+  const st = "display:inline-block;padding:6px 12px;border-radius:9999px;font-weight:700;font-size:13px;";
   return `<span style="${st}background:${bg};color:${color}">${escapeHtml(label)}</span>`;
 }
+
 function rowHeader(title: string) {
   return `
   <tr>
-    <td style="background:#e5e7eb;padding:18px 20px;border:1px solid #e5e7eb;border-radius:12px">
-      <h1 style="margin:0;font-size:28px;line-height:34px;font-weight:800;color:#0f172a;font-family:${BASE_FONT}">
+    <td style="background:#e5e7eb;padding:16px 18px;border:1px solid #e5e7eb;border-radius:12px">
+      <h1 style="margin:0;font-size:26px;line-height:32px;font-weight:800;color:#0f172a;font-family:${BASE_FONT}">
         ${escapeHtml(title || "Your Program/Project Title")}
       </h1>
     </td>
   </tr>
-  <tr><td style="height:12px"></td></tr>`;
+  <tr><td style="height:10px"></td></tr>`;
 }
+
 function rowSummary(html: string) {
   const cleaned = cleanImportedHtml(html);
   if (!cleaned.trim()) return "";
   return `
   <tr>
-    <td style="padding:16px 20px;border:1px solid #e5e7eb;border-radius:12px">
-      <div style="color:#111827;font-family:${BASE_FONT};font-size:15px;line-height:22px">${cleaned}</div>
+    <td style="padding:14px 18px;border:1px solid #e5e7eb;border-radius:12px">
+      <div style="color:#111827;font-family:${BASE_FONT};font-size:14px;line-height:20px">${cleaned}</div>
     </td>
   </tr>
-  <tr><td style="height:12px"></td></tr>`;
+  <tr><td style="height:10px"></td></tr>`;
 }
-/** People + status grid (email-safe nested table) */
+
+/** People + status grid (fixed 4 equal columns, compact) */
 function rowStatusAndPeople(fd: FormData) {
   const { bg: lastBg, color: lastColor, label: lastLabel } = statusColors(fd.statusLast);
   const { bg: curBg, color: curColor, label: curLabel } = statusColors(fd.statusCurrent);
   const { bg: trBg, color: trColor, label: trLabel } = statusColors(fd.statusTrending);
   const dateVal = formatDateMaybe(fd.date || fd.reportDate || fd.programDate);
 
+  const thStyle = `padding:10px 6px;font:700 15px/20px ${BASE_FONT};color:#111827;border-right:1px solid #e5e7eb`;
+  const tdPill  = `padding:12px 6px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb`;
+  const tdText  = `padding:12px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb`;
+  const nameTxt = `display:block;font:500 14px/20px ${BASE_FONT};color:#111827;word-break:break-word;`;
+
   return `
   <tr>
     <td style="padding:0;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-      <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="border-collapse:collapse">
+      <table role="presentation" width="100%" cellPadding="0" cellSpacing="0"
+             style="border-collapse:collapse;table-layout:fixed;width:100%">
+        <colgroup>
+          <col width="25%"><col width="25%"><col width="25%"><col width="25%">
+        </colgroup>
+
         <tr style="background:#f3f4f6">
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-right:1px solid #e5e7eb">Last Status</th>
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-right:1px solid #e5e7eb">Current Status</th>
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-right:1px solid #e5e7eb">Trending</th>
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827">Date</th>
+          <th align="center" style="${thStyle}">Last Status</th>
+          <th align="center" style="${thStyle}">Current Status</th>
+          <th align="center" style="${thStyle}">Trending</th>
+          <th align="center" style="padding:10px 6px;font:700 15px/20px ${BASE_FONT};color:#111827">Date</th>
         </tr>
+
         <tr>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">${chip(lastLabel, lastBg, lastColor)}</td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">${chip(curLabel, curBg, curColor)}</td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">${chip(trLabel, trBg, trColor)}</td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb">
-            <span style="font:500 14px/20px ${BASE_FONT};color:#111827">${escapeHtml(dateVal || "")}</span>
+          <td align="center" style="${tdPill}">${chip(lastLabel, lastBg, lastColor)}</td>
+          <td align="center" style="${tdPill}">${chip(curLabel, curBg, curColor)}</td>
+          <td align="center" style="${tdPill}">${chip(trLabel, trBg, trColor)}</td>
+          <td align="center" style="padding:12px 6px;border-top:1px solid #e5e7eb">
+            <span style="font:500 13px/18px ${BASE_FONT};color:#111827">${escapeHtml(dateVal || "")}</span>
           </td>
         </tr>
 
         <tr style="background:#f3f4f6">
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">TPM</th>
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">Engineering DRI</th>
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb">Business Sponsor</th>
-          <th align="center" style="padding:12px 8px;font:700 16px/22px ${BASE_FONT};color:#111827">Engineering Sponsor</th>
+          <th align="center" style="${thStyle};border-top:1px solid #e5e7eb">TPM</th>
+          <th align="center" style="${thStyle};border-top:1px solid #e5e7eb">Engineering DRI</th>
+          <th align="center" style="${thStyle};border-top:1px solid #e5e7eb">Business Sponsor</th>
+          <th align="center" style="padding:10px 6px;font:700 15px/20px ${BASE_FONT};color:#111827;border-top:1px solid #e5e7eb">Engineering Sponsor</th>
         </tr>
+
         <tr>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.tpm || "")}</span></td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engDri || fd.engineeringDri || "")}</span></td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.businessSponsor || fd.bizSponsor || "")}</span></td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engineeringSponsor || fd.engSponsor || "")}</span></td>
+          <td align="center" style="${tdText}"><span style="${nameTxt}">${escapeHtml(fd.tpm || "")}</span></td>
+          <td align="center" style="${tdText}"><span style="${nameTxt}">${escapeHtml(fd.engDri || fd.engineeringDri || "")}</span></td>
+          <td align="center" style="${tdText}"><span style="${nameTxt}">${escapeHtml(fd.businessSponsor || fd.bizSponsor || "")}</span></td>
+          <td align="center" style="padding:12px 8px;border-top:1px solid #e5e7eb"><span style="${nameTxt}">${escapeHtml(fd.engineeringSponsor || fd.engSponsor || "")}</span></td>
         </tr>
       </table>
     </td>
   </tr>
-  <tr><td style="height:12px"></td></tr>`;
+  <tr><td style="height:10px"></td></tr>`;
 }
+
 function rowCard(title: string, html?: string) {
   const cleaned = cleanImportedHtml(html);
   if (!cleaned.trim()) return "";
   return `
   <tr>
-    <td style="padding:16px 20px;border:1px solid #e5e7eb;border-radius:12px">
-      <h3 style="margin:0 0 8px 0;font:800 18px/24px ${BASE_FONT};color:#111827">${escapeHtml(title)}</h3>
-      <div style="color:#111827;font-family:${BASE_FONT};font-size:15px;line-height:22px">
+    <td style="padding:14px 18px;border:1px solid #e5e7eb;border-radius:12px">
+      <h3 style="margin:0 0 6px 0;font:800 17px/22px ${BASE_FONT};color:#111827">${escapeHtml(title)}</h3>
+      <div style="color:#111827;font-family:${BASE_FONT};font-size:14px;line-height:20px">
         ${cleaned}
       </div>
     </td>
   </tr>
-  <tr><td style="height:12px"></td></tr>`;
+  <tr><td style="height:10px"></td></tr>`;
 }
 
-/** Render resources as simple rows (no <ul>) so they blend into Risks cleanly */
+/** Render resources as simple rows (no <ul>) and sanitize/auto-link URLs */
 function resourcesRowsFromHtml(raw: string): string {
   let html = cleanImportedHtml(raw).trim();
   if (!html) return "";
 
   const rows: string[] = [];
 
-  // Anchors → rows
+  // 1) Anchors → rows (sanitize href)
   for (const m of html.matchAll(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gis)) {
-    const href = m[1];
+    const hrefRaw = m[1];
+    const href = normalizeHref(hrefRaw);
     const text = m[2].replace(/<[^>]+>/g, "").trim() || href;
     rows.push(
-      `<div style="margin:0 0 8px 0"><a href="${escapeAttr(href)}" target="_blank" rel="noreferrer">${escapeHtml(text)}</a></div>`
+      `<div style="margin:0 0 6px 0"><a href="${escapeAttr(href)}" target="_blank" rel="noreferrer">${escapeHtml(text)}</a></div>`
     );
   }
   if (rows.length) return rows.join("");
 
-  // Tables → cells → rows
+  // 2) Tables → cells → rows (auto-link when a cell looks like a URL/go-link)
   if (/<table\b/i.test(html)) {
     const cells = Array.from(html.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi))
       .map(m => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
       .filter(Boolean);
-    if (cells.length) return cells.map(c => `<div style="margin:0 0 8px 0">${escapeHtml(c)}</div>`).join("");
+
+    if (cells.length) {
+      return cells.map((c) => {
+        const looksLikeUrl = /^(https?:\/\/|http\/\/|https\/\/|go\/|www\.)/i.test(c);
+        if (looksLikeUrl) {
+          const href = normalizeHref(c);
+          return `<div style="margin:0 0 6px 0"><a href="${escapeAttr(href)}" target="_blank" rel="noreferrer">${escapeHtml(c)}</a></div>`;
+        }
+        return `<div style="margin:0 0 6px 0">${escapeHtml(c)}</div>`;
+      }).join("");
+    }
     html = html.replace(/<\/?(table|thead|tbody|tr|t[hd])[^>]*>/gi, "");
   }
 
-  // Lines → rows
+  // 3) Lines → rows (auto-link when a line looks like a URL/go-link)
   const textish = html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n")
@@ -206,17 +250,24 @@ function resourcesRowsFromHtml(raw: string): string {
     .trim();
 
   const lines = textish.split(/\n+/).map(s => s.trim()).filter(Boolean);
-  return lines.map(l => `<div style="margin:0 0 8px 0">${escapeHtml(l)}</div>`).join("");
+  return lines.map((l) => {
+    const looksLikeUrl = /^(https?:\/\/|http\/\/|https\/\/|go\/|www\.)/i.test(l);
+    if (looksLikeUrl) {
+      const href = normalizeHref(l);
+      return `<div style="margin:0 0 6px 0"><a href="${escapeAttr(href)}" target="_blank" rel="noreferrer">${escapeHtml(l)}</a></div>`;
+    }
+    return `<div style="margin:0 0 6px 0">${escapeHtml(l)}</div>`;
+  }).join("");
 }
 
 /** Centered MSFT-blue button under banner (only if audio link exists). Email-safe table button. */
 function rowAudioButton(href?: string) {
   if (!href) return "";
-  const url = escapeAttr(href);
+  const url = escapeAttr(normalizeHref(href));
   const text = "Listen to this report";
   return `
   <tr>
-    <td align="center" style="padding:8px 0 16px 0">
+    <td align="center" style="padding:8px 0 14px 0">
       <!--[if mso]>
       <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${url}" arcsize="12%" fillcolor="${MSFT_BLUE}" stroke="f" style="height:44px;v-text-anchor:middle;width:320px;">
         <v:textbox inset="0,0,0,0">
@@ -273,7 +324,7 @@ export function buildEmailHtml(fd: FormData, _opts?: any): string {
   let risksBody = cleanImportedHtml(risksHtml);
   if (resourcesRows) {
     const subhead = `<h4 style="margin:12px 0 6px 0;font:800 16px/22px ${BASE_FONT};color:#111827">Additional Resources</h4>`;
-    risksBody = `${risksBody}<div style="height:8px"></div>${subhead}${resourcesRows}`;
+    risksBody = `${risksBody}<div style="height:6px"></div>${subhead}${resourcesRows}`;
   }
 
   // Build all rows in ONE outer table
@@ -307,7 +358,7 @@ export function buildEmailHtml(fd: FormData, _opts?: any): string {
 <title>Status Report</title>
 </head>
 <body style="margin:0;padding:0;">
-  <!-- buildEmailHtml: components/status-form/buildEmailHtml.ts :: combined-risks-resources+audio-v1 -->
+  <!-- buildEmailHtml: components/status-form/buildEmailHtml.ts :: combined-risources+audio-v3 -->
   <table role="presentation" width="900" cellPadding="0" cellSpacing="0"
          style="border-collapse:collapse;width:900px;max-width:100%;margin:0 auto;font-family:${BASE_FONT}">
     ${rows.join("\n")}
