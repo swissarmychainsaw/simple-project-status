@@ -1,0 +1,25 @@
+// Single, consistent section wrapper for ALL blocks in the email.
+// Keeps a fixed outer width but lets content be 100% of that width.
+const EMAIL_WIDTH = 600; // keep 600 for best client support
+
+function sectionBlock(title: string, innerHtml: string) {
+  return `
+  <!-- Section: ${title} -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="${EMAIL_WIDTH}" style="width:${EMAIL_WIDTH}px; max-width:${EMAIL_WIDTH}px; border-collapse:collapse; margin:0 auto;">
+    <tr>
+      <td style="padding:24px 24px 8px 24px; border:1px solid #e5e7eb; border-radius:12px; background:#ffffff;">
+        <h2 style="margin:0 0 12px 0; font-size:20px; line-height:24px; color:#111827; font-weight:700;">
+          ${escapeHtml(title)}
+        </h2>
+        <div style="
+          font-size:14px; line-height:20px; color:#111827;
+        ">
+          ${innerHtml}
+        </div>
+      </td>
+    </tr>
+    <tr><td style="height:16px; line-height:16px;">&nbsp;</td></tr>
+  </table>
+  `;
+}
+

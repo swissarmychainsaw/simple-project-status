@@ -2,6 +2,7 @@
 "use client";
 import React from "react";
 import { useStatusForm } from "../context";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const Resources: React.FC = () => {
   const ctx = useStatusForm() as any;
@@ -13,23 +14,29 @@ const Resources: React.FC = () => {
     "";
 
   return (
-    <section className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-      <header className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">{fd.resourcesTitle || "Additional resources"}</h3>
-      </header>
+    <div className="mt-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>{fd.resourcesTitle || "Additional Resources"}</CardTitle>
+        </CardHeader>
 
-      {resourcesHtml ? (
-        <div
-          className="prose prose-sm max-w-none
-                     [&_ul]:list-disc [&_ul]:pl-5
-                     [&_ol]:list-decimal [&_ol]:pl-5
-                     [&_a]:underline"
-          dangerouslySetInnerHTML={{ __html: resourcesHtml }}
-        />
-      ) : (
-        <p className="text-sm text-gray-500">No resources yet. Pick a project or use Apply defaults.</p>
-      )}
-    </section>
+        <CardContent>
+          {resourcesHtml ? (
+            <div
+              className="prose prose-sm max-w-none
+                         [&_ul]:list-disc [&_ul]:pl-5
+                         [&_ol]:list-decimal [&_ol]:pl-5
+                         [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: resourcesHtml }}
+            />
+          ) : (
+            <p className="text-sm text-gray-500">
+              No resources yet. Pick a project or use Apply defaults.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
