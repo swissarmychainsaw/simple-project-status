@@ -1,5 +1,5 @@
 // components/status-form/buildEmailHtml.ts
-// Fully formatted email HTML with centered tables, ordered columns, and font normalization.
+// Email-safe HTML with centered tables, ordered columns, and emphasis preservation.
 // Exports BOTH a named and default buildEmailHtml.
 
 import { buildResourcesHtml, ResourceItem } from "@/lib/status-form/applyProfileDefaults";
@@ -16,13 +16,48 @@ function escapeHtml(s: string): string {
 function escapeAttr(s: string): string {
   return String(s).replace(/"/g, "&quot;");
 }
+
+/**
+ * Clean Google Docs HTML but keep emphasis.
+ * - Drops font-family/font-size/line-height noise
+ * - Normalizes common emphasis spans to <strong>, <em>, <u>
+ * - Keeps lists/links
+ */
 function cleanImportedHtml(html?: string): string {
   if (!html) return "";
-  // strip noisy Google Docs inline fonts/sizes/line-heights but keep b/i/u/lists/links
-  return String(html)
-    .replace(/font-family:[^;"]+;?/gi, "")
-    .replace(/font-size:[^;"]+;?/gi, "")
-    .replace(/line-height:[^;"]+;?/gi, "");
+
+  let out = String(html);
+
+  // Normalize bold spans → <strong>
+  out = out.replace(
+    /<span([^>]*?)style="([^"]*?)font-weight\s*:\s*(700|bold)[^"]*?"([^>]*)>(.*?)<\/span>/gis,
+    (_, a1, _s, _w, a2, inner) => `<strong${a1}${a2}>${inner}</strong>`
+  );
+
+  // Normalize italic spans → <em>
+  out = out.replace(
+    /<span([^>]*?)style="([^"]*?)font-style\s*:\s*italic[^"]*?"([^>]*)>(.*?)<\/span>/gis,
+    (_, a1, _s, a2, inner) => `<em${a1}${a2}>${inner}</em>`
+  );
+
+  // Normalize underline spans → <u>
+  out = out.replace(
+    /<span([^>]*?)style="([^"]*?)text-decoration[^"]*underline[^"]*?"([^>]*)>(.*?)<\/span>/gis,
+    (_, a1, _s, a2, inner) => `<u${a1}${a2}>${inner}</u>`
+  );
+
+  // Remove leftover style noise on any tag (but keep other attributes)
+  out = out.replace(/\sstyle="[^"]*?(font-family|font-size|line-height)[^"]*?"/gi, (m) => {
+    // If the style contains ONLY the noisy props, drop the whole style attr
+    const styles = m.slice(7, -1).split(";").map(s => s.trim()).filter(Boolean);
+    const keep = styles.filter(s => !/(^|\s)(font-family|font-size|line-height)\s*:/i.test(s));
+    return keep.length ? ` style="${keep.join("; ")}"` : "";
+  });
+
+  // Trim empty spans produced by replacements
+  out = out.replace(/<span(?:\s[^>]*)?>\s*<\/span>/gi, "");
+
+  return out;
 }
 
 function formatDateMaybe(v: any): string {
@@ -133,7 +168,7 @@ function sectionBlock(title: string, html?: string) {
   <tr>
     <td style="padding:16px 20px;border:1px solid #e5e7eb;border-radius:12px">
       <h3 style="margin:0 0 8px 0;font:800 18px/24px ${BASE_FONT};color:#111827">${escapeHtml(title)}</h3>
-      <div style="font:400 15px/22px ${BASE_FONT};color:#111827">
+      <div style="color:#111827;font-family:${BASE_FONT};font-size:15px;line-height:22px">
         ${cleaned}
       </div>
     </td>
@@ -164,6 +199,9 @@ export function buildEmailHtml(fd: FormData): string {
   body{margin:0;padding:0;background:#ffffff}
   a{color:#0369a1}
   ul,ol{margin:0 0 0 20px;padding:0}
+  strong,b{font-weight:700}
+  em,i{font-style:italic}
+  u{text-decoration:underline}
   `;
 
   const parts: string[] = [];
@@ -173,7 +211,7 @@ export function buildEmailHtml(fd: FormData): string {
     parts.push(`
     <tr>
       <td style="padding:16px 20px;border:1px solid #e5e7eb;border-radius:12px">
-        <div style="font:400 15px/22px ${BASE_FONT};color:#111827">${summary}</div>
+        <div style="color:#111827;font-family:${BASE_FONT};font-size:15px;line-height:22px">${summary}</div>
       </td>
     </tr>
     <tr><td style="height:12px"></td></tr>`);
