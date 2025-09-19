@@ -1,15 +1,18 @@
 // components/status-form/buildEmailHtml.ts
-// Version: combined-risks-resources-v1
+// Version: combined-risks-resources+audio-v1
 // - One outer wrapper table (900px).
-// - "Additional Resources" is *merged into the Risks card* (no separate card).
+// - "Additional Resources" is merged into the Risks card.
 // - People (TPM/DRIs) table preserved.
-// - Robust against Google Docs HTML (basic cleanup).
+// - Adds a centered "Listen to this report" button (MSFT Blue) when fd.audioLink (or audioUrl/audio) exists.
 
 import { buildResourcesHtml, ResourceItem } from "@/lib/status-form/applyProfileDefaults";
 
 type FormData = Record<string, any>;
 const BASE_FONT =
   "system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue','Noto Sans',Arial,'Apple Color Emoji','Segoe UI Emoji'";
+
+// Microsoft Fluent UI primary blue
+const MSFT_BLUE = "#0078D4";
 
 /* ----------------- utils ----------------- */
 function escapeHtml(s: string): string {
@@ -143,7 +146,7 @@ function rowStatusAndPeople(fd: FormData) {
         </tr>
         <tr>
           <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.tpm || "")}</span></td>
-          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:${"#111827"}">${escapeHtml(fd.engDri || fd.engineeringDri || "")}</span></td>
+          <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engDri || fd.engineeringDri || "")}</span></td>
           <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.businessSponsor || fd.bizSponsor || "")}</span></td>
           <td align="center" style="padding:16px 8px;border-top:1px solid #e5e7eb"><span style="font:500 16px/22px ${BASE_FONT};color:#111827">${escapeHtml(fd.engineeringSponsor || fd.engSponsor || "")}</span></td>
         </tr>
@@ -206,6 +209,33 @@ function resourcesRowsFromHtml(raw: string): string {
   return lines.map(l => `<div style="margin:0 0 8px 0">${escapeHtml(l)}</div>`).join("");
 }
 
+/** Centered MSFT-blue button under banner (only if audio link exists). Email-safe table button. */
+function rowAudioButton(href?: string) {
+  if (!href) return "";
+  const url = escapeAttr(href);
+  const text = "Listen to this report";
+  return `
+  <tr>
+    <td align="center" style="padding:8px 0 16px 0">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${url}" arcsize="12%" fillcolor="${MSFT_BLUE}" stroke="f" style="height:44px;v-text-anchor:middle;width:320px;">
+        <v:textbox inset="0,0,0,0">
+          <center style="color:#ffffff;font:${"700 18px/44px"} ${BASE_FONT};mso-line-height-rule:exactly;">${escapeHtml(text)}</center>
+        </v:textbox>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-- -->
+      <a href="${url}" target="_blank" rel="noreferrer"
+         style="display:inline-block;background:${MSFT_BLUE};color:#ffffff;text-decoration:none;
+                font:700 18px/24px ${BASE_FONT};padding:12px 24px;border-radius:10px;">
+        ${escapeHtml(text)}
+      </a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+  <tr><td style="height:8px"></td></tr>`;
+}
+
 /* ----------------- main ----------------- */
 export function buildEmailHtml(fd: FormData, _opts?: any): string {
   const title       = String(fd.programTitle || "Your Program/Project Title here");
@@ -229,6 +259,9 @@ export function buildEmailHtml(fd: FormData, _opts?: any): string {
   const decisionsHtml  = pickSectionHtml(fd, ["keyDecisionsHtml","decisionsHtml"], ["keyDecisions","decisions"]);
   const risksHtml      = pickSectionHtml(fd, ["risksHtml","riskHtml"], ["risks","risk"]);
 
+  // Audio link (support several keys)
+  const audioLink = (fd.audioLink || fd.audioUrl || fd.audio) as string | undefined;
+
   // Resources → rows, then MERGE into Risks body
   const resourcesRaw   = pickSectionHtml(fd, ["resourcesHtml","additionalResourcesHtml"], ["resources","additionalResources"]);
   let resourcesRows    = resourcesRowsFromHtml(resourcesRaw);
@@ -251,6 +284,11 @@ export function buildEmailHtml(fd: FormData, _opts?: any): string {
     rows.push(`<tr><td style="height:12px"></td></tr>`);
   }
 
+  // Audio button (if provided)
+  if (audioLink && typeof audioLink === "string" && audioLink.trim()) {
+    rows.push(rowAudioButton(audioLink.trim()));
+  }
+
   rows.push(rowHeader(title));
   rows.push(rowSummary(summaryHtml));
   rows.push(rowStatusAndPeople(fd));
@@ -258,7 +296,7 @@ export function buildEmailHtml(fd: FormData, _opts?: any): string {
   rows.push(rowCard(updatesTitle,     highlightsHtml));
   rows.push(rowCard(fd.milestonesTitle   || "Upcoming Milestones", milestonesHtml));
   rows.push(rowCard(fd.keyDecisionsTitle || "Key Decisions",       decisionsHtml));
-  rows.push(rowCard(fd.risksTitle        || "Risks & Issue Mitigation Plan", risksBody)); // ← Resources merged here
+  rows.push(rowCard(fd.risksTitle        || "Risks & Issue Mitigation Plan", risksBody)); // resources merged
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -269,7 +307,7 @@ export function buildEmailHtml(fd: FormData, _opts?: any): string {
 <title>Status Report</title>
 </head>
 <body style="margin:0;padding:0;">
-  <!-- buildEmailHtml: components/status-form/buildEmailHtml.ts :: combined-risks-resources-v1 -->
+  <!-- buildEmailHtml: components/status-form/buildEmailHtml.ts :: combined-risks-resources+audio-v1 -->
   <table role="presentation" width="900" cellPadding="0" cellSpacing="0"
          style="border-collapse:collapse;width:900px;max-width:100%;margin:0 auto;font-family:${BASE_FONT}">
     ${rows.join("\n")}
