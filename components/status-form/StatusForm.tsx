@@ -15,6 +15,7 @@ import Milestones from "./sections/Milestones";
 import KeyDecisions from "./sections/KeyDecisions";
 import Risks from "./sections/Risks";
 import Resources from "./sections/Resources";
+import EmlActions from "./sections/EmlActions";
 import ActionsBar from "./sections/ActionsBar";
 import DebugFormData from "./sections/DebugFormData";
 
