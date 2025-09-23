@@ -45,3 +45,5 @@ next-env.d.ts
 
 # backups
 *.back
+
+components/status-form.BROKEN.*.tsx
