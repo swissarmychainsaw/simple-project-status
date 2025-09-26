@@ -1,138 +1,140 @@
 "use client";
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { useStatusFormCtx } from "../context";
 
-export default function ActionsBar() {
-  const { toast } = useToast();
-  // NOTE: we keep your existing controls intact:
-  // generate (HTML preview), generatedHtml, emailReport, isGenerating, isEmailing
-  const { generate, emailReport, generatedHtml, isGenerating, isEmailing, formData } = useStatusFormCtx() as any;
+import React, { useCallback, useState } from "react";
+import { useStatusForm } from "../context";
 
-  const [lastFilename, setLastFilename] = React.useState<string | null>(null);
-  const projectSelected = !!formData?.optProjectId; // optional gating
+const ActionsBar: React.FC = () => {
+  const ctx = useStatusForm() as any;
 
-  // NEW: Generate EML
-  const generateEml = async () => {
+  const formData = (ctx?.formData as any) ?? {};
+  const designOptions = (ctx?.designOptions as any) ?? {};
+
+  const isGenerating = !!ctx?.isGenerating;
+  const isEmailing = !!ctx?.isEmailing;
+
+  const [downloading, setDownloading] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  const onPreviewHtml = useCallback(async () => {
+    setMsg(null);
     try {
-      const r = await fetch("/api/eml", {
+      await ctx?.generate?.();
+      setMsg({ kind: "ok", text: "HTML preview updated." });
+    } catch (e: any) {
+      setMsg({ kind: "err", text: e?.message || "Failed to generate HTML." });
+    }
+  }, [ctx]);
+
+  const onSendEmail = useCallback(async () => {
+    setMsg(null);
+    try {
+      await ctx?.emailReport?.();
+      setMsg({ kind: "ok", text: "Email sent." });
+    } catch (e: any) {
+      setMsg({ kind: "err", text: e?.message || "Email failed." });
+    }
+  }, [ctx]);
+
+  const onDownloadEml = useCallback(async () => {
+    setMsg(null);
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/email/build-eml", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(formData || {}),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formData, designOptions })
       });
-      if (!r.ok) {
-        const msg = await r.text();
-        throw new Error(msg || `HTTP ${r.status}`);
+
+      // Try to read JSON on error; otherwise consume as blob.
+      if (!res.ok) {
+        let errText = `HTTP ${res.status}`;
+        try {
+          const j = await res.json();
+          errText = j?.error || errText;
+        } catch {
+          // ignore
+        }
+        throw new Error(errText);
       }
-      const disp = r.headers.get("Content-Disposition") || "";
-      const m = /filename="([^"]+)"/.exec(disp);
-      const filename = m?.[1] || "status_report.eml";
-      const blob = await r.blob();
+
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+
+      const programTitle =
+        (formData.programTitle as string) ||
+        (formData.title as string) ||
+        "Status Report";
+      const asOf =
+        (formData.asOf as string) ||
+        (formData.updatedAt as string) ||
+        (formData.date as string) ||
+        "";
+      const safeTitle = programTitle.replace(/[^\w.-]+/g, "_").slice(0, 64);
+      const safeDate = String(asOf || new Date().toISOString().slice(0, 10)).replace(/[^\d-]/g, "");
+      const fname = `${safeTitle}_${safeDate || "today"}.eml`;
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fname;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      setLastFilename(filename);
 
-      toast({ title: "EML generated", description: `Saved as ${filename}` });
+      setMsg({ kind: "ok", text: `Downloaded ${fname}` });
     } catch (e: any) {
-      toast({ title: "EML failed", description: e?.message || "Unknown error", variant: "destructive" });
+      setMsg({ kind: "err", text: `EML build failed: ${e?.message || "Unknown error"}` });
+    } finally {
+      setDownloading(false);
     }
-  };
-
-  // NEW: Copy OS-specific "open Outlook" command to clipboard
-  const copyOpenOutlookCmd = async () => {
-    if (!lastFilename) {
-      toast({ title: "Generate first", description: "Create the .eml so we know the filename." });
-      return;
-    }
-    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const isMac = /Macintosh|Mac OS X/i.test(ua);
-    const isWin = /Windows/i.test(ua);
-
-    // We assume browser saves to ~/Downloads by default; user can adjust path if needed.
-    const cmd = isMac
-      ? `open -a "Microsoft Outlook" "$HOME/Downloads/${lastFilename}"`
-      : isWin
-      ? `start "" "%HOMEPATH%\\Downloads\\${lastFilename}"`
-      : `xdg-open "$HOME/Downloads/${lastFilename}"`;
-
-    await navigator.clipboard.writeText(cmd);
-    toast({ title: "Command copied", description: cmd });
-  };
+  }, [formData, designOptions]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Actions</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {/* Keep your existing HTML generator (preview) */}
-          <Button
-            onClick={async () => {
-              await generate();
-              toast({ title: "HTML generated", description: "Preview updated." });
-            }}
-            disabled={isGenerating}
-          >
-            {isGenerating ? "Generating…" : "Generate HTML"}
-          </Button>
+    <div className="sticky bottom-0 z-10 mt-6 rounded-xl border bg-white/95 backdrop-blur px-4 py-3 flex items-center gap-2">
+      <button
+        type="button"
+        className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+        onClick={onPreviewHtml}
+        disabled={isGenerating}
+      >
+        {isGenerating ? "Generating…" : "Preview HTML"}
+      </button>
 
-          {/* NEW: Generate EML (disabled until a project is selected, per your request) */}
-          <Button onClick={generateEml} disabled={!projectSelected} variant="secondary" title={projectSelected ? "" : "Select a project first"}>
-            Generate (.eml)
-          </Button>
+      <button
+        type="button"
+        className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+        onClick={onSendEmail}
+        disabled={isEmailing}
+      >
+        {isEmailing ? "Sending…" : "Send Email"}
+      </button>
 
-          {/* Keep your existing Copy HTML */}
-          <Button
-            onClick={() => {
-              if (!generatedHtml) {
-                toast({ title: "Nothing to copy", description: "Generate HTML first." });
-                return;
-              }
-              navigator.clipboard
-                .writeText(generatedHtml)
-                .then(() => toast({ title: "Copied", description: "HTML copied to clipboard." }))
-                .catch(() =>
-                  toast({ title: "Copy failed", description: "Couldn’t access clipboard.", variant: "destructive" })
-                );
-            }}
-            variant="outline"
-          >
-            Copy HTML
-          </Button>
+      <div className="ml-auto" />
 
-          {/* Keep your existing Email action */}
-          <Button
-            onClick={async () => {
-              try {
-                await emailReport();
-                toast({ title: "Email sent" });
-              } catch (e: any) {
-                toast({ title: "Email failed", description: e?.message || "Unknown error", variant: "destructive" });
-              }
-            }}
-            disabled={isEmailing}
-            variant="default"
-          >
-            {isEmailing ? "Sending…" : "Email me this report"}
-          </Button>
+      <button
+        type="button"
+        className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+        onClick={onDownloadEml}
+        disabled={downloading}
+        title="Build a self-contained .eml with inline CID images"
+      >
+        {downloading ? "Building .eml…" : "Download .eml"}
+      </button>
 
-          {/* NEW: Open Outlook helper (copies the command) */}
-          <Button onClick={copyOpenOutlookCmd} disabled={!lastFilename} variant="outline">
-            Open Outlook
-          </Button>
-        </div>
-
-        {generatedHtml ? <Textarea value={generatedHtml} readOnly className="bg-white font-mono text-xs h-64" /> : null}
-      </CardContent>
-    </Card>
+      {msg && (
+        <span
+          className={
+            msg.kind === "ok"
+              ? "text-green-700 text-sm ml-3"
+              : "text-red-700 text-sm ml-3"
+          }
+        >
+          {msg.text}
+        </span>
+      )}
+    </div>
   );
-}
+};
+
+export default ActionsBar;
 

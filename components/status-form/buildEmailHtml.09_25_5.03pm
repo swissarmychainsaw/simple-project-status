@@ -1,7 +1,7 @@
 /* components/status-form/buildEmailHtml.ts
  *
  * Email-safe renderer for EML + SMTP send.
- * - Fixed 900px inner card centered by a 100% outer wrapper
+ * - 900px max width card
  * - CID or URL banner (no CSS backgrounds)
  * - Title bar, Program Summary, Status row, Team row
  * - Sections: Exec Summary, Highlights, Milestones, Key Decisions, Risks, Resources
@@ -18,7 +18,7 @@ export type FormData = AnyRec;
 export type DesignOptions = AnyRec;
 
 // === Layout ===
-const EMAIL_MAX_WIDTH = 900; // fixed width (px) for the inner card
+const EMAIL_MAX_WIDTH = 900; // per request
 
 // ---------- helpers ----------
 const escapeHtml = (s: any) =>
@@ -117,7 +117,9 @@ function renderBanner(opts: DesignOptions, fallbackAccent = "#0A66C2"): string {
       </table>`.trim();
   }
 
-  const rawKey: string = String(opts?.optBannerId || "").trim() || "gns";
+  const rawKey: string =
+    String(opts?.optBannerId || "").trim() ||
+    "gns";
   const key = normalizeBannerKey(rawKey) as BannerKey;
   const meta = BANNERS[key];
 
@@ -130,9 +132,7 @@ function renderBanner(opts: DesignOptions, fallbackAccent = "#0A66C2"): string {
           <tr><td style="height:6px;background:${escapeHtml(accent)};font-size:0;line-height:0">&nbsp;</td></tr>
         </table>`.trim();
     }
-    return `<img src="${escapeHtml(src)}" alt="${escapeHtml(meta?.alt || "")}"
-                 width="${EMAIL_MAX_WIDTH}"
-                 style="display:block;width:${EMAIL_MAX_WIDTH}px;max-width:${EMAIL_MAX_WIDTH}px;height:auto;border:0;outline:none;text-decoration:none">`;
+    return `<img src="${escapeHtml(src)}" alt="${escapeHtml(meta?.alt || "")}" style="display:block;width:100%;height:auto;border:0;outline:none;text-decoration:none">`;
   }
 
   // mode === "cid"
@@ -144,9 +144,7 @@ function renderBanner(opts: DesignOptions, fallbackAccent = "#0A66C2"): string {
         <tr><td style="height:6px;background:${escapeHtml(accent)};font-size:0;line-height:0">&nbsp;</td></tr>
       </table>`.trim();
   }
-  return `<img src="cid:${escapeHtml(cid)}" alt="${escapeHtml(meta?.alt || "")}"
-               width="${EMAIL_MAX_WIDTH}"
-               style="display:block;width:${EMAIL_MAX_WIDTH}px;max-width:${EMAIL_MAX_WIDTH}px;height:auto;border:0;outline:none;text-decoration:none">`;
+  return `<img src="cid:${escapeHtml(cid)}" alt="${escapeHtml(meta?.alt || "")}" style="display:block;width:100%;height:auto;border:0;outline:none;text-decoration:none">`;
 }
 
 // ---------- main ----------
@@ -166,8 +164,9 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
   const h2 = `${baseText}font-size:${px(16)};line-height:1.2;font-weight:700;`;
 
   // containers
-  const innerTableStyle = `border-collapse:collapse;width:100%`;
-  const card = `margin:0 auto;border-collapse:collapse;background:#ffffff;border-radius:8px;overflow:hidden;width:${EMAIL_MAX_WIDTH}px;max-width:${EMAIL_MAX_WIDTH}px`;
+  const pageBg = `border-collapse:collapse;background:#f5f7fb`;
+  const card = `margin:0 auto;max-width:${EMAIL_MAX_WIDTH}px;border-collapse:collapse;background:#ffffff;border-radius:8px;overflow:hidden`;
+  const inner = `border-collapse:collapse;width:100%`;
 
   // cells
   const cell = `${base}padding:${px(16)};`;
@@ -217,7 +216,7 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
     !html
       ? ""
       : `
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="${innerTableStyle};margin:${px(0)} 0 ${px(16)} 0">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="${inner};margin:${px(0)} 0 ${px(16)} 0">
     <tr><td style="${h2}padding:${px(12)} ${px(0)} ${px(8)} ${px(0)}">${escapeHtml(title)}</td></tr>
     <tr><td style="${cellLeft}">${html}</td></tr>
   </table>`.trim();
@@ -234,21 +233,10 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
     <title>${escapeHtml(programTitle)}</title>
   </head>
   <body style="margin:0;padding:0;background:#f5f7fb">
-    <!-- OUTER WRAPPER (full width) -->
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f5f7fb">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="${pageBg}">
       <tr>
-        <td align="center" style="padding:${px(24)} 0">
-
-          <!--[if mso]>
-          <table role="presentation" width="${EMAIL_MAX_WIDTH}" cellpadding="0" cellspacing="0" border="0"><tr><td>
-          <![endif]-->
-
-          <center>
-          <!-- INNER CARD (fixed 900px) -->
-          <table role="presentation"
-                 width="${EMAIL_MAX_WIDTH}"
-                 cellpadding="0" cellspacing="0" border="0"
-                 style="${card}">
+        <td style="padding:${px(24)}">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="${card}">
             <!-- Banner -->
             <tr><td style="padding:0">${bannerHtml}</td></tr>
 
@@ -266,7 +254,7 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
             <!-- Status row -->
             <tr>
               <td style="${cellRuleTop}padding:${px(16)} ${px(16)} ${px(8)} ${px(16)}">
-                <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+                <table role="presentation" width="100%" style="${inner}" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <th style="${th}">Last Status</th>
                     <th style="${th}">Current Status</th>
@@ -286,7 +274,7 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
             <!-- Team row -->
             <tr>
               <td style="padding:${px(8)} ${px(16)} ${px(16)} ${px(16)}">
-                <table role="presentation" width="100%" style="${innerTableStyle}" cellpadding="0" cellspacing="0" border="0">
+                <table role="presentation" width="100%" style="${inner}" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <th style="${th}">TPM</th>
                     <th style="${th}">Engineering DRI</th>
@@ -313,16 +301,10 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
               ${section(resourcesTitle, resourcesHtml)}
             </td></tr>
           </table>
-          </center>
-
-          <!--[if mso]>
-          </td></tr></table>
-          <![endif]-->
 
           <div style="text-align:center;color:#9aa3b2;font-size:${px(11)};margin-top:${px(16)}">
             Generated by Project Status • ${escapeHtml(asOf || new Date().toISOString().slice(0, 10))}
           </div>
-
         </td>
       </tr>
     </table>
@@ -332,3 +314,4 @@ export function buildEmailHtml(fd: FormData, opts: DesignOptions): string {
 }
 
 export default buildEmailHtml;
+

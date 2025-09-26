@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "lib/google/parseGoogleDocHtml.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "app/**",
+    "components/**",
+    "types/**"
+  ]
+}

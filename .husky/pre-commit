@@ -1,6 +1,11 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
+set -e
+cd "$(git rev-parse --show-toplevel)"
 
-pnpm typecheck
-pnpm lint
-pnpm test
+# Typecheck
+if pnpm run -s typecheck >/dev/null 2>&1; then pnpm run -s typecheck; else npx -y typescript@latest tsc --noEmit; fi
+# Lint
+if pnpm run -s lint >/dev/null 2>&1; then pnpm run -s lint; else npx -y eslint@latest . --ext .ts,.tsx --max-warnings=0; fi
+# Tests
+if pnpm run -s test >/dev/null 2>&1; then pnpm run -s test; else npx -y vitest@latest run; fi

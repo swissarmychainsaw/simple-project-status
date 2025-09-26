@@ -1,25 +1,35 @@
-// components/status-form/sections/Imports.tsx
-import React, { useCallback, useState } from "react";
+"use client";
+
+import React, { useCallback, useMemo, useState } from "react";
 import { useStatusForm } from "../context";
 
-const Imports: React.FC = () => {
+type Sections = {
+  executiveSummaryHtml?: string;
+  keyDecisionsHtml?: string;
+  risksHtml?: string;
+  highlightsHtml?: string;
+  milestonesHtml?: string;
+};
+
+export default function Imports() {
   const ctx = useStatusForm() as any;
+  const fd = (ctx && ctx.formData) || {};
 
-  const formData = (ctx && ctx.formData) || {};
-  const googleDocUrl = (formData?.googleDocUrl as string | undefined) ?? "";
-  const audioUrl = (formData?.audioUrl as string | undefined) ?? "";
-
+  const [url, setUrl] = useState<string>((fd?.googleDocUrl as string) || "");
   const [busy, setBusy] = useState(false);
-  const [lastImportMsg, setLastImportMsg] = useState<string>("");
+  const [msg, setMsg] = useState<string>("");
 
-  const writeFormData = useCallback(
+  const canImport = useMemo(() => /^https?:\/\//i.test(url.trim()), [url]);
+
+  const write = useCallback(
     (patch: Record<string, unknown>) => {
-      if (typeof ctx?.updateFormData === "function") {
-        Object.entries(patch).forEach(([k, v]) => ctx.updateFormData(k, v));
-        return;
-      }
+      console.debug("[IMPORT UI] write patch keys:", Object.keys(patch));
       if (typeof ctx?.setFormData === "function") {
         ctx.setFormData((prev: any) => ({ ...(prev || {}), ...patch }));
+        return;
+      }
+      if (typeof ctx?.updateFormData === "function") {
+        Object.entries(patch).forEach(([k, v]) => ctx.updateFormData(k as any, v));
         return;
       }
       if (typeof ctx?.setState === "function") {
@@ -27,184 +37,100 @@ const Imports: React.FC = () => {
           ...(prev || {}),
           formData: { ...(prev?.formData || {}), ...patch },
         }));
-        return;
       }
     },
     [ctx]
   );
 
-  const onImportGoogleDoc = useCallback(async () => {
-    const url = (ctx?.formData?.googleDocUrl as string) || "";
-    if (!url) {
-      setLastImportMsg("Please paste a Google Doc link first.");
-      return;
-    }
+  async function doImport() {
     setBusy(true);
-    setLastImportMsg("");
+    setMsg("");
+
     try {
+      console.info("[IMPORT UI] POST /api/google/import:", { url: url.trim() });
       const res = await fetch("/api/google/import", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
       });
-      const data = await res.json();
 
-      if (!res.ok || !data?.ok) {
-        const detail = data?.detail ? JSON.stringify(data.detail, null, 2) : "";
-        throw new Error(`${data?.error || `Import failed (${res.status})`}${detail ? `\n${detail}` : ""}`);
+      const json: any = await res.json().catch(() => ({}));
+      console.debug("[IMPORT UI] raw response:", json);
+
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || `HTTP ${res.status}`);
       }
 
-      const {
-        sections: {
-          executiveSummaryHtml,
-          highlightsHtml,
-          milestonesHtml,
-          keyDecisionsHtml,
-          risksHtml,
-          resourcesHtml,
-        },
-        html: fullHtml,
-        docId,
-      } = data;
+      const sections: Sections = json.sections || {};
+      const keys = Object.keys(sections);
+      console.debug("[IMPORT UI] sections keys:", keys);
 
-      // Persist imported sections
-      writeFormData({
-        execSummaryHtml: executiveSummaryHtml ?? "",
-        highlightsHtml: highlightsHtml ?? "",
-        milestonesHtml: milestonesHtml ?? "",
-        keyDecisionsHtml: keyDecisionsHtml ?? "",
-        risksHtml: risksHtml ?? "",
-        resourcesHtml: resourcesHtml ?? "",
-        googleDocHtml: fullHtml ?? "",
-        googleDocId: docId ?? "",
-      });
+      if (keys.length === 0) {
+        const previewLen =
+          typeof json?.lengths === "object"
+            ? JSON.stringify(json.lengths)
+            : "(no lengths)";
+        setMsg(`Import succeeded, but no recognized sections found. lengths=${previewLen}`);
+        return;
+      }
 
-      setLastImportMsg(
-        "Imported Google Doc → Executive Summary, Highlights, Milestones, Key Decisions, Risks, Resources."
-      );
+      const patch: Record<string, unknown> = { googleDocUrl: url.trim() };
+
+      if (sections.executiveSummaryHtml) {
+        patch["execSummaryHtml"] = sections.executiveSummaryHtml;
+        if (!fd?.execSummaryTitle) patch["execSummaryTitle"] = "Executive Summary";
+      }
+      if (sections.keyDecisionsHtml) {
+        patch["keyDecisionsHtml"] = sections.keyDecisionsHtml;
+        if (!fd?.keyDecisionsTitle) patch["keyDecisionsTitle"] = "Key Decisions";
+      }
+      if (sections.risksHtml) {
+        patch["risksHtml"] = sections.risksHtml;
+        if (!fd?.risksTitle) patch["risksTitle"] = "Risks & Issue Mitigation Plan";
+      }
+      if (sections.highlightsHtml) {
+        patch["highlightsHtml"] = sections.highlightsHtml;
+        if (!fd?.highlightsTitle) patch["highlightsTitle"] = "Highlights";
+      }
+      if (sections.milestonesHtml) {
+        patch["milestonesHtml"] = sections.milestonesHtml;
+        if (!fd?.milestonesTitle) patch["milestonesTitle"] = "Upcoming Milestones";
+      }
+
+      write(patch);
+      setMsg(`Imported ${keys.length} section(s).`);
     } catch (e: any) {
-      setLastImportMsg(String(e?.message || e));
+      console.error("[IMPORT UI] failed:", e?.message || String(e));
+      setMsg(`Import failed: ${e?.message || "Unknown error"}`);
     } finally {
       setBusy(false);
     }
-  }, [ctx, writeFormData]);
-
-  const onValidateAudio = useCallback(async () => {
-    const url = (ctx?.formData?.audioUrl as string) || "";
-    if (!url) return;
-    if (typeof ctx?.validateAudioUrlNow === "function") {
-      try {
-        await ctx.validateAudioUrlNow(url);
-        setLastImportMsg("Audio link validated.");
-      } catch (e: any) {
-        setLastImportMsg(`Audio validation error: ${e?.message || e}`);
-      }
-    }
-  }, [ctx]);
+  }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Imports</h2>
-        <pre className="text-[11px] md:text-xs text-gray-600 whitespace-pre-wrap max-w-[60ch]">
-          {busy ? "Importing…" : lastImportMsg}
-        </pre>
+    <div className="rounded-md border bg-white p-4 space-y-3">
+      <h2 className="text-base font-semibold tracking-wide">Google Doc Import</h2>
+
+      <div className="flex gap-2">
+        <input
+          type="url"
+          className="flex-1 rounded-md border px-3 py-2 text-sm"
+          placeholder="Paste your Google Doc URL"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <button
+          type="button"
+          className="rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+          disabled={!canImport || busy}
+          onClick={doImport}
+        >
+          {busy ? "Importing…" : "Import"}
+        </button>
       </div>
 
-
-
-<div className="mt-3">
-  <a
-    href="https://docs.google.com/document/d/1YkOAcLxtmwkH-JUW9UVqdS3ayt2je22SLlYMK-ARxq0/copy?tab=t.0"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-gray-50"
-  >
-    Copy Google Doc Template
-  </a>
-</div>
-<p className="text-base text-gray-500">
-You can edit your text in google docs, then import them here (great for group edits of the content)
-
-            </p>
-
-
-
-
-
-      {/* Google Doc Import */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div className="md:col-span-2 space-y-2">
-          <label htmlFor="google-doc-url" className="text-sm font-medium">
-            Google Doc link
-          </label>
-          <input
-            id="google-doc-url"
-            type="url"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            placeholder="https://docs.google.com/document/d/…"
-            value={googleDocUrl}
-            onChange={(e) => writeFormData({ googleDocUrl: e.target.value })}
-          />
-          <p className="text-xs text-gray-500">
-            Preserves bold/italic/underline, bullets, tables. Uses Service Account if needed.
-          </p>
-        </div>
-
-        <div className="flex gap-3 md:justify-end">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onImportGoogleDoc}
-            className="px-3 py-2 rounded-md border text-sm bg-gray-900 text-white disabled:opacity-50"
-            title="Import content from the Google Doc into this report"
-          >
-            Import from Doc
-          </button>
-        </div>
-      </div>
-
-      {/* SharePoint Audio Link */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div className="md:col-span-2 space-y-2">
-          <label htmlFor="audio-url" className="text-sm font-medium">
-            SharePoint audio (MP3) link
-          </label>
-          <input
-            id="audio-url"
-            type="url"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm"
-            placeholder="https://microsoft-my.sharepoint.com/:u:/g/personal/.../file?download=1"
-            value={audioUrl}
-            onChange={(e) => writeFormData({ audioUrl: e.target.value })}
-          />
-          {audioUrl ? (
-            <p className="text-xs">
-              <a href={audioUrl} target="_blank" rel="noreferrer" className="underline">
-                Open audio link
-              </a>
-            </p>
-          ) : (
-            <p className="text-xs text-gray-500">
-              Provide a direct <code className="font-mono">?download=1</code> link for best UX.
-            </p>
-          )}
-        </div>
-
-        <div className="flex gap-3 md:justify-end">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onValidateAudio}
-            className="px-3 py-2 rounded-md border text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
-          >
-            Validate
-          </button>
-        </div>
-      </div>
+      {!!msg && <p className="text-sm text-gray-600">{msg}</p>}
     </div>
   );
-};
-
-export default Imports;
+}
 
