@@ -177,6 +177,56 @@ const EMAIL_MAX_WIDTH = 900; // px
 
 
 
+
+// Renders the “Listen to this Report” button (used in preview + email)
+function renderAudioCta(forEmail: boolean, rawUrl: unknown, accent?: string): string {
+  if (!isValidHttpUrl(rawUrl)) return "";
+  const href = String(rawUrl).trim();
+  const bg = (accent || "#0078D4").trim();
+
+  const linkStyle =
+    "display:inline-block;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:6px;" +
+    "font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.2;color:#ffffff;";
+
+  return `
+  <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="border-collapse:collapse;width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;">
+    <tr>
+      <td align="center" valign="middle" style="padding:12px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <tr>
+            <td bgcolor="${bg}" align="center" valign="middle" style="background-color:${bg};border-radius:6px;">
+              <a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">
+                Listen to this Report
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
+
+
+
+
+
+
+// Simple http(s) URL guard used by form + email build
+function isValidHttpUrl(maybe: unknown): maybe is string {
+  if (typeof maybe !== "string") return false;
+  const s = maybe.trim();
+  if (!s) return false;
+  try {
+    const u = new URL(s, typeof window !== "undefined" ? window.location.origin : "https://example.com");
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+
 // Banner helper
 function getBannerHtml(
   forEmail: boolean,
@@ -1628,9 +1678,9 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
 <!-- Fixed-width banner -->
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr><td style="padding:0;">${banner}</td></tr>
-  
-
 </table>
+
+${renderAudioCta(true, data.audioUrl, opts?.optAccent || "#0078D4")}
 
 <!-- Fixed-width outer container -->
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
@@ -2389,6 +2439,19 @@ useEffect(() => {
   </CardContent>
 </Card>
 
+{/* Audio URL */}
+<div>
+  <Label className="text-sm font-medium">Audio URL</Label>
+  <Input
+    value={formData.audioUrl || ""}
+    onChange={(e) => updateFormData("audioUrl", e.target.value)}
+    placeholder="https://… (SharePoint/OneDrive/MP3)"
+    className="bg-white mt-1"
+  />
+  <p className="text-xs text-gray-500 mt-1">
+    Adds a “Listen to this Report” button under the banner.
+  </p>
+</div>
 
 
 
