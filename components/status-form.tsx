@@ -69,6 +69,64 @@ const listsToParagraphs = (html: string): string => {
 
 
 
+
+const renderAudioCta = (
+  forEmail: boolean,
+  rawUrl: string,
+  accent?: string
+): string => {
+  const url = (rawUrl ?? "").toString().trim();
+  if (!url) return "";
+
+  let href = url;
+  try {
+    const u = new URL(
+      url,
+      typeof window !== "undefined" ? window.location.origin : "https://example.com"
+    );
+    if (!/^https?:$/i.test(u.protocol)) return "";
+    href = u.toString();
+  } catch {
+    return "";
+  }
+
+  const btnText = "Listen to this Report";
+  const bg = (accent || "#086dd7").trim();
+  const linkStyle =
+    "display:inline-block;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:6px;" +
+    "font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.2;color:#ffffff;";
+
+  return `
+  <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="border-collapse:collapse;width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;">
+    <tr>
+      <td align="center" valign="middle" style="padding:12px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <tr>
+            <td bgcolor="${bg}" align="center" valign="middle" style="background-color:${bg};border-radius:6px;">
+              <a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">
+                ${btnText}
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
 interface FormData {
 	audioUrl: string; // NEW
   programTitle: string
