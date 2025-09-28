@@ -188,6 +188,11 @@ Roadmap<br>
       keyDecisionsTitle: "Key Decisions",
       risksTitle: "Risks & Issue Mitigation Plan",
       resourcesTitle: "Additional Resources",
+      resourcesHtml: `
+        <ul>
+          <li><a href="https://go/cie/plan" target="_blank">go/cie/plan</a></li>
+        </ul>
+      `,
     },
   },
 

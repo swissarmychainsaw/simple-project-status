@@ -1839,7 +1839,8 @@ ${data.resourcesHtml ? `
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: recipient,
-        subject: formData.programTitle || "Status Report",
+//        subject: formData.programTitle || "Status Report",
+	subject: `[Inform] ${formData.programTitle?.trim() || "Project"} | Status Update`,
         html: htmlToSend,
         // only send when CID is selected – lets the server attach the right file
         bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
