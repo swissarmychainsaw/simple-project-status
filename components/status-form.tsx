@@ -1364,6 +1364,7 @@ const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CC
 
   <table style="width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
 
+  ${renderAudioCta(true, data.audioUrl, (opts?.optAccent || "#0078D4"))}
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
@@ -1767,42 +1768,65 @@ ${data.resourcesHtml ? `
     });
     return;
   }
-
+ 
   const recipient = formData.emailTo.trim();
   if (!recipient) {
     toast({ title: "Email required", description: "Please enter an email address first.", variant: "destructive" });
     return;
   }
 
-  setIsEmailing(true);
-  try {
-    const htmlToSend = buildEmailHtml(formData, designOptions);
+   setIsEmailing(true);
+try {
+  // Build HTML first so any build errors surface before we try to send
+  console.log("[emailReport] building email…");
+  const htmlToSend = buildEmailHtml(formData, designOptions);
+  console.log("[emailReport] build ok, length:", htmlToSend?.length ?? 0);
 
-    const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+  // Only attach CID banner if mode=cid and an id is set
+  const usingCidBanner =
+    designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
 
-    const res = await fetch("/api/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: recipient,
-        subject: formData.programTitle || "Status Report",
-        html: htmlToSend,
-        // only send when CID is selected – lets the server attach the right file
-        bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
-      }),
-    });
+console.log("[emailReport] POST /api/email …");
+const res = await fetch("/api/email", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    to: recipient,
+    subject: (formData.programTitle || "Status Report").trim(),
+    html: htmlToSend,
+    bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
+  }),
+});
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`API returned ${res.status}: ${errorText}`);
-    }
+// ADD THESE LINES ↓↓↓
+const resText = await res.text().catch(() => "");
+console.log("[emailReport] /api/email →", res.status, res.ok, resText);
+if (!res.ok) throw new Error(`API returned ${res.status}: ${resText || "no body"}`);
+// END ADD
+//
+//
+  // Read body once; useful for debugging non-200 responses
+  const text = await res.text().catch(() => "");
+  console.log("[emailReport] /api/email status:", res.status, "body:", text);
 
-    toast({ title: "Email Sent", description: `Report sent successfully to ${recipient}` });
-  } catch (error: any) {
-    toast({ title: "Email Failed", description: error?.message || "Unknown error", variant: "destructive" });
-  } finally {
-    setIsEmailing(false);
+  if (!res.ok) {
+    throw new Error(`API returned ${res.status}: ${text || "no body"}`);
   }
+
+  toast({
+    title: "Email Sent",
+    description: `Report sent successfully to ${recipient}`,
+  });
+} catch (error: any) {
+  console.error("[emailReport] send failed:", error);
+  toast({
+    title: "Email Failed",
+    description: error?.message || "Unknown error",
+    variant: "destructive",
+  });
+} finally {
+  setIsEmailing(false);
+}
 };
 
 
