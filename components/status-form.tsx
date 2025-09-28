@@ -70,6 +70,7 @@ const listsToParagraphs = (html: string): string => {
 
 
 interface FormData {
+	audioUrl: string; // NEW
   programTitle: string
   programSummary: string
   asOf: string
@@ -366,6 +367,7 @@ const getPlainTextLength = (html: string): number => {
 }
 
 const SAVE_FIELDS = [
+	"audioUrl", // NEW
   "programTitle",
   "programSummary",
   "lastStatus",
@@ -467,6 +469,7 @@ const SECURITY_CONFIG = {
 }
 
 const initialFormData: FormData = {
+	audioUrl: "", // NEW
   programTitle: "",
   programSummary: "",
   asOf: "",
