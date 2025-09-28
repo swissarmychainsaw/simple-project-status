@@ -2416,6 +2416,20 @@ useEffect(() => {
   </CardContent>
 </Card>
 
+{/* NEW: Audio URL */}
+<div>
+  <Label className="text-sm font-medium">Audio URL</Label>
+  <Input
+    value={formData.audioUrl || ""}                 // keep it controlled
+    onChange={(e) => updateFormData("audioUrl", e.target.value)}
+    placeholder="https://...(SharePoint/OneDrive/MP3)"
+    className="bg-white mt-1"
+    inputMode="url"
+  />
+  <p className="text-xs text-gray-500 mt-1">
+    Adds a “Listen to this Report” button between the banner and the title in the email.
+  </p>
+</div>
 
 
 
