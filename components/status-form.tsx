@@ -1826,7 +1826,11 @@ ${data.resourcesHtml ? `
 
   setIsEmailing(true);
   try {
-    const htmlToSend = buildEmailHtml(formData, designOptions);
+    	const htmlToSend = buildEmailHtml(formData, designOptions);
+    	console.log("[debug] audioUrl:", formData.audioUrl);
+	console.log("[debug] valid http(s)?", typeof isValidHttpUrl === "function" ? isValidHttpUrl(formData.audioUrl) : "no isValidHttpUrl");
+	const hasCTA = /Listen to this Report/.test(htmlToSend);
+	console.log("[debug] CTA present in HTML?", hasCTA);
 
     const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
 
