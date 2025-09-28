@@ -69,66 +69,7 @@ const listsToParagraphs = (html: string): string => {
 
 
 
-
-const renderAudioCta = (
-  forEmail: boolean,
-  rawUrl: string,
-  accent?: string
-): string => {
-  const url = (rawUrl ?? "").toString().trim();
-  if (!url) return "";
-
-  let href = url;
-  try {
-    const u = new URL(
-      url,
-      typeof window !== "undefined" ? window.location.origin : "https://example.com"
-    );
-    if (!/^https?:$/i.test(u.protocol)) return "";
-    href = u.toString();
-  } catch {
-    return "";
-  }
-
-  const btnText = "Listen to this Report";
-  const bg = (accent || "#086dd7").trim();
-  const linkStyle =
-    "display:inline-block;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:6px;" +
-    "font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.2;color:#ffffff;";
-
-  return `
-  <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0"
-         style="border-collapse:collapse;width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;">
-    <tr>
-      <td align="center" valign="middle" style="padding:12px 0;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-          <tr>
-            <td bgcolor="${bg}" align="center" valign="middle" style="background-color:${bg};border-radius:6px;">
-              <a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">
-                ${btnText}
-              </a>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>`;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
 interface FormData {
-	audioUrl: string; // NEW
   programTitle: string
   programSummary: string
   asOf: string
@@ -234,6 +175,56 @@ const escapeHtml = (s: string): string =>
 const EMAIL_MAX_WIDTH = 900; // px
 
 
+
+
+
+// Renders the “Listen to this Report” button (used in preview + email)
+function renderAudioCta(forEmail: boolean, rawUrl: unknown, accent?: string): string {
+  if (!isValidHttpUrl(rawUrl)) return "";
+  const href = String(rawUrl).trim();
+  const bg = (accent || "#0078D4").trim();
+
+  const linkStyle =
+    "display:inline-block;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:6px;" +
+    "font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.2;color:#ffffff;";
+
+  return `
+  <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="border-collapse:collapse;width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;">
+    <tr>
+      <td align="center" valign="middle" style="padding:12px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <tr>
+            <td bgcolor="${bg}" align="center" valign="middle" style="background-color:${bg};border-radius:6px;">
+              <a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">
+                Listen to this Report
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
+
+
+
+
+
+
+// Simple http(s) URL guard used by form + email build
+function isValidHttpUrl(maybe: unknown): maybe is string {
+  if (typeof maybe !== "string") return false;
+  const s = maybe.trim();
+  if (!s) return false;
+  try {
+    const u = new URL(s, typeof window !== "undefined" ? window.location.origin : "https://example.com");
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 
 // Banner helper
@@ -425,7 +416,6 @@ const getPlainTextLength = (html: string): number => {
 }
 
 const SAVE_FIELDS = [
-	"audioUrl", // NEW
   "programTitle",
   "programSummary",
   "lastStatus",
@@ -527,7 +517,6 @@ const SECURITY_CONFIG = {
 }
 
 const initialFormData: FormData = {
-	audioUrl: "", // NEW
   programTitle: "",
   programSummary: "",
   asOf: "",
@@ -1425,7 +1414,6 @@ const evenRowStyle = "background-color:#f9f9f9;padding:20px;border:1px solid #CC
 
   <table style="width:100%;max-width:${EMAIL_MAX_WIDTH}px;margin:0 auto;border-collapse:collapse;font-family:Arial,sans-serif;">
 
-  ${renderAudioCta(true, data.audioUrl, (opts?.optAccent || "#0078D4"))}
     <tr><td>
       <table style="width:100%;border-collapse:collapse;margin:0;padding:0;">
 
@@ -1690,9 +1678,9 @@ const processedHighlights = processRichHtml(listsToParagraphs(data.highlightsHtm
 <!-- Fixed-width banner -->
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
   <tr><td style="padding:0;">${banner}</td></tr>
-  
-
 </table>
+
+${renderAudioCta(true, data.audioUrl, opts?.optAccent || "#0078D4")}
 
 <!-- Fixed-width outer container -->
 <table role="presentation" align="center" width="100%" style="${outerTableStyle}" cellpadding="0" cellspacing="0" border="0">
@@ -1829,65 +1817,46 @@ ${data.resourcesHtml ? `
     });
     return;
   }
- 
+
   const recipient = formData.emailTo.trim();
   if (!recipient) {
     toast({ title: "Email required", description: "Please enter an email address first.", variant: "destructive" });
     return;
   }
 
-   setIsEmailing(true);
-try {
-  // Build HTML first so any build errors surface before we try to send
-  console.log("[emailReport] building email…");
-  const htmlToSend = buildEmailHtml(formData, designOptions);
-  console.log("[emailReport] build ok, length:", htmlToSend?.length ?? 0);
+  setIsEmailing(true);
+  try {
+    	const htmlToSend = buildEmailHtml(formData, designOptions);
+    	console.log("[debug] audioUrl:", formData.audioUrl);
+	console.log("[debug] valid http(s)?", typeof isValidHttpUrl === "function" ? isValidHttpUrl(formData.audioUrl) : "no isValidHttpUrl");
+	const hasCTA = /Listen to this Report/.test(htmlToSend);
+	console.log("[debug] CTA present in HTML?", hasCTA);
 
-  // Only attach CID banner if mode=cid and an id is set
-  const usingCidBanner =
-    designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
+    const usingCidBanner = designOptions.optBannerMode === "cid" && !!designOptions.optBannerId;
 
-console.log("[emailReport] POST /api/email …");
-const res = await fetch("/api/email", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    to: recipient,
-    subject: (formData.programTitle || "Status Report").trim(),
-    html: htmlToSend,
-    bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
-  }),
-});
+    const res = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: recipient,
+        subject: formData.programTitle || "Status Report",
+        html: htmlToSend,
+        // only send when CID is selected – lets the server attach the right file
+        bannerId: usingCidBanner ? designOptions.optBannerId : undefined,
+      }),
+    });
 
-// ADD THESE LINES ↓↓↓
-const resText = await res.text().catch(() => "");
-console.log("[emailReport] /api/email →", res.status, res.ok, resText);
-if (!res.ok) throw new Error(`API returned ${res.status}: ${resText || "no body"}`);
-// END ADD
-//
-//
-  // Read body once; useful for debugging non-200 responses
-  const text = await res.text().catch(() => "");
-  console.log("[emailReport] /api/email status:", res.status, "body:", text);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`API returned ${res.status}: ${errorText}`);
+    }
 
-  if (!res.ok) {
-    throw new Error(`API returned ${res.status}: ${text || "no body"}`);
+    toast({ title: "Email Sent", description: `Report sent successfully to ${recipient}` });
+  } catch (error: any) {
+    toast({ title: "Email Failed", description: error?.message || "Unknown error", variant: "destructive" });
+  } finally {
+    setIsEmailing(false);
   }
-
-  toast({
-    title: "Email Sent",
-    description: `Report sent successfully to ${recipient}`,
-  });
-} catch (error: any) {
-  console.error("[emailReport] send failed:", error);
-  toast({
-    title: "Email Failed",
-    description: error?.message || "Unknown error",
-    variant: "destructive",
-  });
-} finally {
-  setIsEmailing(false);
-}
 };
 
 
@@ -2474,18 +2443,17 @@ useEffect(() => {
   </CardContent>
 </Card>
 
-{/* NEW: Audio URL */}
+{/* Audio URL */}
 <div>
   <Label className="text-sm font-medium">Audio URL</Label>
   <Input
-    value={formData.audioUrl || ""}                 // keep it controlled
+    value={formData.audioUrl || ""}
     onChange={(e) => updateFormData("audioUrl", e.target.value)}
-    placeholder="https://...(SharePoint/OneDrive/MP3)"
+    placeholder="https://… (SharePoint/OneDrive/MP3)"
     className="bg-white mt-1"
-    inputMode="url"
   />
   <p className="text-xs text-gray-500 mt-1">
-    Adds a “Listen to this Report” button between the banner and the title in the email.
+    Adds a “Listen to this Report” button under the banner.
   </p>
 </div>
 
